@@ -1,0 +1,7 @@
+#Walvis Bay,14 30.479E,22 57.373S,+
+Walvis Bay Airport,14 38.585E,22 58.838S,+
+#Windhoek,14 38.585E,22 34.229S,+
+St Helena,5 42.871W,15 57.691S,+
+#Ascension,14 22.260W,7 56.343S,+
+Cape Town,18 24.909E,33 54.674S,+
+Sao Tome,5 47.115E,0 25.518N,x
