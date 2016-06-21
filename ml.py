@@ -47,7 +47,7 @@ from matplotlib.figure import Figure
 #from mpl_toolkits.basemap import Basemap
 import datetime
 #import scipy, scipy.misc, scipy.special, scipy.integrate
-import Tkinter, FixTk, PIL
+import Tkinter, PIL
 import re #, copy
 #import ephem
 

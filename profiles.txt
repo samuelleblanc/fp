@@ -1,0 +1,20 @@
+{'Profile':'ORACLES','Plane_name':'P3',
+                 'Start_lon':'14 38.717E','Start_lat':'22 58.783S',
+                 'Lon_range':[-20,20],'Lat_range':[-30,10],
+                 'UTC_start':7.0,'UTC_conversion':+1.0,
+                 'start_alt':95.0}
+{'Profile':'NAAMES','Plane_name':'C130',
+                 'Start_lon':'52 44.547W','Start_lat':'47 37.273N',
+                 'Lon_range':[-55,-20],'Lat_range':[40,60],
+                 'UTC_start':8.5,'UTC_conversion':-2.5,
+                 'start_alt':110.0}
+{'Profile':'KORUS-AQ','Plane_name':'DC8',
+                 'Start_lon':'126 47.663E','Start_lat':'37 33.489N',
+                 'Lon_range':[120,135],'Lat_range':[20,40],
+                 'UTC_start':8.5,'UTC_conversion':+9,
+                 'start_alt':20.0}
+{'Profile':'AJAX','Plane_name':'Alpha-jet',
+                 'Start_lon':'122 3.489W','Start_lat':'37 24.387N',
+                 'Lon_range':[-125,-115],'Lat_range':[30,40],
+                 'UTC_start':20.0,'UTC_conversion':+7,
+                 'start_alt':95.0}
