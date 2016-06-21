@@ -40,17 +40,16 @@
                 - added basemap creation questions
                 - added GEOS imagerys with WMS service
 """
-
+import Tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 from matplotlib.figure import Figure
-import Tkinter as tk
-import numpy as np
-from mpl_toolkits.basemap import Basemap
+#import numpy as np
+#from mpl_toolkits.basemap import Basemap
 import datetime
 #import scipy, scipy.misc, scipy.special, scipy.integrate
-import PIL
-import re, copy
-import ephem
+import Tkinter, FixTk, PIL
+import re #, copy
+#import ephem
 
 import urllib2, socket, _socket, _ssl, _elementtree
 import pykml, simplekml, pyexpat
@@ -62,12 +61,12 @@ import map_interactive as mi
 import gui
 
 import tkSimpleDialog, tkFileDialog, tkMessageBox
-import owslib, owslib.wms, owslib.util
-from xlwings import Range, Sheet, Workbook
-import Pysolar, Pysolar.solar
-import win32com, win32com.client
-import FileDialog
-import six, six.moves
+#import owslib, owslib.wms, owslib.util
+#from xlwings import Range, Sheet, Workbook
+#import Pysolar, Pysolar.solar
+#import win32com, win32com.client
+#import FileDialog
+#import six, six.moves
 import warnings
 
 __version__ = 'v0.8beta'

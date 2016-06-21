@@ -12,7 +12,7 @@ class gui:
         line object from linebuilder, with connected excel_interface
     outputs:
         none, only gui and its object
-        Modifies the tkinter Basemap window via calls to plotting
+        Modifies the Tkinter Basemap window via calls to plotting
     Dependencies:
         Tkinter
         excel_interface
@@ -32,7 +32,7 @@ class gui:
         Modified: Samuel LeBlanc, 2015-09-10, Santa Cruz, CA
 	          - adding new flight path for another plane capabilities
 	Modified: Samuel LeBlanc, 2015-09-15, NASA Ames
-                  - added tkinter dialog classes fopr special gui interactions
+                  - added Tkinter dialog classes fopr special gui interactions
                       -initial profile setting of Basemap
                       -select flights/points
                       -move points
@@ -984,7 +984,7 @@ def Popup_list(arr):
     Outputs:
         index value of selection
     Dependencies:
-        tkinter
+        Tkinter
     MOdifications:
         written: Samuel LeBlanc, 2015-09-16, NASA Ames, CA
     """
