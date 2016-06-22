@@ -22,7 +22,7 @@
     8) move cursor over map to refresh map
     9) create points, move points by clicking or by manually entering in excel spreadsheet
     
-   ## Adding points:
+## Adding points:
     1) click and drag on map to create new point 
     2) modify altitudes, speed, or other properties of new point in excel spreadsheet
      *or*
@@ -32,7 +32,7 @@
     1) Press the 'add' button next to 'points:'
     2) Follow the dialog
     
-   ## Moving points
+## Moving points
     1) Click on point on map, and then drag
     *or*
     1) change coordinates in Excel spreadsheet
@@ -40,35 +40,35 @@
     *or*
     1) Use the 'Move' button and select points to move, then follow dialog
     
-   ## Delete points
+## Delete points
     1) delete line from the excel spreadsheet
     2) move cursor over map to refresh
     
-   ## Adding other planes or flight paths:
+## Adding other planes or flight paths:
     1) Press the 'New Flight Path' button
     2) Enter name of new flight path. If it contains the name of a plane (e.g. p3, er2, dc8, c130,baer), will use the predefined speeds for that plane
     3) New flight path will have different color
     
-   ## Change which flight path is active:
+## Change which flight path is active:
     1) Press the button related to the flight path desired just above the 'New Flight Path' button
     *do not switch with Excel Spreadsheet*
     
-   ## Move, zoom the map around:
+## Move, zoom the map around:
     1) Buttons at the bottom of the map are used for navigation
     2) from left to right: Home screen (first image seen), Previous view, Next view, Pan, Zoom, subplots properties, save map
     *If zoom is selected, draw rectangle to desired location, will not be able to make new points until zoom unselected*
     
-   ## Saving flight paths for sharing
+## Saving flight paths for sharing
     1) Press the 'Save all' button to create all figures and save them
     2) Follow dialog to find the desired saving location
     
-   ## Opening previously saved flight plans:
+## Opening previously saved flight plans:
     1) Press the Excel File: 'Open' button. 
     2) select the Excel file
     3) will take some time to populate the flight paths
     4) Might need to press refresh button after loading
     
-   ## Save flight plans:
+## Save flight plans:
     1) Press the 'Save' button next to Excel File
     *or*
     1) Save the Excel file, from Excel using normal dialog
@@ -83,17 +83,17 @@
     
 # Requirements:
 
-   ## Windows:
+## Windows:
         - compiled version run windows 64 bit, (32 bit not tested) (Windows 7,8,10)
         - Microsoft Excel
         - optionally Google Earth
     
-   ## OSX:
+## OSX:
         - compiled version tested on El Capitan Mac OSX v10.11, 64bit (others not tested)
         - Microsoft Excel
         - optionally Google Earth
     
-   ## source:
+## source:
         - Python 2.7
         - Numpy
         - Scipy
