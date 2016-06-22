@@ -1,14 +1,14 @@
 # Name:
 
-    Moving Lines, version 0.8beta
-    http://science.arm.gov/~sleblanc/flight_planning/
+Moving Lines, version 0.8beta
+[http://science.arm.gov/~sleblanc/flight_planning/]
     
 # Purpose:
     
-    Flight Planning software for creating flight plans for Airborne Science
+Flight Planning software for creating flight plans for Airborne Science
     
-    Creates a visual map interface and backend calculations to a spreadsheet flight planning tool
-    Takes advantage of clickable map for creating a flight plan, and already existing Excel software
+Creates a visual map interface and backend calculations to a spreadsheet flight planning tool
+Takes advantage of clickable map for creating a flight plan, and already existing Excel software
     
 # Quick Start (for compiled versions):
 
@@ -25,19 +25,23 @@
 ## Adding points:
     1) click and drag on map to create new point 
     2) modify altitudes, speed, or other properties of new point in excel spreadsheet
-     *or*
+  *or*
+  
     1) enter lat and lon in excel spreadsheet, optionally altitude and speed, delay time, start time
     2) move cursor over map area to refresh *or* press green refresh button
-     *or*
+  *or*
+  
     1) Press the 'add' button next to 'points:'
     2) Follow the dialog
     
 ## Moving points
     1) Click on point on map, and then drag
-    *or*
+*or*
+    
     1) change coordinates in Excel spreadsheet
     2) move cursor over map area to refresh
-    *or*
+*or*
+
     1) Use the 'Move' button and select points to move, then follow dialog
     
 ## Delete points
@@ -51,12 +55,12 @@
     
 ## Change which flight path is active:
     1) Press the button related to the flight path desired just above the 'New Flight Path' button
-    *do not switch with Excel Spreadsheet*
+**do not switch with Excel Spreadsheet**
     
 ## Move, zoom the map around:
     1) Buttons at the bottom of the map are used for navigation
     2) from left to right: Home screen (first image seen), Previous view, Next view, Pan, Zoom, subplots properties, save map
-    *If zoom is selected, draw rectangle to desired location, will not be able to make new points until zoom unselected*
+**If zoom is selected, draw rectangle to desired location, will not be able to make new points until zoom unselected**
     
 ## Saving flight paths for sharing
     1) Press the 'Save all' button to create all figures and save them
@@ -70,7 +74,8 @@
     
 ## Save flight plans:
     1) Press the 'Save' button next to Excel File
-    *or*
+*or*
+
     1) Save the Excel file, from Excel using normal dialog
     
 # Notes and tips about usage:
