@@ -399,12 +399,19 @@ class dict_position:
         If there is change, empty out the corresponding calculated areas
         Priority is always given to metric
         """
-        from xlwings import Range
+        from xlwings import Range,Workbook
         import numpy as np
-        self.wb.set_current()
-        tmp = Range('A2:U%i'%(self.n+1)).value
-        tmp0 = Range('A2:U2').vertical.value
-        tmp2 = Range('B2:U2').vertical.value
+        try:
+            self.wb.set_current()
+            tmp = Range('A2:U%i'%(self.n+1)).value
+	    tmp0 = Range('A2:U2').vertical.value
+            tmp2 = Range('B2:U2').vertical.value
+        except CommandError:
+            self.wb = Workbook.active()
+            self.wb.set_current()
+            tmp = Range('A2:U%i'%(self.n+1)).value
+            tmp0 = Range('A2:U2').vertical.value
+            tmp2 = Range('B2:U2').vertical.value
         dim = np.shape(tmp)
         if len(dim)==1:
             tmp = [tmp]
@@ -776,7 +783,14 @@ class dict_position:
         Simple to program to initiate the save function in Excel
         Same as save button in Excel
         """
+        import sys
+        from xlwings import Workbook
         self.wb.save(filename)
+	if sys.platform.startswith('d'):
+            try:
+                self.wb = Workbook.active()
+            except:
+                pass
 
     def get_datestr_from_xl(self):
         'Simple program to get the datestr from the excel spreadsheet'
