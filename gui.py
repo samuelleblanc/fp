@@ -700,7 +700,13 @@ class gui:
             import tkMessageBox
             tkMessageBox.showwarning('Sorry','Problem getting the image to load')
             return
+            
+    def gui_flt_module(self):
+        'Program to load the flt_module files and select'
+        print 'not yet'
+            
 
+        
 class Select_flights(tkSimpleDialog.Dialog):
     """
     Purpose:
@@ -809,6 +815,28 @@ class Move_point(tkSimpleDialog.Dialog):
                 tkMessageBox.showwarning('Bad input','Can not format values, try again')
         return True
 
+class ask(tkSimpleDialog.Dialog):
+    """
+    Simple class to ask to enter values for each item in names
+    """
+    import Tkinter as tk
+    def __init__(self,names,title='Enter numbers'):
+        self.names = names
+        parent = tk._default_root
+        tkSimpleDialog.Dialog.__init__(self,parent,title)
+        pass
+    def body(self,master):
+        self.fields = range(len(self.names))
+        for i,n in enumerate(self.names):
+            tk.Label(master,text=n).grid(row=i)
+            self.fields[i] = tk.Entry(master)
+            self.fields[i].grid(row=i,column=1)
+    def apply(self):
+        self.names_val = range(len(self.names))
+        for i,n in enumerate(self.names):
+            self.names_val[i] = float(self.fields[i].get())
+        return self.names_val          
+        
 class Select_profile(tkSimpleDialog.Dialog):
     """
     Purpose:
