@@ -10,4 +10,5 @@ datas = [(os.path.join(ei.get_curdir(),'sat.tle'),'.'),
          (os.path.join(ei.get_curdir(),'aeronet_locations.txt'),'.'),
          (os.path.join(ei.get_curdir(),'file.rc'),'.'),
          (os.path.join(ei.get_curdir(),'README.md'),'.'),
-         (os.path.join(ei.get_curdir(),'license.txt'),'.')]
+         (os.path.join(ei.get_curdir(),'license.txt'),'.'),
+         (os.path.join(ei.get_curdir(),'profiles.txt'),'.')]
