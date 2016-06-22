@@ -1,6 +1,7 @@
 # Name:
 
     Moving Lines, version 0.8beta
+    http://science.arm.gov/~sleblanc/flight_planning/
     
 # Purpose:
     
@@ -11,7 +12,7 @@
     
 # Quick Start (for compiled versions):
 
-    1) Download appropriate zip file, extract to desired location
+    1) Download appropriate zip file and extract to desired location
     2) Requires Microsoft Excel
     3) run the executable (ml for OSX, ml.exe for Win)
     4) Select the mapping profile (defaults to ORACLES), can change the map boundaries, take-off time, utc offset
