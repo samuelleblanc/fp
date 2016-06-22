@@ -15,6 +15,10 @@ Takes advantage of clickable map for creating a flight plan, and already existin
     1) Download appropriate zip file and extract to desired location
     2) Requires Microsoft Excel
     3) run the executable (ml for OSX, ml.exe for Win)
+        for OSX:
+            - run from command line, must cd to directory hosting the ml exectuable
+        for Windows:
+            - double click the ml.exe icon
     4) Select the mapping profile (defaults to ORACLES), can change the map boundaries, take-off time, utc offset
     5) wait about 30seconds
     6) Enter date of planned flight in dialog in format yyyy-mm-dd
