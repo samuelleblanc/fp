@@ -1,8 +1,8 @@
 #length,spacing,angle
-length,angle
-spacing,angle+90
-length,angle+180
-spacing,angle+90
-length,angle
-spacing,angle+90
-length,angle+180
+angle,length
+angle+90,spacing
+angle+180,length
+angle+90,spacing
+angle,length
+angle+90,spacing
+angle+180,length

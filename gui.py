@@ -716,16 +716,18 @@ class Select_flt_mod(tkSimpleDialog.Dialog):
        If possible it will show a small png of the flt_module (not done yet)
     """
     import Tkinter as tk
-    def __init__(self,flt_mods,title='Choose flt module'):
+    def __init__(self,flt_mods,title='Choose flt module',text='Select flt module:'):
         import Tkinter as tk
         parent = tk._default_root
         self.flt_mods = flt_mods
+        self.text = text
         tkSimpleDialog.Dialog.__init__(self,parent,title)
         pass
     def body(self,master):
         import Tkinter as tk
         self.rbuttons = []
-        self.flt = tk.StringVar
+        self.flt = tk.StringVar()
+        tk.Label(master, text=self.text).grid(row=0)
         for i,l in enumerate(self.flt_mods.keys()):
             self.rbuttons.append(tk.Radiobutton(master,text=l, variable=self.flt,value=l))
             self.rbuttons[i].grid(row=i+1,sticky=tk.W)
@@ -733,6 +735,7 @@ class Select_flt_mod(tkSimpleDialog.Dialog):
     def apply(self):
         self.mod_path = self.flt_mods[self.flt.get()]['path']
         self.selected_flt = self.flt.get()
+        return self.mod_path 
     
 class Select_flights(tkSimpleDialog.Dialog):
     """
@@ -846,13 +849,14 @@ class ask(tkSimpleDialog.Dialog):
     """
     Simple class to ask to enter values for each item in names
     """
-    import Tkinter as tk
     def __init__(self,names,title='Enter numbers'):
+        import Tkinter as tk
         self.names = names
         parent = tk._default_root
         tkSimpleDialog.Dialog.__init__(self,parent,title)
         pass
     def body(self,master):
+        import Tkinter as tk
         self.fields = range(len(self.names))
         for i,n in enumerate(self.names):
             tk.Label(master,text=n).grid(row=i)
