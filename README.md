@@ -179,4 +179,6 @@ Takes advantage of clickable map for creating a flight plan, and already existin
                        Added sun position calculations
                        Modified some gui placement
                        Added ICT file creation, and save all button
+    Modified (v0.9b): Samuel LeBlanc, NASA Ames, 2016-06-22
+                       Added flt_module command for creating parts of flights via macros
     
