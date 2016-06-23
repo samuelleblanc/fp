@@ -478,8 +478,8 @@ class LineBuilder:
         v = vals.names_val
         # make the values variables
         for i,n in enumerate(names):
-            exec('{}={}'.format(n,vals.names_val[i])
-        for l in f.readlines():
+            exec('{}={}'.format(n,vals.names_val[i]))
+        for l in f:
             if not l.startswith('#'):
                 self.newpoint(*eval(l))
         f.close()
@@ -800,8 +800,16 @@ def get_tle_from_file(filename):
 def get_flt_modules():
     'Program to create a list of *.flt files found returns dict of file path, file name, and linked png (is it exists)'
     import os
-    
-    
+    fnames_all = os.listdir(os.path.join('.','flt_module'))
+    fnames = [g for g in fnames_all if g.endswith('flt')] #check correct file ending
+    dict = {}
+    for f in fnames:
+        png = os.path.abspath(os.path.join('.','flt_module',f.split('.')[0]+'.png'))
+        if not os.path.isfile(png):
+            png = None
+        dict[f] = {'path':os.path.abspath(os.path.join('.','flt_module',f)),
+                   'png':png}
+    return dict
     
         
     

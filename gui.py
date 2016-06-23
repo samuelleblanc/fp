@@ -703,10 +703,37 @@ class gui:
             
     def gui_flt_module(self):
         'Program to load the flt_module files and select'
-        print 'not yet'
+        from map_interactive import get_flt_modules
+        from gui import Select_flt_mod
+        flt_mods = get_flt_modules()
+        select = Select_flt_mod(flt_mods)
+        print 'Applying the flt_module {}'.format(select.selected_flt)
+        self.line.parse_flt_module_file(select.mod_path)
             
-
-        
+class Select_flt_mod(tkSimpleDialog.Dialog):
+    """
+       Dialog box pop up that lists the available flt_modules. 
+       If possible it will show a small png of the flt_module (not done yet)
+    """
+    import Tkinter as tk
+    def __init__(self,flt_mods,title='Choose flt module'):
+        import Tkinter as tk
+        parent = tk._default_root
+        self.flt_mods = flt_mods
+        tkSimpleDialog.Dialog.__init__(self,parent,title)
+        pass
+    def body(self,master):
+        import Tkinter as tk
+        self.rbuttons = []
+        self.flt = tk.StringVar
+        for i,l in enumerate(self.flt_mods.keys()):
+            self.rbuttons.append(tk.Radiobutton(master,text=l, variable=self.flt,value=l))
+            self.rbuttons[i].grid(row=i+1,sticky=tk.W)
+        return
+    def apply(self):
+        self.mod_path = self.flt_mods[self.flt.get()]['path']
+        self.selected_flt = self.flt.get()
+    
 class Select_flights(tkSimpleDialog.Dialog):
     """
     Purpose:
