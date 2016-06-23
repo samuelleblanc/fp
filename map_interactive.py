@@ -43,6 +43,8 @@ class LineBuilder:
                  - bug fixes
         Modified: Samuel LeBlanc, 2015-09-15, NASA Ames, CA
                  - added handling of blit draw techinque to get gains in speed when drawing
+        Modified: Samuel LeBlanc, 2016-06-22, NASA Ames, CA
+                 - added flt_modules functionality
     """
     def __init__(self, line,m=None,ex=None,verbose=False,tb=None, blit=True):
         """

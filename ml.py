@@ -69,7 +69,7 @@ import tkSimpleDialog, tkFileDialog, tkMessageBox
 #import six, six.moves
 import warnings
 
-__version__ = 'v0.8beta'
+__version__ = 'v0.9beta'
 
 def Get_basemap_profile():
     'Program to load profile dict basemap values'
