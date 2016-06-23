@@ -404,7 +404,7 @@ class dict_position:
         try:
             self.wb.set_current()
             tmp = Range('A2:U%i'%(self.n+1)).value
-	    tmp0 = Range('A2:U2').vertical.value
+            tmp0 = Range('A2:U2').vertical.value
             tmp2 = Range('B2:U2').vertical.value
         except CommandError:
             self.wb = Workbook.active()
@@ -786,7 +786,7 @@ class dict_position:
         import sys
         from xlwings import Workbook
         self.wb.save(filename)
-	if sys.platform.startswith('d'):
+        if sys.platform.startswith('d'):
             try:
                 self.wb = Workbook.active()
             except:
@@ -1037,3 +1037,4 @@ def get_curdir():
     else:
         path = dirname(realpath(argv[0]))
     return path
+

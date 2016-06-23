@@ -69,7 +69,8 @@ import tkSimpleDialog, tkFileDialog, tkMessageBox
 #import six, six.moves
 import warnings
 
-__version__ = 'v0.8beta'
+__version__ = 'v0.9beta'
+
 
 def Get_basemap_profile():
     'Program to load profile dict basemap values'
@@ -255,6 +256,8 @@ def build_buttons(ui,lines,vertical=True):
     g.movepoints = tk.Button(g.root,text='Move',
                              command = g.gui_movepoints)
     g.movepoints.pack(in_=g.frame_points,padx=5,pady=2,side=tk.LEFT)
+    g.add_flt_module = tk.Button(g.root,text='Add flt module', command=g.gui_flt_module)
+    g.add_flt_module.pack(in_=ui.top)
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
              ).pack(in_=ui.top,side=side,padx=8,pady=5)
     #tk.Label(g.root,text='Extra info:').pack(in_=ui.top,side=side)

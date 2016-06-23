@@ -700,7 +700,43 @@ class gui:
             import tkMessageBox
             tkMessageBox.showwarning('Sorry','Problem getting the image to load')
             return
-
+            
+    def gui_flt_module(self):
+        'Program to load the flt_module files and select'
+        from map_interactive import get_flt_modules
+        from gui import Select_flt_mod
+        flt_mods = get_flt_modules()
+        select = Select_flt_mod(flt_mods)
+        print 'Applying the flt_module {}'.format(select.selected_flt)
+        self.line.parse_flt_module_file(select.mod_path)
+            
+class Select_flt_mod(tkSimpleDialog.Dialog):
+    """
+       Dialog box pop up that lists the available flt_modules. 
+       If possible it will show a small png of the flt_module (not done yet)
+    """
+    import Tkinter as tk
+    def __init__(self,flt_mods,title='Choose flt module',text='Select flt module:'):
+        import Tkinter as tk
+        parent = tk._default_root
+        self.flt_mods = flt_mods
+        self.text = text
+        tkSimpleDialog.Dialog.__init__(self,parent,title)
+        pass
+    def body(self,master):
+        import Tkinter as tk
+        self.rbuttons = []
+        self.flt = tk.StringVar()
+        tk.Label(master, text=self.text).grid(row=0)
+        for i,l in enumerate(self.flt_mods.keys()):
+            self.rbuttons.append(tk.Radiobutton(master,text=l, variable=self.flt,value=l))
+            self.rbuttons[i].grid(row=i+1,sticky=tk.W)
+        return
+    def apply(self):
+        self.mod_path = self.flt_mods[self.flt.get()]['path']
+        self.selected_flt = self.flt.get()
+        return self.mod_path 
+    
 class Select_flights(tkSimpleDialog.Dialog):
     """
     Purpose:
@@ -808,6 +844,29 @@ class Move_point(tkSimpleDialog.Dialog):
                 import tkMessageBox
                 tkMessageBox.showwarning('Bad input','Can not format values, try again')
         return True
+
+class ask(tkSimpleDialog.Dialog):
+    """
+    Simple class to ask to enter values for each item in names
+    """
+    def __init__(self,names,title='Enter numbers'):
+        import Tkinter as tk
+        self.names = names
+        parent = tk._default_root
+        tkSimpleDialog.Dialog.__init__(self,parent,title)
+        pass
+    def body(self,master):
+        import Tkinter as tk
+        self.fields = range(len(self.names))
+        for i,n in enumerate(self.names):
+            tk.Label(master,text=n).grid(row=i)
+            self.fields[i] = tk.Entry(master)
+            self.fields[i].grid(row=i,column=1)
+    def apply(self):
+        self.names_val = range(len(self.names))
+        for i,n in enumerate(self.names):
+            self.names_val[i] = float(self.fields[i].get())
+        return self.names_val          
 
 class Select_profile(tkSimpleDialog.Dialog):
     """

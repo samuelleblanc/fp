@@ -43,6 +43,8 @@ class LineBuilder:
                  - bug fixes
         Modified: Samuel LeBlanc, 2015-09-15, NASA Ames, CA
                  - added handling of blit draw techinque to get gains in speed when drawing
+        Modified: Samuel LeBlanc, 2016-06-22, NASA Ames, CA
+                 - added flt_modules functionality
     """
     def __init__(self, line,m=None,ex=None,verbose=False,tb=None, blit=True):
         """
@@ -421,8 +423,8 @@ class LineBuilder:
 	self.line.figure.canvas.draw()
 	self.get_bg()
 
-    def newpoint(self,bearing,distance):
-        'program to add a new point at the end of the current track with a bearing and distance'
+    def newpoint(self,bearing,distance,alt=None):
+        'program to add a new point at the end of the current track with a bearing and distance, optionally an altitude'
         newlon,newlat,baz = shoot(self.lons[-1],self.lats[-1],bearing,maxdist=distance)
         if self.verbose:
             print 'New points at lon: %f, lat: %f' %(newlon,newlat)
@@ -436,7 +438,7 @@ class LineBuilder:
         self.ys.append(y)
         self.line.set_data(self.xs, self.ys)
         if self.ex:
-            self.ex.appends(self.lats[-1],self.lons[-1])
+            self.ex.appends(self.lats[-1],self.lons[-1],alt=alt)
             self.ex.calculate()
             self.ex.write_to_excel()
         self.update_labels()
@@ -461,6 +463,28 @@ class LineBuilder:
                 self.ex.write_to_excel()
             self.update_labels()
             self.draw_canvas()
+
+    def parse_flt_module_file(self,filename):
+        """
+        Program that opens a macro file and parses it, runs the move commands
+        
+        """
+        from gui import ask
+        import os
+        name = os.path.basename(filename).split('.')[0]
+        f = open(filename,'r')
+        s = f.readline()
+        if s.startswith('#'):
+            names = [u.strip() for u in s.strip().strip('#').split(',')]
+        vals = ask(names,title='Enter values for {}'.format(name))
+        v = vals.names_val
+        # make the values variables
+        for i,n in enumerate(names):
+            exec('{}={}'.format(n,vals.names_val[i]))
+        for l in f:
+            if not l.startswith('#'):
+                self.newpoint(*eval(l))
+        f.close()
 
     def get_bg(self,redraw=False):
         'program to store the canvas background. Used for blit technique'
@@ -775,6 +799,19 @@ def get_tle_from_file(filename):
             second = ''
     return sat
     
+def get_flt_modules():
+    'Program to create a list of *.flt files found returns dict of file path, file name, and linked png (is it exists)'
+    import os
+    fnames_all = os.listdir(os.path.join('.','flt_module'))
+    fnames = [g for g in fnames_all if g.endswith('flt')] #check correct file ending
+    dict = {}
+    for f in fnames:
+        png = os.path.abspath(os.path.join('.','flt_module',f.split('.')[0]+'.png'))
+        if not os.path.isfile(png):
+            png = None
+        dict[f] = {'path':os.path.abspath(os.path.join('.','flt_module',f)),
+                   'png':png}
+    return dict
     
         
     

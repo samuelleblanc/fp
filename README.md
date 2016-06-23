@@ -52,6 +52,22 @@ Takes advantage of clickable map for creating a flight plan, and already existin
     1) delete line from the excel spreadsheet
     2) move cursor over map to refresh
     
+## Use flt modules for prepared flight plans (similarly to macros)
+    1) Select button: 'Add flt module'
+    2) select the flt module from the radiobutton list
+    3) enter the quantities demanded from the flt file
+    
+## Creating a flt module (or macro)
+    1) in the flt_module folder create a text file
+    2) the text file name should be descriptive of the macro with an extension '.flt'
+    3) first line starts with the hash sign '#' then a list of variables to be used
+    4) each subsequent line is a move command, which can use simple math and the variables defined in the first line
+    5) format of the lines are: bearing,distance,altitude
+        where the bearing is the azimuth angle of the plane
+        where the distance is the length of that leg
+        where the altitude (which can be omitted) is the default altitude of the plane for the next waypoint
+    6) enter number of points desired for macro then save in the flt_module directory. It is ready to be used in the software.    
+    
 ## Adding other planes or flight paths:
     1) Press the 'New Flight Path' button
     2) Enter name of new flight path. If it contains the name of a plane (e.g. p3, er2, dc8, c130,baer), will use the predefined speeds for that plane
