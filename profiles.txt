@@ -11,10 +11,30 @@
 {'Profile':'KORUS-AQ','Plane_name':'DC8',
                  'Start_lon':'126 47.663E','Start_lat':'37 33.489N',
                  'Lon_range':[120,135],'Lat_range':[20,40],
-                 'UTC_start':8.5,'UTC_conversion':+9,
+                 'UTC_start':23,'UTC_conversion':+9,
                  'start_alt':20.0}
 {'Profile':'AJAX','Plane_name':'Alpha-jet',
                  'Start_lon':'122 3.489W','Start_lat':'37 24.387N',
                  'Lon_range':[-125,-115],'Lat_range':[30,40],
-                 'UTC_start':20.0,'UTC_conversion':+7,
+                 'UTC_start':20.0,'UTC_conversion':-7,
                  'start_alt':95.0}
+{'Profile':'ORACLES-Palmdale','Plane_name':'ER2',
+                 'Start_lon':'118 05 04W','Start_lat':'34 37 46N',
+                 'Lon_range':[-125,-115],'Lat_range':[30,40],
+                 'UTC_start':17.0,'UTC_conversion':-8.0,
+                 'start_alt':775.0}
+{'Profile':'ORACLES-WFF','Plane_name':'P3',
+                 'Start_lon':'75.466389W','Start_lat':'37.940194N ',
+                 'Lon_range':[-80,-55],'Lat_range':[30,45],
+                 'UTC_start':12.0,'UTC_conversion':-5.0,
+                 'start_alt':10.0}
+{'Profile':'ORACLES-Ascension','Plane_name':'P3',
+                 'Start_lon':'14 22.260W','Start_lat':'7 56.343S',
+                 'Lon_range':[-18,15],'Lat_range':[-25,5],
+                 'UTC_start':8.0,'UTC_conversion':0.0,
+                 'start_alt':10.0}
+{'Profile':'CLARIFY','Plane_name':'BEA146',
+                 'Start_lon':'14 22.260W','Start_lat':'7 56.343S',
+                 'Lon_range':[-18,15],'Lat_range':[-25,5],
+                 'UTC_start':8.0,'UTC_conversion':0.0,
+                 'start_alt':10.0}
