@@ -69,39 +69,50 @@ import tkSimpleDialog, tkFileDialog, tkMessageBox
 #import six, six.moves
 import warnings
 
-__version__ = 'v0.9beta'
+__version__ = 'v0.95beta'
+
+profile_filename = 'profiles.txt'
+platform_filename = 'platform.txt'
 
 def Get_basemap_profile():
     'Program to load profile dict basemap values'
-    filename = 'profiles.txt'
-    defaults = Get_default_profile(filename)
+    defaults = Get_default_profile(profile_filename)
     select = gui.Select_profile(defaults)
     return select.profile
 
+def read_prof_file(filename):
+    """
+    Program that reads a file with dict format and interprets it for use within the variable space here
+    """
+    profile = []
+    f = open(filename,'r')
+    dd = None
+    for line in f:
+        if line.strip().startswith('#'):
+            continue
+        if not dd:
+            first = True
+            dd = line
+        else:
+            first = False
+        if ('{' in dd) & ('}' in dd):
+            profile.append(eval(dd.strip()))
+            dd = line.strip()
+        else:
+            if first: 
+                dd = line.strip()
+            else:
+                dd = ''.join((dd.strip(),line.strip()))
+    profile.append(eval(dd.strip()))
+    return profile
+    
 def Get_default_profile(filename):
     """
     Program to try and read a text file with the default profiles
     If unavailable use some hardcoded defaults
     """
-    profile = []
     try:
-        f = open(filename,'r')
-        dd = None
-        for line in f:
-            if not dd:
-                first = True
-                dd = line
-            else:
-                first = False
-            if ('{' in dd) & ('}' in dd):
-                profile.append(eval(dd.strip()))
-                dd = line.strip()
-            else:
-                if first: 
-                    dd = line.strip()
-                else:
-                    dd = ''.join((dd.strip(),line.strip()))
-        profile.append(eval(dd.strip()))
+        profile = read_prof_file(filename)
     except:
         profile = [{'Profile':'ORACLES','Plane_name':'P3',
                      'Start_lon':'14 38.717E','Start_lat':'22 58.783S',
@@ -251,18 +262,22 @@ def build_buttons(ui,lines,vertical=True):
     tk.Label(ui.top,text='Points:').pack(in_=g.frame_points,side=tk.LEFT)
     g.addpoint = tk.Button(g.root,text='Add',
                            command = g.gui_addpoint)
-    g.addpoint.pack(in_=g.frame_points,padx=5,pady=2,side=tk.LEFT)
+    g.addpoint.pack(in_=g.frame_points,padx=0,pady=0,side=tk.LEFT)
     g.movepoints = tk.Button(g.root,text='Move',
                              command = g.gui_movepoints)
-    g.movepoints.pack(in_=g.frame_points,padx=5,pady=2,side=tk.LEFT)
+    g.movepoints.pack(in_=g.frame_points,padx=0,pady=0,side=tk.LEFT)
+    g.rotpoints = tk.Button(g.root,text='Rotate',
+                             command = g.gui_rotatepoints)
+    g.rotpoints.pack(in_=g.frame_points,padx=0,pady=0,side=tk.LEFT)
     g.add_flt_module = tk.Button(g.root,text='Add flt module', command=g.gui_flt_module)
     g.add_flt_module.pack(in_=ui.top)
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
              ).pack(in_=ui.top,side=side,padx=8,pady=5)
     #tk.Label(g.root,text='Extra info:').pack(in_=ui.top,side=side)
     g.baddsat = tk.Button(g.root,text='Add Satellite tracks',
-                         command = g.gui_addsat_tle)
+                         command = g.dummy_func)
     g.baddsat.pack(in_=ui.top)
+    g.baddsat.config(command=g.gui_addsat_tle)
     g.baddbocachica = tk.Button(g.root,text='Add Forecast\nfrom Bocachica',
                          command = g.gui_addbocachica)
     g.baddbocachica.pack(in_=ui.top)
@@ -352,10 +367,10 @@ def Create_interaction(test=False,profile=None,**kwargs):
         mi.plot_map_labels(m,faero,marker='*',skip_lines=2,color='y')
     except:
         print 'Label files not found!'
-        
     get_datestr(ui)
     ui.tb.set_message('making the Excel connection')
-    wb = ex.dict_position(datestr=ui.datestr,color=line.get_color(),profile=profile,version=__version__,**kwargs)
+    wb = ex.dict_position(datestr=ui.datestr,color=line.get_color(),profile=profile,
+         version=__version__,platform_file=platform_filename,**kwargs)
     ui.tb.set_message('Building the interactivity on the map')
     lines = mi.LineBuilder(line,m=m,ex=wb,tb=ui.tb,blit=True)
     ui.tb.set_message('Saving temporary excel file')

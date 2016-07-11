@@ -31,12 +31,21 @@ class gui:
 		  - modified imports to be more specific
         Modified: Samuel LeBlanc, 2015-09-10, Santa Cruz, CA
 	          - adding new flight path for another plane capabilities
-	Modified: Samuel LeBlanc, 2015-09-15, NASA Ames
+        Modified: Samuel LeBlanc, 2015-09-15, NASA Ames
                   - added Tkinter dialog classes fopr special gui interactions
                       -initial profile setting of Basemap
                       -select flights/points
                       -move points
-                  - added GEOS figure adding with WMS service
+                  - added GEOS figure adding with WMS service - not yet working
+        Modified: Samuel LeBlanc, 2016-06-12, NASA Ames
+                  - modified the button layout and functions. added rotate buttons and flt_module
+                  - modified plotting of sza and alt vs time for nicer plots
+                  - fixed load_flight
+                  - added saving utilities
+        Modified: Samuel LeBlanc, 2016-07-11, on plane from SFO -> WFF
+                  - added remove satellite tracks button.
+                  - fixed a few bugs
+                  
     """
     def __init__(self,line=None,root=None,noplt=False):
         import Tkinter as tk
@@ -303,7 +312,7 @@ class gui:
         ax2.set_ylabel('Azimuth angle [degree]')
         ax2.set_xlabel('Flight duration [Hours]')
         ax2.grid()
-        ax2.plot(self.line.ex.cumlegt,self.line.ex.bearing,'xr',label='{} bearing'.format(self.line.ex.name))
+        ax2.plot(self.line.ex.cumlegt,self.line.ex.Bearing,'xr',label='{} bearing'.format(self.line.ex.name))
         box = ax1.get_position()
         ax1.set_position([box.x0, box.y0, box.width * 0.75, box.height])
         ax1_up.set_position([box.x0, box.y0, box.width * 0.75, box.height])
@@ -561,6 +570,35 @@ class gui:
         self.line.movepoint(0,0,0,last=True)
         self.line.moving = False
         
+    def gui_rotatepoints(self):
+        'GUI button to rotate many points at once'
+        import tkSimpleDialog
+        from gui import Select_flights
+        wp_arr = []
+        for w in self.line.ex.WP:
+            wp_arr.append('WP #%i'%w)
+        p0 = Select_flights(wp_arr,title='Center rotation point',Text='Select one point to act as center of rotation:')
+        p = Select_flights(wp_arr,title='Rotate points',Text='Select points to rotate:')
+        try:
+            angle = float(tkSimpleDialog.askstring('Rotation angle','Enter angle of Rotation:'))
+        except:
+            angle = float(tkSimpleDialog.askstring('Rotation angle','**Invalid number, Please try again**\nEnter angle of Rotation:'))
+        if not angle:
+            print 'Cancelled rotation'
+            return
+        self.line.moving = True
+        # get the rotation point
+        for i,val in enumerate(p0.result):
+            if val:
+                lat0,lon0 = self.line.lats[i],self.line.lons[i]
+        # rotate agains that center point
+        for i,val in enumerate(p.result):
+            if val:
+                bear,dist = self.line.calc_move_from_rot(i,angle,lat0,lon0)
+                self.line.movepoint(i,bear,dist,last=False)
+        self.line.movepoint(0,0,0,last=True)
+        self.line.moving = False
+        
     def gui_addsat(self):
         'Gui button to add the satellite tracks'
         from tkMessageBox import askquestion
@@ -588,6 +626,10 @@ class gui:
             self.line.tb.set_message('Plotting satellite tracks') 
             self.sat_obj = plot_sat_tracks(self.line.m,sat)
         self.line.get_bg()
+        
+    def dummy_func(self):
+        'dummy function that does nothing'
+        return
 
     def gui_addsat_tle(self):
         'Gui button to add the satellite tracks'
@@ -597,7 +639,23 @@ class gui:
         self.line.tb.set_message('Plotting Satellite tracks')
         self.sat_obj = plot_sat_tracks(self.line.m,sat)
         self.line.get_bg(redraw=True)
-
+        self.baddsat.config(text='Remove Sat tracks')
+        self.baddsat.config(command=self.gui_rmsat)
+        
+    def gui_rmsat(self):
+        'Gui button to remove the satellite tracks'
+        self.line.tb.set_message('Removing satellite tracks')
+        for s in self.sat_obj:
+            if type(s) is list:
+                for so in s:
+                    so.remove()
+            else:
+                s.remove()
+        self.baddsat.config(text='Add Satellite tracks')
+        self.baddsat.config(command=self.gui_addsat_tle)
+        self.line.get_bg(redraw=True)
+        self.line.tb.set_message('Finished removing satellite tracks')
+        
 
     def gui_addbocachica(self):
         'GUI handler for adding bocachica foreacast maps to basemap plot'
@@ -727,6 +785,7 @@ class Select_flt_mod(tkSimpleDialog.Dialog):
         import Tkinter as tk
         self.rbuttons = []
         self.flt = tk.StringVar()
+        self.flt.set(self.flt_mods.keys()[0])
         tk.Label(master, text=self.text).grid(row=0)
         for i,l in enumerate(self.flt_mods.keys()):
             self.rbuttons.append(tk.Radiobutton(master,text=l, variable=self.flt,value=l))
@@ -849,23 +908,48 @@ class ask(tkSimpleDialog.Dialog):
     """
     Simple class to ask to enter values for each item in names
     """
-    def __init__(self,names,title='Enter numbers'):
+    def __init__(self,names,choice=[],choice_title=None,choice2=[],choice2_title=None,title='Enter numbers'):
         import Tkinter as tk
         self.names = names
+        self.choice = choice
+        self.choice_title = choice_title
+        self.choice2 = choice2
+        self.choice2_title = choice2_title
         parent = tk._default_root
         tkSimpleDialog.Dialog.__init__(self,parent,title)
         pass
     def body(self,master):
         import Tkinter as tk
+        self.radb_val = tk.StringVar()
+        self.radb_val.set(self.choice[0])
+        self.radbutton = []
+        self.radb2_val = tk.StringVar()
+        self.radb2_val.set(self.choice2[0])
+        self.radbutton2 = []
+        ii = 0
+        if self.choice_title:
+            tk.Label(master,text=self.choice_title).grid(row=0,column=0,columnspan=2)
+            ii = 1
+        for i,l in enumerate(self.choice):
+            self.radbutton.append(tk.Radiobutton(master,text=l,variable=self.radb_val,value=l))
+            self.radbutton[i].grid(row=0+ii,column=i)
+        if self.choice2_title:
+            tk.Label(master,text=self.choice2_title).grid(row=1+ii,column=0,columnspan=2)
+            ii = 3
+        for i,l in enumerate(self.choice2):
+            self.radbutton2.append(tk.Radiobutton(master,text=l,variable=self.radb2_val,value=l))
+            self.radbutton2[i].grid(row=ii,column=i)
         self.fields = range(len(self.names))
         for i,n in enumerate(self.names):
-            tk.Label(master,text=n).grid(row=i)
+            tk.Label(master,text=n).grid(row=i+1+ii)
             self.fields[i] = tk.Entry(master)
-            self.fields[i].grid(row=i,column=1)
+            self.fields[i].grid(row=i+1+ii,column=1)
     def apply(self):
         self.names_val = range(len(self.names))
         for i,n in enumerate(self.names):
             self.names_val[i] = float(self.fields[i].get())
+        self.choice_val = self.radb_val.get()
+        self.choice2_val = self.radb2_val.get()
         return self.names_val          
         
 class Select_profile(tkSimpleDialog.Dialog):

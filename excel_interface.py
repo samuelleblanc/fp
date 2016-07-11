@@ -69,8 +69,11 @@ class dict_position:
                 - added color keyword
         Modified: Samuel LeBlanc, 2015-09-10, NASA Ames, Santa Cruz, CA
 	        - added init codes for loading a single sheet of a workbook
-	Modified: Samuel LeBlanc, 2015-09-15, NASA Ames, CA
-                - added handling of the profile dict of lat lon and starting positions
+        Modified: Samuel LeBlanc, 2015-09-15, NASA Ames, CA
+                    - added handling of the profile dict of lat lon and starting positions
+        Modified: Samuel LeBlanc, 2016-07-10, NASA Ames, from Santa Cruz, CA
+                 - added handling of platform info from external files.
+                 - added bearing info to excel file and vlight planning version info with date
     """
     import numpy as np
     from xlwings import Range,Sheet
@@ -85,7 +88,7 @@ class dict_position:
                  UTC_conversion=+1.0,alt0=0.0,
                  verbose=False,filename=None,datestr=None,
                  newsheetonly=False,name='P3 Flight path',sheet_num=1,color='red',
-                 profile=None,campaign='None',version='v0.8beta'):
+                 profile=None,campaign='None',version='v0.8beta',platform_file='platform.txt'):
 
         if profile:
             lon0,lat0,UTC_start = profile['Start_lon'],profile['Start_lat'],profile['UTC_start']
@@ -121,8 +124,11 @@ class dict_position:
         self.verbose = verbose
         self.name = name
         self.campaign = campaign
-        self.platform = self.check_platform(name)
-        print 'Using platform data for: %s' %self.platform
+        self.platform, self.p_info,use_file = self.get_platform_info(name,platform_file)
+        if use_file:
+            print 'Using platform data for: {} from platform file: {}'.format(self.platform,platform_file)
+        else:
+            print 'Using platform data for: {} from internal defaults'.format(self.platform)
 
         if datestr:
             self.datestr = datestr
@@ -142,7 +148,99 @@ class dict_position:
             self.calculate()
             self.write_to_excel()
 	    self.sheet_num = sheet_num
-	    
+        
+    def get_platform_info(self,name,filename):
+        """
+        Function that reads the platform info from seperate file. 
+        If sucessfuly uses these info to prepare speeds, altitudes, climb time, turn time, and others
+        
+        """
+        from ml import read_prof_file
+        import tkMessageBox
+        platform = None
+        p_info = None
+        use_file = False
+        try:
+            p = read_prof_file(filename)
+            for d in p:
+                if any(o in name for o in d['names']):
+                    platform = d['Platform']
+                    p_info = d
+                    use_file = True
+                    break
+            if not p_info:
+                tkMessageBox.showwarning('Platform not found','Platform values not found in file: {}.\nUsing internal defaults.'.format(filename))
+                platform = self.check_platform(name)
+                p_info = self.default_p_info(platform)
+        except IOError:
+            print '** Error reading platform information file: {} **'.format(filename)
+            print '** Using default platform profiles **'
+            platform = self.check_platform(name)
+            p_info = self.default_p_info(platform)
+        if p_info['warning']:
+            tkMessageBox.showwarning('Check needed','Platform default speeds and altitude may be off for {}. Please double check.'.format(platform))
+        return platform, p_info, use_file
+            
+    def default_p_info(self,platform):
+        'function that returns the default dict of platform info'
+        if platform=='p3':
+            p_info = {'Platform':'p3','names':['p3','P3','P-3','p-3','p 3','P 3'],
+                      'max_alt':7500.0,'base_speed':130.0,'speed_per_alt':0.0075,
+                      'max_speed':175.0,'max_speed_alt':6000.0,'descent_speed_decrease':15.0,
+                      'climb_vert_speed':5.0,'descent_vert_speed':-5.0,'alt_for_variable_vert_speed':6000.0,
+                      'vert_speed_base':4.5,'vert_speed_per_alt':7e-05,
+                      'rate_of_turn':None,'turn_bank_angle':15.0,
+                      'warning':False}
+        elif platform=='er2':
+            p_info = {'Platform':'er2','names':['er2','ER2','ER-2','er-2','ER 2','er 2'],
+                        'max_alt':19000.0,'base_speed':70.0,'speed_per_alt':0.0071,
+                        'max_speed':300.0,'max_speed_alt':30000.0,'descent_speed_decrease':0.0,
+                        'climb_vert_speed':10.0,'descent_vert_speed':-10.0,'alt_for_variable_vert_speed':0.0,
+                        'vert_speed_base':24.0,'vert_speed_per_alt':0.0011,
+                        'rate_of_turn':None,'turn_bank_angle':15.0,
+                        'warning':False}
+        elif platform=='dc8':
+            p_info = {'Platform':'dc8','names':['dc8','DC8','DC-8','dc-8','DC 8','dc 8'],
+                        'max_alt':13000.0,'base_speed':130.0,'speed_per_alt':0.0075,
+                        'max_speed':175.0,'max_speed_alt':6000.0,'descent_speed_decrease':15.0,
+                        'climb_vert_speed':15.0,'descent_vert_speed':-10.0,'alt_for_variable_vert_speed':0.0,
+                        'vert_speed_base':15.0,'vert_speed_per_alt':0.001,
+                        'rate_of_turn':None,'turn_bank_angle':15.0,
+                        'warning':False}
+        elif platform=='c130':
+            p_info = {'Platform':'c130','names':['c130','C130','C-130','c-130','C 130','c 130'],
+                        'max_alt':7500.0,'base_speed':130.0,'speed_per_alt':0.0075,
+                        'max_speed':175.0,'max_speed_alt':6000.0,'descent_speed_decrease':15.0,
+                        'climb_vert_speed':10.0,'descent_vert_speed':-10.0,'alt_for_variable_vert_speed':0.0,
+                        'vert_speed_base':10.0,'vert_speed_per_alt':0.001,
+                        'rate_of_turn':None,'turn_bank_angle':20.0,
+                        'warning':False}
+        elif platform=='bae146':
+            p_info = {'Platform':'bae146','names':['bae','BAE','146'],
+                        'max_alt':8500.0,'base_speed':130.0,'speed_per_alt':0.002,
+                        'max_speed':150.0,'max_speed_alt':8000.0,'descent_speed_decrease':15.0,
+                        'climb_vert_speed':5.0,'descent_vert_speed':-5.0,'alt_for_variable_vert_speed':8000.0,
+                        'vert_speed_base':4.5,'vert_speed_per_alt':7e-05,
+                        'rate_of_turn':None,'turn_bank_angle':20.0,
+                        'warning':True}
+        elif platform=='ajax':
+            p_info = {'Platform':'ajax','names':['ajax','Ajax','AJAX','alphajet','alpha','alpha-jet'],
+                        'max_alt':9500.0,'base_speed':160.0,'speed_per_alt':0.09,
+                        'max_speed':250.0,'max_speed_alt':9000.0,'descent_speed_decrease':5.0,
+                        'climb_vert_speed':5.0,'descent_vert_speed':-5.0,'alt_for_variable_vert_speed':8000.0,
+                        'vert_speed_base':4.5,'vert_speed_per_alt':7e-05,
+                        'rate_of_turn':None,'turn_bank_angle':25.0,
+                        'warning':True}
+        else:
+            p_info = {'Platform':'p3','names':['p3','P3','P-3','p-3','p 3','P 3'],
+                      'max_alt':7500.0,'base_speed':130.0,'speed_per_alt':0.0075,
+                      'max_speed':175.0,'max_speed_alt':6000.0,'descent_speed_decrease':15.0,
+                      'climb_vert_speed':5.0,'descent_vert_speed':-5.0,'alt_for_variable_vert_speed':6000.0,
+                      'vert_speed_base':4.5,'vert_speed_per_alt':7e-05,
+                      'rate_of_turn':None,'turn_bank_angle':15.0,
+                      'warning':True}
+	    return p_info
+        
     def check_platform(self,name):
         'Simple program that check the name of the flight path to platforms names'
         if any(p in name for p in ['p3','P3','P-3','p-3','p 3','P 3']): platform = 'p3'
@@ -155,6 +253,17 @@ class dict_position:
         except UnboundLocalError:
             platform = 'NA'
         return platform
+        
+    def get_rate_of_turn(self):
+        'Function to calculate the rate of turn of the plane'
+        if self.p_info.get('rate_of_turn'):
+            rate_of_turn = self.p_info.get('rate_of_turn')
+        elif self.p_info.get('turn_bank_angle'):
+            rate_of_turn = 1091.0*np.tan(self.p_info['turn_bank_angle']*np.pi/180)/self.speed[0]
+        else:            
+            default_bank_angle = 15.0
+            rate_of_turn = 1091.0*np.tan(default_bank_angle*np.pi/180)/self.speed[0] # degree per second
+        return rate_of_turn
 
     def calculate(self):
         """
@@ -166,8 +275,7 @@ class dict_position:
 
         Assumes that blank spaces/nan are to be filled with new calculations
         """
-        default_bank_angle = 15.0
-        self.rate_of_turn = 1091.0*np.tan(default_bank_angle*np.pi/180)/self.speed[0] # degree per second
+        self.rate_of_turn = self.get_rate_of_turn()
         if not np.isfinite(self.rate_of_turn):
             self.rate_of_turn = 2.4
         self.n = len(self.lon)
@@ -231,16 +339,23 @@ class dict_position:
         P3 from Steven Howell based on TRACE-P
         ER2 from Samuel LeBlanc based on SEAC4RS
         """
-        if self.platform=='p3':
-            TAS = 130.0+alt1/1000.0*7.5
-            if alt1>6000.0:
-                TAS = 130.0+6*7.5
+        if self.p_info.get('base_speed'):
+            TAS = self.p_info['base_speed'] + alt1*self.p_info['speed_per_alt']
+            if alt1>self.p_info['max_speed_alt']:
+                TAS = self.p_info['max_speed']
             if alt1>alt0+200.0:
-                TAS = TAS -15.0
-        elif self.platform=='er2':
-            TAS = 70+alt0*0.0071
+                TAS = TAS-self.p_info['descent_speed_decrease']        
         else:
-            TAS = 130.0
+            if self.platform=='p3':
+                TAS = 130.0+alt1/1000.0*7.5
+                if alt1>6000.0:
+                    TAS = 130.0+6*7.5
+                if alt1>alt0+200.0:
+                    TAS = TAS -15.0
+            elif self.platform=='er2':
+                TAS = 70+alt0*0.0071
+            else:
+                TAS = 130.0
         if not np.isfinite(TAS):
             TAS = 130.0
         return TAS
@@ -249,16 +364,19 @@ class dict_position:
         'Program to guesstimate the cruising altitude'
         if alti!=alt0:
             return alti
-        if self.platform=='p3':
-            return 7500.0
-        elif self.platform=='er2':
-            return 19000.0
-        elif self.platform=='c130':
-            return 7500.0
-        elif self.platform=='dc8':
-            return 13000.0
+        if self.p_info.get('max_alt'):
+            return self.p_info['max_alt']
         else:
-            return alti
+            if self.platform=='p3':
+                return 7500.0
+            elif self.platform=='er2':
+                return 19000.0
+            elif self.platform=='c130':
+                return 7500.0
+            elif self.platform=='dc8':
+                return 13000.0
+            else:
+                return alti
         
     def calc_climb_time(self,alt0,alt1):
         """
@@ -273,34 +391,44 @@ class dict_position:
             if not alt1: climb = False
         else:
             climb = False
-        if self.platform=='p3':
+        if self.p_info.get(''):
             if climb:
-                if alt1 > 6000:
-                    speed = 4.5-7e-05*(alt1+alt0)/2.0
+                if alt1>self.p_info['alt_for_variable_vert_speed']:
+                    speed = self.p_info['vert_speed_base']-\
+                            self.p_info['vert_speed_per_alt']*(alt1+alt0)/2.0
                 else:
-                    speed = 5.0
+                    speed = self.p_info['climb_vert_speed']
             else:
-                speed = -5.0
-        elif self.platform=='er2':
-            if climb:
-                speed = 24.0-0.0011*(alt1+alt0)/2.0
-            else:
-                speed = -10.0
-        elif self.platform=='dc8':
-            if climb:
-                speed = 15.0-0.001*(alt1+alt0)/2.0
-            else:
-                speed = -10.0
-        elif self.platform=='c130':
-            if climb:
-                speed = 10.0-0.001*(alt1+alt0)/2.0
-            else:
-                speed = -10.0
+                speed = self.p_info['descent_vert_speed']
         else:
-            if climb:
-                speed = 5.0
+            if self.platform=='p3':
+                if climb:
+                    if alt1 > 6000:
+                        speed = 4.5-7e-05*(alt1+alt0)/2.0
+                    else:
+                        speed = 5.0
+                else:
+                    speed = -5.0
+            elif self.platform=='er2':
+                if climb:
+                    speed = 24.0-0.0011*(alt1+alt0)/2.0
+                else:
+                    speed = -10.0
+            elif self.platform=='dc8':
+                if climb:
+                    speed = 15.0-0.001*(alt1+alt0)/2.0
+                else:
+                    speed = -10.0
+            elif self.platform=='c130':
+                if climb:
+                    speed = 10.0-0.001*(alt1+alt0)/2.0
+                else:
+                    speed = -10.0
             else:
-                speed = -5.0
+                if climb:
+                    speed = 5.0
+                else:
+                    speed = -5.0
         climb_time = (alt1-alt0)/speed/60.0
         if not np.isfinite(climb_time):
             climb_time = 5.0
@@ -315,7 +443,7 @@ class dict_position:
 	dt = []
 	for i,u in enumerate(self.utc):
             Y,M,D = [int(s) for s in self.datestr.split('-')]
-            try:
+            try:    
                 hh = int(u)
             except ValueError:
                 print 'Problem on line :%i with value %f'%(i,u)

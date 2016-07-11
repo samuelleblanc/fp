@@ -423,9 +423,17 @@ class LineBuilder:
 	self.line.figure.canvas.draw()
 	self.get_bg()
 
-    def newpoint(self,bearing,distance,alt=None):
-        'program to add a new point at the end of the current track with a bearing and distance, optionally an altitude'
-        newlon,newlat,baz = shoot(self.lons[-1],self.lats[-1],bearing,maxdist=distance)
+    def newpoint(self,Bearing,distance,alt=None,last=True,feet=False,km=True):
+        """
+        program to add a new point at the end of the current track with a bearing and distance, optionally an altitude
+        if feet is set, altitude is defined in feet not the defautl meters.
+        if km is set to True, distance is defined in kilometers (default), if False, it uses nautical miles (nm)
+        """
+        if not km:
+            dist = distance*2.02 #need to check this value.
+        else:
+            dist = distance
+        newlon,newlat,baz = shoot(self.lons[-1],self.lats[-1],Bearing,maxdist=distance)
         if self.verbose:
             print 'New points at lon: %f, lat: %f' %(newlon,newlat)
         if self.m:
@@ -437,16 +445,20 @@ class LineBuilder:
         self.xs.append(x)
         self.ys.append(y)
         self.line.set_data(self.xs, self.ys)
+        
         if self.ex:
+            if alt:
+                if feet:
+                    alt = alt/3.28084
             self.ex.appends(self.lats[-1],self.lons[-1],alt=alt)
             self.ex.calculate()
             self.ex.write_to_excel()
         self.update_labels()
         self.draw_canvas()
 
-    def movepoint(self,i,bearing,distance,last=False):
+    def movepoint(self,i,Bearing,distance,last=False):
         'Program to move a point a certain distance and bearing'
-        newlon,newlat,baz = shoot(self.lons[i],self.lats[i],bearing,maxdist=distance)
+        newlon,newlat,baz = shoot(self.lons[i],self.lats[i],Bearing,maxdist=distance)
         if self.m:
             x,y = self.m(newlon,newlat)
             self.lons[i] = newlon
@@ -466,24 +478,55 @@ class LineBuilder:
             
     def parse_flt_module_file(self,filename):
         """
-        Program that opens a macro file and parses it, runs the move commands
+        Program that opens a macro file and parses it, runs the move commands on each line of the file
+        Added ability to defined either altitude in feet or meters, or the length in km or nm
         
         """
         from gui import ask
         import os
+        # set up predefined values
+        predef = ['azi','AZI','PP','pp']
+        azi = self.ex.azi[-1]
+        pp, AZI, PP = azi,azi,azi
+        
+        # load flt_module
         name = os.path.basename(filename).split('.')[0]
         f = open(filename,'r')
-        s = f.readline()
-        if s.startswith('#'):
-            names = [u.strip() for u in s.strip().strip('#').split(',')]
-        vals = ask(names,title='Enter values for {}'.format(name))
+        s = f.readlines()
+        # get variables in flt_module
+        for l in s:
+            if l.startswith('%'):
+                names = [u.strip() for u in l.strip().strip('%').split(',')]
+        choice = ['feet','meters']
+        choice2 = ['km','nm']
+        # remove values predefined
+        for p in predef:
+            try:
+                names.remove(p)
+            except:
+                pass
+                
+        # ask the user supply the variables
+        vals = ask(names,choice=choice,choice_title='Altitude:',choice2=choice2,choice2_title='Distance:',title='Enter values for {}'.format(name))
         v = vals.names_val
+        if vals.choice_val == 'feet': 
+            use_feet = True 
+        else: 
+            use_feet = False
+        
+        if vals.choice2_val == 'km': 
+            use_km = True 
+        else: 
+            use_km = False
+            
         # make the values variables
         for i,n in enumerate(names):
             exec('{}={}'.format(n,vals.names_val[i]))
-        for l in f:
+        for l in s[1:-1]:
             if not l.startswith('#'):
-                self.newpoint(*eval(l))
+                self.newpoint(*eval(l),last=False,feet=use_feet,km=use_km)
+        if not s[-1].startswith('#'):
+                self.newpoint(*eval(s[-1]),feet=use_feet,km=use_km)
         f.close()
 
     def get_bg(self,redraw=False):
@@ -509,6 +552,18 @@ class LineBuilder:
             self.line.figure.canvas.blit(self.line.axes.bbox)
         else:
             self.line.figure.canvas.draw()
+            
+    def calc_move_from_rot(self,i,angle,lat0,lon0):
+        """
+        Program to calculate a bearing and angle to rotate the point i based on the lat lon points lat0 and lon0
+        Returns a bearing and a distance of the point i to get the correct position
+        """
+        dist = spherical_dist([lat0,lon0],[self.lats[i],self.lons[i]])
+        bearing_start = bearing([lat0,lon0],[self.lats[i],self.lons[i]])
+        newlon,newlat,baz = shoot(lon0,lat0,bearing_start+angle,maxdist=dist)
+        dist_end = spherical_dist([self.lats[i],self.lons[i]],[newlat,newlon])
+        bearing_end = bearing([self.lats[i],self.lons[i]],[newlat,newlon])
+        return bearing_end,dist_end        
         
 def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,proj='cyl',profile=None):
     """
