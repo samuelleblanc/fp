@@ -312,7 +312,7 @@ class gui:
         ax2.set_ylabel('Azimuth angle [degree]')
         ax2.set_xlabel('Flight duration [Hours]')
         ax2.grid()
-        ax2.plot(self.line.ex.cumlegt,self.line.ex.Bearing,'xr',label='{} bearing'.format(self.line.ex.name))
+        ax2.plot(self.line.ex.cumlegt,self.line.ex.bearing,'xr',label='{} bearing'.format(self.line.ex.name))
         box = ax1.get_position()
         ax1.set_position([box.x0, box.y0, box.width * 0.75, box.height])
         ax1_up.set_position([box.x0, box.y0, box.width * 0.75, box.height])
