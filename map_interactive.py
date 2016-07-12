@@ -581,10 +581,15 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,proj='cyl',pr
         upper_right = [pll(profile['Lon_range'][1]),pll(profile['Lat_range'][1])]
         lower_left = [pll(profile['Lon_range'][0]),pll(profile['Lat_range'][0])]
         
-        
-    m = Basemap(projection=proj,lon_0=(upper_right[0]+lower_left[0])/2.0,lat_0=(upper_right[1]+lower_left[1])/2.0,
-            llcrnrlon=lower_left[0], llcrnrlat=lower_left[1],
-            urcrnrlon=upper_right[0], urcrnrlat=upper_right[1],resolution='h',ax=ax)
+    try:
+        import cPickle as pickle
+        m = pickle.load(open('map_{}.pkl'.format(profile['Campaign']),'rb'))
+        #print 'doing it pickle style'
+        m.ax = ax
+    except:
+        m = Basemap(projection=proj,lon_0=(upper_right[0]+lower_left[0])/2.0,lat_0=(upper_right[1]+lower_left[1])/2.0,
+                llcrnrlon=lower_left[0], llcrnrlat=lower_left[1],
+                urcrnrlon=upper_right[0], urcrnrlat=upper_right[1],resolution='i',ax=ax)
     m.artists = []
     m.drawcoastlines()
     #m.fillcontinents(color='#AAAAAA')

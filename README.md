@@ -1,6 +1,6 @@
 # Name:
 
-Moving Lines, version 0.8beta
+Moving Lines, version 0.95beta
 [http://science.arm.gov/~sleblanc/flight_planning/]
     
 # Purpose:
@@ -137,8 +137,11 @@ Takes advantage of clickable map for creating a flight plan, and already existin
     - aeronet_locations.txt: csv files with location of aeronet sites. found from : http://aeronet.gsfc.nasa.gov/aeronet_locations.txt
     - sat.tle: Selected data for satellite tracks in form of Two Line Element set from http://www.celestrak.com
     - profiles.txt: text file containing dictionary assignment for map setup defaults. each profile linked to a field mission, python dict format.
+    - platform.txt: text file containing dictionary assignment for details on each platform: max altitude, max speed, speed profile, vertical speed profile, turning rate
     - arc.ico: icon file
     - file.rc: plotting defaults file (python matplotlib.rc format)
+    - map_icons: folder with icons for use on google earth (optional)
+    - flt_modules: folder with multiple flt files. To use when creating the flt_module paths. 
     
 # Source files:
 
@@ -154,7 +157,6 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 
     - add platform info button next to flight paths (to change its settings)
     - extract altitude, speed and climb time calculations from Excel_interface.py to enable easier modifications
-    - Macro generation tool and presets
     - add other forecast imagery from GMAO or others using WMS
     - add current AOD values at AERONET stations
     - add ship tracks, or position of ships
@@ -164,9 +166,8 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 # Known Bugs:
 
     - Sometime slow starting up, especiallly when excel is not open
-    - May not recognise platform after loading an saved excel spreadsheet
-    - Altitude may not always change adequatly, even after manual input
-    - when switching between flight paths, speed may be mixed up
+    - Altitude may not always change adequatly, even after manual input (**possibly resolved**)
+    - when switching between flight paths, speed may be mixed up (**possibly resolved**)
     
 # Modification History:
 
@@ -181,4 +182,12 @@ Takes advantage of clickable map for creating a flight plan, and already existin
                        Added ICT file creation, and save all button
     Modified (v0.9b): Samuel LeBlanc, NASA Ames, 2016-06-22
                        Added flt_module command for creating parts of flights via macros
+    Modified (v0.95b): Samuel LeBlanc, NASA Ames, in transit to WFF, 2016-07-11
+                       Added platform information file to facilitate modification of
+                        default platform parameters (cruising altitude, speed profile, climb time, turning rate)
+                       Added button to remove the satellite tracks
+                       updated the sat.tle file 
+                       bug fix for recognizing platform after excel file load, tried to fix bug in altitude and speed calculations
+                       Added selections for altitude in feet/meter and distance in nm/km for flt_module loading.
+                       
     
