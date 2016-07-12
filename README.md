@@ -60,18 +60,24 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 ## Creating a flt module (or macro)
     1) in the flt_module folder create a text file
     2) the text file name should be descriptive of the macro with an extension '.flt'
-    3) first line starts with the hash sign '#' then a list of variables to be used
-    4) each subsequent line is a move command, which can use simple math and the variables defined in the first line
-    5) format of the lines are: bearing,distance,altitude
+    3) first line starts with the percent sign '%' then a list of variables to be used
+    4) Comments can be included, but only at the start of the line, denoted with a hash '#' sign
+    5) each subsequent line is a move command, which can use simple math and the variables defined in the first line
+    6) format of the lines are: bearing,distance,altitude
         where the bearing is the azimuth angle of the plane
         where the distance is the length of that leg
-        where the altitude (which can be omitted) is the default altitude of the plane for the next waypoint
-    6) enter number of points desired for macro then save in the flt_module directory. It is ready to be used in the software.    
+        where the altitude (which can be omitted) is the altitude of the plane for the next waypoint
+    7) enter number of points desired for macro then save in the flt_module directory. It is ready to be used in the software without the need for a restart.   
     
 ## Adding other planes or flight paths:
     1) Press the 'New Flight Path' button
     2) Enter name of new flight path. If it contains the name of a plane (e.g. p3, er2, dc8, c130,baer), will use the predefined speeds for that plane
     3) New flight path will have different color
+    
+## Adding platform default information:
+    1) locate the platform.txt file.
+    2) in the file, there is a series of python dict formats with each a defined list of variables that sets the flight characteristics of the plane/platform
+    3) modify exisiting pltform dict, or create a new one based on the template and the guidance shown in the file.
     
 ## Change which flight path is active:
     1) Press the button related to the flight path desired just above the 'New Flight Path' button
@@ -100,9 +106,9 @@ Takes advantage of clickable map for creating a flight plan, and already existin
     
 # Notes and tips about usage:
 
-    - clicking on the first point will link it again
+    - clicking on the first point will create a waypoint to it
     - second point to be added will have the default transit altitude for that plane (if available)
-    - when holding down the mouse button, range circles will appear, along with the sun's azimuthal location at that time
+    - when holding down the mouse button, range circles will appear, along with the sun's azimuthal location at that time denoted by the yellow star and dashed lines
     - Saving to: ICT button will create a sample ict file with 60 seconds points interpolated between each waypoint
     - plots of solar angle and altitude profiles is created with the Plots buttons
     
