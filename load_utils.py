@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
-# <nbformat>3.0</nbformat>
 
-# <codecell>
+# coding: utf-8
+
+# In[ ]:
 
 def __init__():
     """
@@ -17,7 +17,8 @@ def __init__():
     """
     pass
 
-# <codecell>
+
+# In[1]:
 
 def load_modis(geofile,datfile):
     """
@@ -130,7 +131,8 @@ def load_modis(geofile,datfile):
     del geosds, datsds,sds,lonsds,latsds,geosub,datsub
     return modis,modis_dicts
 
-# <codecell>
+
+# In[1]:
 
 def load_ict(fname,return_header=False,make_nan=True):
     """
@@ -146,10 +148,16 @@ def load_ict(fname,return_header=False,make_nan=True):
     f = open(fname,'r')
     lines = f.readlines()
     first = lines[0]
-    num2skip = int(first.strip().split(',')[0])
+    sep = ','
+    try:
+        num2skip = int(first.strip().split(sep)[0])
+    except ValueError:
+        print 'Seperation is set to a space'
+        sep = None
+        num2skip = int(first.strip().split(sep)[0])
     header = lines[0:num2skip]
-    factor = map(float,header[10].strip().split(','))
-    missing = map(float,header[11].strip().split(','))
+    factor = map(float,header[10].strip().split(sep))
+    missing = map(float,header[11].strip().split(sep))
     f.close()
     if any([i!=1 for i in factor]):
         print('Some Scaling factors are not equal to one, Please check the factors:')
@@ -159,7 +167,7 @@ def load_ict(fname,return_header=False,make_nan=True):
     def utctime(seconds_utc):
         return float(seconds_utc)/3600.
     conv = {"Date_Time":mktime, "UTC":utctime, "Start_UTC":utctime, "TIME_UTC":utctime, "UTC_mid":utctime}
-    data = np.genfromtxt(fname,names=True,delimiter=',',skip_header=num2skip-1,converters=conv)
+    data = np.genfromtxt(fname,names=True,delimiter=sep,skip_header=num2skip-1,converters=conv)
     print data.dtype.names
     #scale the values by using the scale factors
     for i,name in enumerate(data.dtype.names):
@@ -173,7 +181,8 @@ def load_ict(fname,return_header=False,make_nan=True):
     else:
         return data
 
-# <codecell>
+
+# In[ ]:
 
 def modis_qa(qa_array):
     """
@@ -186,7 +195,8 @@ def modis_qa(qa_array):
     
     
 
-# <codecell>
+
+# In[ ]:
 
 def mat2py_time(matlab_datenum):
     "convert a matlab datenum to a python datetime object. Works on numpy arrays of datenum"
@@ -200,19 +210,23 @@ def mat2py_time(matlab_datenum):
         python_datetime = np.array([m2ptime(matlab_datenum.flatten()[i]) for i in xrange(matlab_datenum.size)])
     return python_datetime
 
-# <codecell>
+
+# In[1]:
 
 def toutc(pydatetime):
     "Convert python datetime to utc fractional hours"
-    utc_fx = lambda x: float(x.hour)+float(x.minute)/60.0+float(x.second)/3600.0+float(x.microsecond)/360000000.0
+    utc_fx = lambda x: float(x.hour)+float(x.minute)/60.0+float(x.second)/3600.0+float(x.microsecond)/3600000000.0
     try: 
         return utc_fx(pydatetime)
     except:
         import numpy as np
-        return np.array([utc_fx(pydatetime.flatten()[i])+(pydatetime.flatten()[i].day-pydatetime.flatten()[0].day)*24.0 \
-                         for i in xrange(pydatetime.size)]) 
+        try:
+            return np.array([utc_fx(pydatetime.flatten()[i])+(pydatetime.flatten()[i].day-pydatetime.flatten()[0].day)*24.0                          for i in xrange(pydatetime.size)]) 
+        except AttributeError:
+            return np.array([utc_fx(pydatetime[i])+(pydatetime[i].day-pydatetime[0].day)*24.0                          for i in xrange(len(pydatetime))]) 
 
-# <codecell>
+
+# In[ ]:
 
 def load_emas(datfile):
     """
@@ -316,7 +330,8 @@ def load_emas(datfile):
     del datsds,sds,datsub
     return emas,emas_dicts
 
-# <codecell>
+
+# In[ ]:
 
 def load_hdf(datfile,values=None,verbose=True):
     """
@@ -370,6 +385,8 @@ def load_hdf(datfile,values=None,verbose=True):
         Written (v1.0): Samuel LeBlanc, 2014-12-10, NASA Ames
         Modified (v1.1): Samuel LeBlanc, 2015-04-10, NASA Ames
                         - added verbose keyword
+        Modified (v1.2): Samuel LeBlanc, 2016-05-07, Osan AFB, Korea
+                        - added error handling for missing fill value
     """
     import numpy as np
     from osgeo import gdal
@@ -410,6 +427,9 @@ def load_hdf(datfile,values=None,verbose=True):
             makenan = True
         except KeyError:
             makenan = False
+        except ValueError:
+            makenan = False
+            print '*** FillValue not used to replace NANs, will have to do manually ***'
         try:
             scale = float(hdf_dicts[i]['scale_factor'])
             offset = float(hdf_dicts[i]['add_offset'])
@@ -432,7 +452,8 @@ def load_hdf(datfile,values=None,verbose=True):
     del datsds,sds,datsub
     return hdf,hdf_dicts
 
-# <codecell>
+
+# In[1]:
 
 def load_cpl_layers(datfile,values=None):
     """
@@ -524,7 +545,8 @@ def load_cpl_layers(datfile,values=None):
                 
     return d
 
-# <codecell>
+
+# In[1]:
 
 def load_apr(datfiles):
     """
@@ -578,7 +600,7 @@ def load_apr(datfiles):
     """
     import os
     import numpy as np
-    from load_modis import load_hdf
+    from load_utils import load_hdf
     import datetime
     
     first = True
@@ -599,9 +621,22 @@ def load_apr(datfiles):
         try:
             for z in range(apr['altz'].shape[0]):
                 apr['altflt'][z,:,:] = apr['altz'][z,:,:]+apr['alt'][z,:]
+        except IndexError:
+            try:
+                print 'swaping axes'
+                apr['altflt'] = np.swapaxes(apr['altflt'],0,1)
+                apr['altz'] = np.swapaxes(apr['altz'],0,1)
+                apr['latz'] = np.swapaxes(apr['latz'],0,1)
+                apr['lonz'] = np.swapaxes(apr['lonz'],0,1)
+                apr['dbz'] = np.swapaxes(apr['dbz'],0,1)
+                for z in range(apr['altz'].shape[0]):
+                    apr['altflt'][z,:,:] = apr['altz'][z,:,:]+apr['alt'][z,:]
+            except:
+                print 'Problem file:',f
+                print '... Skipping'
+                continue
         except:
             print 'Problem with file: ',f
-            print ' ... dimensions do not agree'
             print ' ... Skipping'
             continue
         izen = apr['altz'][:,0,0].argmax() #get the index of zenith
@@ -627,7 +662,8 @@ def load_apr(datfiles):
     print 'Loaded data points: ', aprout['utc'].shape
     return aprout        
 
-# <codecell>
+
+# In[1]:
 
 def load_amsr(datfile,lonlatfile):
     """
@@ -685,7 +721,7 @@ def load_amsr(datfile,lonlatfile):
     if not(os.path.isfile(lonlatfile)):
         error('Lonlat file not found!')
     import numpy as np
-    from load_modis import load_hdf
+    from load_utils import load_hdf
     from osgeo import gdal
     gdat = gdal.Open(datfile)
     dat = dict()
@@ -696,7 +732,8 @@ def load_amsr(datfile,lonlatfile):
     dat['lon'] = datll['lon']
     return dat
 
-# <codecell>
+
+# In[ ]:
 
 def load_hdf_sd(FILE_NAME):
     """
@@ -778,7 +815,8 @@ def load_hdf_sd(FILE_NAME):
             print 'Problem in filling with nans and getting the offsets, must do it manually'
     return dat, dat_dict
 
-# <codecell>
+
+# In[ ]:
 
 def remove_field_name(a, name):
     names = list(a.dtype.names)
@@ -787,78 +825,353 @@ def remove_field_name(a, name):
     b = a[names]
     return b
 
-# <markdowncell>
+
+# In[ ]:
+
+def load_netcdf(datfile,values=None,verbose=True):
+    """
+    Name:
+
+        load_netcdf
+    
+    Purpose:
+
+        To compile the functions required to load a netcdf4 file in a similar manner as hdf files
+    
+    Calling Sequence:
+
+        cdf_data,cdf_dict = load_netcdf(datfile,Values=None,verbose=True) 
+    
+    Input: 
+  
+        datfile name (netcdf files)
+    
+    Output:
+
+        cdf_data: dictionary with the names of values saved, with associated dictionary values
+        cdf_dict: metadate for each of the variables
+    
+    Keywords: 
+
+        values: if ommitted, only outputs the names of the variables in file
+                needs to be a tuple of 2 element tuples (first: name of variable to be outputted,
+                second: indes of full name in variables)
+                example: modis_values=(('tau',35),('lat',22),('lon',23))
+        verbose: if true (default), then everything is printed. if false, nothing is printed
+    
+    Dependencies:
+
+        netcdf4
+        
+    Required files:
+   
+        dat files
+    
+    Example:
+
+        ...
+        
+    Modification History:
+    
+        Written (v1.0): Samuel LeBlanc, 2015-12-07, NASA Ames
+        
+    """
+    import netCDF4 as nc
+    if verbose:
+        print 'Reading file: '+datfile
+    f = nc.Dataset(datfile,'r')
+    varnames = f.variables.keys()
+    
+    if verbose: 
+        print 'Outputting the Data subdatasets:'
+        for i in range(len(varnames)):
+            if values:
+                if any(i in val for val in values):
+                    print '\x1b[1;36m{0}: {1}\x1b[0m'.format(i,varnames[i])
+                else:
+                    print '{0}: {1}'.format(i,varnames[i])
+            else:
+                print '{0}: {1}'.format(i,varnames[i])
+    if not values:
+        if verbose:
+            print 'Done going through file... Please supply pairs of name and index for reading file'
+            print " in format values = (('name1',index1),('name2',index2),('name3',index3),...)"
+            print " where namei is the name of the returned variable, and indexi is the index of the variable (from above)"
+        return None, None
+    
+    cdf_dict = {}
+    cdf_data = {}
+    for i,j in values:
+        cdf_dict[i] = f.variables[varnames[j]]
+        cdf_data[i] = f.variables[varnames[j]][:]
+    if verbose:
+        print cdf_dict.keys()
+    return cdf_data,cdf_dict
+
+
+# In[ ]:
+
+def load_aeronet(f,verbose=True):
+    """
+    Name:
+
+        load_aeronet
+    
+    Purpose:
+
+        To load the LEV1.0 Aeronet AOD files
+    
+    Calling Sequence:
+
+        aeronet = load_aeronet(f) 
+    
+    Input: 
+  
+        f: path and name of lev10 file
+    
+    Output:
+
+        aeronet: numpy recarray of values
+    
+    Keywords: 
+
+       verbose: (default True) if True, then prints out info as data is read
+    
+    Dependencies:
+
+        numpy
+        os
+        load_modis: this file
+    
+    Required files:
+   
+        LEV10 file
+    
+    Example:
+
+        ...
+        
+    Modification History:
+    
+        Written (v1.0): Samuel LeBlanc, 2016-05-09, Osan AB, Korea
+        
+    """
+    import numpy as np
+    from datetime import datetime
+    import load_utils as lm
+    import os
+    if not(os.path.isfile(f)):
+        raise IOError('Data file {} not found!'.format(f))
+    if f.split('.')[-1].find('lev10')<0 | f.split('.')[-1].find('LEV10')<0:
+        raise IOError('Data file {} is not a level 1.0 file - it is not yet available to read'.foramt(f))
+    def makeday(txt):
+        return datetime.strptime(txt,'%d:%m:%Y').timetuple().tm_yday
+    def maketime(txt):
+        return lm.toutc(datetime.strptime(txt,'%H:%M:%S'))
+    conv = {'Dateddmmyy':makeday,'Timehhmmss':maketime}
+    if verbose:
+        print 'Opening file: {}'.format(f)
+    ra = np.genfromtxt(f,skip_header=4,names=True,delimiter=',',converters=conv)
+    da = lm.recarray_to_dict(ra)
+    ff = open(f,'r')
+    lines = ff.readlines()
+    da['header'] = lines[0:4]
+    for n in da['header'][2].split(','):
+        u = n.split('=')
+        try:
+            da[u[0]]=float(u[1])
+        except:
+            da[u[0]] = u[1].strip()
+    return da    
+
+
+# In[ ]:
+
+def load_multi_aeronet(dir_path,verbose=True):
+    """
+    Name:
+
+        load_multi_aeronet
+    
+    Purpose:
+
+        To load multiple files of the LEV1.0 Aeronet AOD files
+    
+    Calling Sequence:
+
+        aeronet = load_multi_aeronet(dir_path) 
+    
+    Input: 
+  
+        dir_path: path of directory where multiple lev10 file reside
+    
+    Output:
+
+        aeronet: numpy recarray of combined values from multiple files
+    
+    Keywords: 
+
+       verbose: (default True) if True, then prints out info as data is read
+    
+    Dependencies:
+
+        numpy
+        os
+        load_utils: this file
+    
+    Required files:
+   
+        LEV10 file
+    
+    Example:
+
+        ...
+        
+    Modification History:
+    
+        Written (v1.0): Samuel LeBlanc, 2016-05-12, Osan AB, Korea
+        
+    """
+    import os
+    import numpy as np
+    import load_utils as lm
+    f = os.listdir(dir_path)
+    aero = []
+    for fl in f:
+        aero.append(lm.load_aeronet(dir_path+fl,verbose=verbose))
+    
+    n_max = 0
+    for n in range(len(aero)):
+        if len(aero[n]['AOT_500'])>n_max: 
+            n_max = len(aero[n]['AOT_500'])
+            
+    anet = {}
+    nstations = len(aero)
+    for name in aero[0].keys():
+        if not isinstance(aero[0][name],np.ndarray):
+            anet[name] = []
+            for n in range(nstations):
+                anet[name].append(aero[n][name])
+        else:
+            anet[name] = np.zeros((nstations,n_max))+np.nan
+            for n in range(nstations):
+                anet[name][n,0:len(aero[n][name])] = aero[n][name]
+    return anet
+
+
+# In[ ]:
+
+def aeronet_subset(aero,doy=None,utc=None,julian=None,window=24.0):
+    """
+    Name:
+
+        aeronet_subset
+    
+    Purpose:
+
+        Subsets the aero dict created from load_multi_aeronet for returning 
+        only a index value linking only one point per aeronet station.
+    
+    Calling Sequence:
+
+        ii = aeronet_subset(aero,doy=doy,utc=utc,julian=julian,window=24.0) 
+    
+    Input: 
+  
+        aero: aeronet dict of compiled aeronet files from many locations
+        doy: (default None) put in the day of year value for the time to be selected
+        utc: (default None) the utc in fractional hours, for the returned aeronet values
+        julian: (default None) the fractional day of year for the returned values
+        window: (default 24) the hours of the window, if no value is found within 
+                this window, then returned index links to a nan value
+        
+        if there is no doy, utc julian, or window value, 
+        will return the latest value in the dict
+    
+    Output:
+
+        ii: the index values linking to the searched aero times. 
+            it returns a tuple of indexes to be used directly into the aero dict.
+    
+    Keywords: 
+
+       see above.
+    
+    Dependencies:
+
+        numpy
+    
+    Required files:
+   
+        none
+    
+    Example:
+
+        ...
+        
+    Modification History:
+    
+        Written (v1.0): Samuel LeBlanc, 2016-05-12, Osan AB, Korea
+        
+    """
+    import numpy as np
+    
+    latest = False
+    if julian:
+        in_julian = julian
+    elif doy:
+        if utc:
+            in_julian = doy+utc/24.0
+        else:
+            in_julian = doy+0.0
+    else:
+        latest = True
+               
+    if latest:
+        ilatest = []
+        for i,n in enumerate(aero['Location']):
+            ilatest.append(np.nanargmax(aero['Julian_Day'][i,:]))
+    else:
+        ilatest = []
+        for i,n in enumerate(aero['Location']):
+            ia = np.nanargmin(abs(aero['Julian_Day'][i,:]-in_julian))
+            if np.nanmin(abs(aero['Julian_Day'][i,:]-in_julian))*24.0 < window:
+                ilatest.append(ia)
+            else:
+                ia = len(aero['Julian_Day'][i,:])-1
+                ilatest.append(ia)
+    iil = []
+    for i,n in enumerate(ilatest):
+        iil.append(i)
+    ii = (iil,ilatest)
+    
+    return ii
+
+
+# In[ ]:
+
+def recarray_to_dict(ra):
+    'simple function to convert numpy recarray to a dict with numpy arrays. Useful for modifying the output from genfromtxt'
+    import numpy as np
+    da = {}
+    for n in ra.dtype.names:
+        da[n]=ra[n]
+    return da
+
+
+# In[ ]:
+
+
+
 
 # Testing of the script:
 
-# <codecell>
+# In[4]:
 
 if __name__ == "__main__":
-
-# <codecell>
-
     import os
     import numpy as np
     from osgeo import gdal
-
-# <codecell>
-
-    fp='C:\\Users\\sleblan2\\Research\\TCAP\\'
-
-# <codecell>
-
-    myd06_file = fp+'MODIS\\MYD06_L2.A2013050.1725.006.2014260074007.hdf'
-    myd03_file = fp+'MODIS\\MYD03.A2013050.1725.006.2013051163424.hdf'
-    print os.path.isfile(myd03_file) #check if it exists
-    print os.path.isfile(myd06_file)
-
-# <codecell>
-
-    myd_geo = gdal.Open(myd03_file)
-    myd_geo_sub = myd_geo.GetSubDatasets()
-    for i in range(len(myd_geo_sub)):
-        print str(i)+': '+myd_geo_sub[i][1]
-
-# <codecell>
-
-    latsds = gdal.Open(myd_geo_sub[12][0],gdal.GA_ReadOnly)
-    lonsds = gdal.Open(myd_geo_sub[13][0],gdal.GA_ReadOnly)
-    szasds = gdal.Open(myd_geo_sub[21][0],gdal.GA_ReadOnly)
-
-# <codecell>
-
-    print latsds.RasterCount # verify that only one raster exists
-    lat = latsds.ReadAsArray()
-    lon = lonsds.ReadAsArray()
-    sza = szasds.ReadAsArray()
-    print lon.shape
-
-# <markdowncell>
-
-# Now load the specific data files:
-
-# <codecell>
-
-    myd_dat = gdal.Open(myd06_file)
-    myd_dat_sub = myd_dat.GetSubDatasets()
-    for i in range(len(myd_dat_sub)):
-        print str(i)+': '+myd_dat_sub[i][1]
-
-# <codecell>
-
-    print myd_dat_sub[118]
-    retfsds = gdal.Open(myd_dat_sub[118][0])
-
-# <codecell>
-
-    for key,value in myd_dat.GetMetadata_Dict().items():
-        print key,value
-
-# <markdowncell>
-
-# Load the different modis values:
-
-# <codecell>
 
     modis_values = (('cloud_top',57),
                     ('phase',53),
@@ -874,31 +1187,24 @@ if __name__ == "__main__":
                     ('cloud_mask',110)
                     )
 
-# <markdowncell>
 
 # Testing the metadata dictionary
 
-# <codecell>
+# In[ ]:
+
+if __name__ == "__main__":
 
     gdal.Open(myd_dat_sub[53][0]).GetMetadata()
-
-# <codecell>
 
     mm = dict()
     mm['one'] = gdal.Open(myd_dat_sub[72][0]).GetMetadata()
     mm['two'] = gdal.Open(myd_dat_sub[74][0]).GetMetadata()
     mm['two']['_FillValue']
 
-# <codecell>
-
     from Sp_parameters import startprogress, progress, endprogress
     import gc; gc.collect()
 
-# <codecell>
-
     tuple(i[0] for i in modis_values).index('etau')
-
-# <codecell>
 
     modis = dict()
     modis_dicts = dict()
@@ -910,8 +1216,6 @@ if __name__ == "__main__":
         modis[i][modis[i] == float(modis_dicts[i]['_FillValue'])] = np.nan
         progress(float(tuple(i[0] for i in modis_values).index(i))/len(modis_values)*100.)
     endprogress()
-
-# <codecell>
 
     print modis.keys()
     print modis_dicts.keys()

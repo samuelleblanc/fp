@@ -45,6 +45,8 @@ class LineBuilder:
                  - added handling of blit draw techinque to get gains in speed when drawing
         Modified: Samuel LeBlanc, 2016-06-22, NASA Ames, CA
                  - added flt_modules functionality
+        Modified: Samuel LeBlanc, 2016-07-12, WFF, VA
+                 - added plotting of aeronet data on map. Taken from internet.
     """
     def __init__(self, line,m=None,ex=None,verbose=False,tb=None, blit=True):
         """

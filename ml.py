@@ -39,6 +39,11 @@
                 - added move points buttons
                 - added basemap creation questions
                 - added GEOS imagerys with WMS service
+        Modified: Samuel LeBlanc, 2016-07-12, WFF, CA
+                - added flt_module files, rotate points, sun's principal plane direction
+                - added profiles, platform information, satellite tracks
+                - fixed some bugs in loading excel
+                - added the aeronet AOD plotting
 """
 import Tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
@@ -46,6 +51,7 @@ from matplotlib.figure import Figure
 #import numpy as np
 #from mpl_toolkits.basemap import Basemap
 import datetime
+import dateutil
 #import scipy, scipy.misc, scipy.special, scipy.integrate
 import Tkinter, FixTk, PIL
 import re #, copy
@@ -59,6 +65,7 @@ import map_utils as mu
 import excel_interface as ex
 import map_interactive as mi
 import gui
+import aeronet
 
 import tkSimpleDialog, tkFileDialog, tkMessageBox
 #import owslib, owslib.wms, owslib.util
@@ -278,6 +285,10 @@ def build_buttons(ui,lines,vertical=True):
                          command = g.dummy_func)
     g.baddsat.pack(in_=ui.top)
     g.baddsat.config(command=g.gui_addsat_tle)
+    g.baddaeronet = tk.Button(g.root,text='Add AOD from AERONET',
+                         command = g.dummy_func)
+    g.baddaeronet.pack(in_=ui.top)
+    g.baddaeronet.config(command=g.gui_addaeronet)
     g.baddbocachica = tk.Button(g.root,text='Add Forecast\nfrom Bocachica',
                          command = g.gui_addbocachica)
     g.baddbocachica.pack(in_=ui.top)

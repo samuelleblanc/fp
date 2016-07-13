@@ -26,6 +26,7 @@ def get_aeronet(daystr=None,lat_range=[],lon_range=[]):
     from StringIO import StringIO
     from urllib import urlopen
     from datetime import datetime
+    from load_utils import recarray_to_dict
     
     def safe_list_get (l, idx, default):
         try:
@@ -33,7 +34,8 @@ def get_aeronet(daystr=None,lat_range=[],lon_range=[]):
         except IndexError:
             return default
 
-    dd = datetime.utcnow().strftime('%Y-%m-%d')
+    dd_now = datetime.utcnow()
+    dd = dd_now.strftime('%Y-%m-%d')
     if not daystr:
         daystr = dd
     else:
@@ -41,7 +43,7 @@ def get_aeronet(daystr=None,lat_range=[],lon_range=[]):
 	    daystr = dd
 	    import warnings
 	    warnings.warn("Date set to future, using today's date")
-    
+  
     url = 'http://aeronet.gsfc.nasa.gov/cgi-bin/print_web_data_v2_globe?year={yyyy}&month={mm}&day={dd}&year2={yyyy}'+\
           '&month2={mm}&day2={dd}&LEV10=1&AVG=20'
     if lat_range:
@@ -72,4 +74,23 @@ def get_aeronet(daystr=None,lat_range=[],lon_range=[]):
         if not label in fields_to_ignore:
 	    if dat[label].dtype.type is np.str_:
 	         dat[label] = np.genfromtxt(dat[label])
-    return dat
+    
+    return recarray_to_dict(dat)
+    
+def plot_aero(m,aero):
+    """
+    Simple function that takes a basemap plotting object ( m) and plots the points of the aeronet sites with their value in color
+    For easy aeronet visualisation
+    """
+    from matplotlib import cm
+    x,y = m(aero['Longitude'],aero['Latitude'])
+    bb = m.ax.scatter(x,y,c=aero['AOT_500'],
+            cmap=cm.gist_ncar,marker='s',vmin=0.0,vmax=1.5,edgecolors='None',s=50)
+    try:
+        cbar = m.colorbar(m.ax,bb)
+        cbar.set_label('AOD 500 nm')
+        u = [bb,cbar]
+    except:
+        u = bb
+    return u
+    

@@ -45,6 +45,8 @@ class gui:
         Modified: Samuel LeBlanc, 2016-07-11, on plane from SFO -> WFF
                   - added remove satellite tracks button.
                   - fixed a few bugs
+        Modidifed: Samuel LeBlanc, 2016-07-12, WFF, VA
+                  - added a plot aeronet values
                   
     """
     def __init__(self,line=None,root=None,noplt=False):
@@ -656,7 +658,50 @@ class gui:
         self.line.get_bg(redraw=True)
         self.line.tb.set_message('Finished removing satellite tracks')
         
-
+    def gui_addaeronet(self):
+        'Gui function to add the aeronet points on the map, with a colorbar'
+        import aeronet
+        import tkMessageBox
+        from datetime import datetime
+        from dateutil.relativedelta import relativedelta
+        self.line.tb.set_message('Getting the aeronet files from http://aeronet.gsfc.nasa.gov/')
+        latr = [self.line.m.llcrnrlat,self.line.m.urcrnrlat]
+        lonr = [self.line.m.llcrnrlon,self.line.m.urcrnrlon]
+        aero = aeronet.get_aeronet(daystr=self.line.ex.datestr,lat_range=latr,lon_range=lonr)
+        if not aero:
+            self.line.tb.set_message('Failed first attempt at aeronet, trying again')
+            aero = aeronet.get_aeronet(daystr=str(datetime.now()-relativedelta(days=1)),lat_range=latr,lon_range=lonr)
+            if not aero:
+                tkMessageBox.showwarning('Sorry','Failed to access the aeronet servers or failed to load the files')
+                return
+        self.line.tb.set_message('Plotting the AOD from aeronet...')
+        self.aero_obj = aeronet.plot_aero(self.line.m,aero)
+        self.line.get_bg(redraw=True)
+        self.baddaeronet.config(text='Remove Aeronet AOD')
+        self.baddaeronet.config(command=self.gui_rmaeronet)
+        
+    def gui_rmaeronet(self):
+        'Gui function to remove the aeronet points on the map'
+        self.line.tb.set_message('Removing aeronet AOD values')
+        try: 
+            self.aero_obj.remove()
+        except:
+            for l in self.aero_obj:
+                if type(l) is list:
+                    for ll in l:
+                        if type(ll) is list:
+                            for lll in ll:
+                                lll.remove()
+                        else:
+                            ll.remove()
+                else:
+                    l.remove()
+        self.baddaeronet.config(text='Add AOD from AERONET')
+        self.baddaeronet.config(command=self.gui_addaeronet)
+        self.line.get_bg(redraw=True)
+        self.line.tb.set_message('Finished removing AERONET AOD')
+            
+        
     def gui_addbocachica(self):
         'GUI handler for adding bocachica foreacast maps to basemap plot'
 	import tkMessageBox
