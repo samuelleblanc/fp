@@ -860,6 +860,8 @@ def get_tle_from_file(filename):
             continue
         if not name:
             name = line.strip()
+            if name.startswith('0'):
+                name = name.strip('0').strip()
             continue
         if not first:
             first = line.strip()
