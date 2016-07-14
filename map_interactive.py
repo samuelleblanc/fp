@@ -409,21 +409,32 @@ class LineBuilder:
 
     def addfigure_under(self,img,ll_lat,ll_lon,ur_lat,ur_lon,outside=False,**kwargs):
     	'Program to add a figure under the basemap plot'
-	left,bottom = self.m(ll_lon,ll_lat)
-	right,top = self.m(ur_lon,ur_lat)
-	lons = np.linspace(ll_lon,ur_lon,num=img.shape[1])
-	lats = np.linspace(ll_lat,ur_lat,num=img.shape[0])
-	ix = np.where((lats>self.m.llcrnrlat)&(lats<self.m.urcrnrlat))[0]
-	iy = np.where((lons>self.m.llcrnrlon)&(lons<self.m.urcrnrlon))[0]
-	ix = img.shape[0]-ix
-	if not outside:
-	    self.m.figure_under = None
-	    #self.m.imshow(img,zorder=0,extent=[left,right,top,bottom],**kwargs)
-	    self.m.figure_under = self.m.imshow(img[ix,:,:][:,iy,:],zorder=0,alpha=0.5,**kwargs)
-	else:
-	    u = self.m.imshow(img,clip_on=False,**kwargs)
-	self.line.figure.canvas.draw()
-	self.get_bg()
+     
+        left,bottom = self.m(ll_lon,ll_lat)
+        right,top = self.m(ur_lon,ur_lat)
+        try:
+            lons = np.linspace(ll_lon,ur_lon,num=img.shape[1])
+            lats = np.linspace(ll_lat,ur_lat,num=img.shape[0])
+        except AttributeError:
+            lons = np.linspace(ll_lon,ur_lon,num=img.size[1])
+            lats = np.linspace(ll_lat,ur_lat,num=img.size[0])
+        ix = np.where((lats>self.m.llcrnrlat)&(lats<self.m.urcrnrlat))[0]
+        iy = np.where((lons>self.m.llcrnrlon)&(lons<self.m.urcrnrlon))[0]
+        try:
+            ix = img.shape[0]-ix
+        except AttributeError:
+            ix = img.size[0]-ix
+        if not outside:
+            self.m.figure_under = None
+            #self.m.imshow(img,zorder=0,extent=[left,right,top,bottom],**kwargs)
+            try:
+                self.m.figure_under = self.m.imshow(img[ix,:,:][:,iy,:],zorder=0,alpha=0.5,**kwargs)
+            except:
+                self.m.figure_under = self.m.imshow(img,zorder=0,alpha=0.5,**kwargs)
+        else:
+            u = self.m.imshow(img,clip_on=False,**kwargs)
+        self.line.figure.canvas.draw()
+        self.get_bg()
 
     def newpoint(self,Bearing,distance,alt=None,last=True,feet=False,km=True):
         """

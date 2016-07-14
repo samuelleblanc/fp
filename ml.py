@@ -39,11 +39,13 @@
                 - added move points buttons
                 - added basemap creation questions
                 - added GEOS imagerys with WMS service
-        Modified: Samuel LeBlanc, 2016-07-12, WFF, CA
+        Modified: Samuel LeBlanc, 2016-07-11, on plane at SJC->WFF, CA
                 - added flt_module files, rotate points, sun's principal plane direction
                 - added profiles, platform information, satellite tracks
                 - fixed some bugs in loading excel
+        Modified: Samuel LeBlanc, 2016-07-13, WFF, CA 
                 - added the aeronet AOD plotting
+                - added remove plots on the same buttons as add
 """
 import Tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
@@ -76,7 +78,7 @@ import tkSimpleDialog, tkFileDialog, tkMessageBox
 #import six, six.moves
 import warnings
 
-__version__ = 'v0.95beta'
+__version__ = 'v0.96beta'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'
@@ -285,7 +287,7 @@ def build_buttons(ui,lines,vertical=True):
                          command = g.dummy_func)
     g.baddsat.pack(in_=ui.top)
     g.baddsat.config(command=g.gui_addsat_tle)
-    g.baddaeronet = tk.Button(g.root,text='Add AOD from AERONET',
+    g.baddaeronet = tk.Button(g.root,text='Add current\nAERONET AOD',
                          command = g.dummy_func)
     g.baddaeronet.pack(in_=ui.top)
     g.baddaeronet.config(command=g.gui_addaeronet)
@@ -295,13 +297,14 @@ def build_buttons(ui,lines,vertical=True):
     g.baddfigure = tk.Button(g.root,text='Add Forecast\nfrom image',
                          command = g.gui_addfigure)
     g.baddfigure.pack(in_=ui.top)
-    #g.baddgeos = tk.Button(g.root,text='Add GEOS',
-    #                     command = g.gui_addgeos)
-    #g.baddgeos.pack(in_=ui.top)
+    g.baddgeos = tk.Button(g.root,text='Add GEOS',
+                         command = g.gui_addgeos)
+    g.baddgeos.pack(in_=ui.top)
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
              ).pack(in_=ui.top,side=side,padx=8,pady=5)
     tk.Button(g.root,text='Quit',command=g.stopandquit,bg='lightcoral'
               ).pack(in_=ui.top,side=side)
+    g.bg = g.baddsat.cget('bg')
     ui.g = g
 
 def get_datestr(ui):

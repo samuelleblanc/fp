@@ -77,20 +77,38 @@ def get_aeronet(daystr=None,lat_range=[],lon_range=[]):
     
     return recarray_to_dict(dat)
     
-def plot_aero(m,aero):
+def plot_aero(m,aero,no_colorbar=True,a_max = 1.5):
     """
     Simple function that takes a basemap plotting object ( m) and plots the points of the aeronet sites with their value in color
     For easy aeronet visualisation
     """
     from matplotlib import cm
+    from matplotlib.lines import Line2D
+    import numpy as np
     x,y = m(aero['Longitude'],aero['Latitude'])
-    bb = m.ax.scatter(x,y,c=aero['AOT_500'],
-            cmap=cm.gist_ncar,marker='s',vmin=0.0,vmax=1.5,edgecolors='None',s=50)
-    try:
-        cbar = m.colorbar(m.ax,bb)
-        cbar.set_label('AOD 500 nm')
-        u = [bb,cbar]
-    except:
-        u = bb
-    return u
     
+    if no_colorbar:
+        colors = np.round(aero['AOT_500']/a_max*7.0)/7.0
+        c_ar = np.linspace(0,a_max,7)
+        leg_ar = ['{:1.2f} - {:1.2f}'.format(c,c_ar[i+1]) for i,c in enumerate(c_ar[0:-1])]
+    else:
+        colors = aero['AOT_500']
+
+    cls = cm.gist_ncar(c_ar/a_max)
+    
+    bb = m.scatter(x,y,c=colors,cmap=cm.gist_ncar,marker='s',
+                   vmin=0.0,vmax=a_max,edgecolors='None',s=50)
+                   
+    if no_colorbar:
+        fakepoints = []
+        for i,cl in enumerate(cls):
+            fakepoints.append(Line2D([0],[0],color=cl,linestyle='None',marker='s'))
+        cbar = m.ax.legend(fakepoints,leg_ar,numpoints=1,frameon=True,loc='lower right',bbox_to_anchor=(0.5,1.04))
+    else:
+        try:
+            cbar = m.colorbar(m.ax,bb)
+            cbar.set_label('AOD 500 nm')
+        except:
+            pass
+    u = [bb,cbar]
+    return u
