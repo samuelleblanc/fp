@@ -780,6 +780,7 @@ class gui:
         'GUI handler for adding the figures from WMS support of GEOS'
         from gui import Popup_list
         import tkMessageBox
+        tkMessageBox.showwarning('Testing','Trying to load GEOS data from http://wms.gsfc.nasa.gov/ \n ** Might be outdatted ** ')
         try:
             from owslib.wms import WebMapService
             from owslib.util import openURL

@@ -297,7 +297,7 @@ def build_buttons(ui,lines,vertical=True):
     g.baddfigure = tk.Button(g.root,text='Add Forecast\nfrom image',
                          command = g.gui_addfigure)
     g.baddfigure.pack(in_=ui.top)
-    g.baddgeos = tk.Button(g.root,text='Add GEOS',
+    g.baddgeos = tk.Button(g.root,text='Add GEOS Forecast',
                          command = g.gui_addgeos)
     g.baddgeos.pack(in_=ui.top)
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
