@@ -1,0 +1,4 @@
+% length, angle
+angle,length,7500
+angle-180,0,200
+angle-180,length,200

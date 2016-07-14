@@ -1,4 +1,4 @@
-#length,spacing,angle
+%length,spacing,angle
 angle, length
 angle+90,spacing
 angle+180,length

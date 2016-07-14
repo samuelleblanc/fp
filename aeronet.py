@@ -1,4 +1,4 @@
-def get_aeronet(daystr=None):
+def get_aeronet(daystr=None,lat_range=[],lon_range=[]):
     """ 
     Purpose:
        Program to go and get the aeronet data on the day defined by daystr
@@ -19,14 +19,23 @@ def get_aeronet(daystr=None):
        ...
     History:
        Written: Samuel LeBlanc, 2015-10-02, Santa Clara, CA
+       Modified: Samuel LeBlanc, 2016-07-12, WFF, CA
     """
     import numpy as np
     from BeautifulSoup import BeautifulSoup
     from StringIO import StringIO
     from urllib import urlopen
     from datetime import datetime
+    from load_utils import recarray_to_dict
+    
+    def safe_list_get (l, idx, default):
+        try:
+            return l[idx]
+        except IndexError:
+            return default
 
-    dd = datetime.utcnow().strftime('%Y-%m-%d')
+    dd_now = datetime.utcnow()
+    dd = dd_now.strftime('%Y-%m-%d')
     if not daystr:
         daystr = dd
     else:
@@ -34,7 +43,13 @@ def get_aeronet(daystr=None):
 	    daystr = dd
 	    import warnings
 	    warnings.warn("Date set to future, using today's date")
-    url = 'http://aeronet.gsfc.nasa.gov/cgi-bin/print_web_data_v2_globe?year={yyyy}&month={mm}&day={dd}&year2={yyyy}&month2={mm}&day2={dd}&LEV10=1&AVG=20'.format(yyyy=daystr[0:4],mm=int(daystr[5:7]),dd=int(daystr[8:10]))
+  
+    url = 'http://aeronet.gsfc.nasa.gov/cgi-bin/print_web_data_v2_globe?year={yyyy}&month={mm}&day={dd}&year2={yyyy}'+\
+          '&month2={mm}&day2={dd}&LEV10=1&AVG=20'
+    if lat_range:
+        url = url+'&lat1={lat1:f}&lat2={lat2:f}&lon1={lon1:f}&lon2={lon2:f}'
+    url = url.format(yyyy=daystr[0:4],mm=int(daystr[5:7]),dd=int(daystr[8:10]),lat1=safe_list_get(lat_range,0,None),
+                    lat2=safe_list_get(lat_range,1,None),lon1=safe_list_get(lon_range,0,None),lon2=safe_list_get(lon_range,1,None))
     print 'Getting file from internet: at aeronet.gsfc.nasa.gov'
     print url
     try:
@@ -59,4 +74,41 @@ def get_aeronet(daystr=None):
         if not label in fields_to_ignore:
 	    if dat[label].dtype.type is np.str_:
 	         dat[label] = np.genfromtxt(dat[label])
-    return dat
+    
+    return recarray_to_dict(dat)
+    
+def plot_aero(m,aero,no_colorbar=True,a_max = 1.5):
+    """
+    Simple function that takes a basemap plotting object ( m) and plots the points of the aeronet sites with their value in color
+    For easy aeronet visualisation
+    """
+    from matplotlib import cm
+    from matplotlib.lines import Line2D
+    import numpy as np
+    x,y = m(aero['Longitude'],aero['Latitude'])
+    
+    if no_colorbar:
+        colors = np.round(aero['AOT_500']/a_max*7.0)/7.0
+        c_ar = np.linspace(0,a_max,7)
+        leg_ar = ['{:1.2f} - {:1.2f}'.format(c,c_ar[i+1]) for i,c in enumerate(c_ar[0:-1])]
+    else:
+        colors = aero['AOT_500']
+
+    cls = cm.gist_ncar(c_ar/a_max)
+    
+    bb = m.scatter(x,y,c=colors,cmap=cm.gist_ncar,marker='s',
+                   vmin=0.0,vmax=a_max,edgecolors='None',s=50)
+                   
+    if no_colorbar:
+        fakepoints = []
+        for i,cl in enumerate(cls):
+            fakepoints.append(Line2D([0],[0],color=cl,linestyle='None',marker='s'))
+        cbar = m.ax.legend(fakepoints,leg_ar,numpoints=1,frameon=True,loc='lower right',bbox_to_anchor=(0.5,1.04))
+    else:
+        try:
+            cbar = m.colorbar(m.ax,bb)
+            cbar.set_label('AOD 500 nm')
+        except:
+            pass
+    u = [bb,cbar]
+    return u

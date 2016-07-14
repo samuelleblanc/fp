@@ -31,12 +31,23 @@ class gui:
 		  - modified imports to be more specific
         Modified: Samuel LeBlanc, 2015-09-10, Santa Cruz, CA
 	          - adding new flight path for another plane capabilities
-	Modified: Samuel LeBlanc, 2015-09-15, NASA Ames
+        Modified: Samuel LeBlanc, 2015-09-15, NASA Ames
                   - added Tkinter dialog classes fopr special gui interactions
                       -initial profile setting of Basemap
                       -select flights/points
                       -move points
-                  - added GEOS figure adding with WMS service
+                  - added GEOS figure adding with WMS service - not yet working
+        Modified: Samuel LeBlanc, 2016-06-12, NASA Ames
+                  - modified the button layout and functions. added rotate buttons and flt_module
+                  - modified plotting of sza and alt vs time for nicer plots
+                  - fixed load_flight
+                  - added saving utilities
+        Modified: Samuel LeBlanc, 2016-07-11, on plane from SFO -> WFF
+                  - added remove satellite tracks button.
+                  - fixed a few bugs
+        Modidifed: Samuel LeBlanc, 2016-07-12, WFF, VA
+                  - added a plot aeronet values
+                  
     """
     def __init__(self,line=None,root=None,noplt=False):
         import Tkinter as tk
@@ -561,6 +572,35 @@ class gui:
         self.line.movepoint(0,0,0,last=True)
         self.line.moving = False
         
+    def gui_rotatepoints(self):
+        'GUI button to rotate many points at once'
+        import tkSimpleDialog
+        from gui import Select_flights
+        wp_arr = []
+        for w in self.line.ex.WP:
+            wp_arr.append('WP #%i'%w)
+        p0 = Select_flights(wp_arr,title='Center rotation point',Text='Select one point to act as center of rotation:')
+        p = Select_flights(wp_arr,title='Rotate points',Text='Select points to rotate:')
+        try:
+            angle = float(tkSimpleDialog.askstring('Rotation angle','Enter angle of Rotation:'))
+        except:
+            angle = float(tkSimpleDialog.askstring('Rotation angle','**Invalid number, Please try again**\nEnter angle of Rotation:'))
+        if not angle:
+            print 'Cancelled rotation'
+            return
+        self.line.moving = True
+        # get the rotation point
+        for i,val in enumerate(p0.result):
+            if val:
+                lat0,lon0 = self.line.lats[i],self.line.lons[i]
+        # rotate agains that center point
+        for i,val in enumerate(p.result):
+            if val:
+                bear,dist = self.line.calc_move_from_rot(i,angle,lat0,lon0)
+                self.line.movepoint(i,bear,dist,last=False)
+        self.line.movepoint(0,0,0,last=True)
+        self.line.moving = False
+        
     def gui_addsat(self):
         'Gui button to add the satellite tracks'
         from tkMessageBox import askquestion
@@ -588,6 +628,10 @@ class gui:
             self.line.tb.set_message('Plotting satellite tracks') 
             self.sat_obj = plot_sat_tracks(self.line.m,sat)
         self.line.get_bg()
+        
+    def dummy_func(self):
+        'dummy function that does nothing'
+        return
 
     def gui_addsat_tle(self):
         'Gui button to add the satellite tracks'
@@ -597,26 +641,100 @@ class gui:
         self.line.tb.set_message('Plotting Satellite tracks')
         self.sat_obj = plot_sat_tracks(self.line.m,sat)
         self.line.get_bg(redraw=True)
-
-
+        self.baddsat.config(text='Remove Sat tracks')
+        self.baddsat.config(command=self.gui_rmsat,bg='dark grey')
+        
+    def gui_rmsat(self):
+        'Gui button to remove the satellite tracks'
+        self.line.tb.set_message('Removing satellite tracks')
+        for s in self.sat_obj:
+            if type(s) is list:
+                for so in s:
+                    so.remove()
+            else:
+                s.remove()
+        self.baddsat.config(text='Add Satellite tracks')
+        self.baddsat.config(command=self.gui_addsat_tle,bg=self.bg)
+        self.line.get_bg(redraw=True)
+        self.line.tb.set_message('Finished removing satellite tracks')
+        
+    def gui_addaeronet(self):
+        'Gui function to add the aeronet points on the map, with a colorbar'
+        import aeronet
+        import tkMessageBox
+        from datetime import datetime
+        from dateutil.relativedelta import relativedelta
+        self.line.tb.set_message('Getting the aeronet files from http://aeronet.gsfc.nasa.gov/')
+        latr = [self.line.m.llcrnrlat,self.line.m.urcrnrlat]
+        lonr = [self.line.m.llcrnrlon,self.line.m.urcrnrlon]
+        aero = aeronet.get_aeronet(daystr=self.line.ex.datestr,lat_range=latr,lon_range=lonr)
+        if not aero:
+            self.line.tb.set_message('Failed first attempt at aeronet, trying again')
+            aero = aeronet.get_aeronet(daystr=str(datetime.now()-relativedelta(days=1)),lat_range=latr,lon_range=lonr)
+            if not aero:
+                tkMessageBox.showwarning('Sorry','Failed to access the aeronet servers or failed to load the files')
+                return
+        self.line.tb.set_message('Plotting the AOD from aeronet...')
+        self.aero_obj = aeronet.plot_aero(self.line.m,aero)
+        self.line.get_bg(redraw=True)
+        self.baddaeronet.config(text='Remove Aeronet AOD')
+        self.baddaeronet.config(command=self.gui_rmaeronet,bg='dark grey')
+        
+    def gui_rmaeronet(self):
+        'Gui function to remove the aeronet points on the map'
+        self.line.tb.set_message('Removing aeronet AOD values')
+        try: 
+            self.aero_obj.remove()
+        except:
+            for l in self.aero_obj:
+                if type(l) is list:
+                    for ll in l:
+                        if type(ll) is list:
+                            for lll in ll:
+                                lll.remove()
+                        else:
+                            ll.remove()
+                else:
+                    l.remove()
+        self.baddaeronet.config(text='Add current\nAERONET AOD')
+        self.baddaeronet.config(command=self.gui_addaeronet,bg=self.bg)
+        self.line.get_bg(redraw=True)
+        self.line.tb.set_message('Finished removing AERONET AOD')
+            
+        
     def gui_addbocachica(self):
         'GUI handler for adding bocachica foreacast maps to basemap plot'
-	import tkMessageBox
-	try:
+        import tkMessageBox
+        try:
             from scipy.misc import imread
             filename = self.gui_file_select(ext='.png',ftype=[('All files','*.*'),
                         				  ('PNG','*.png')])
-	    if not filename:
-		print 'Cancelled, no file selected'
-		return
+            if not filename:
+                print 'Cancelled, no file selected'
+                return
             print 'Opening png File:'+filename
             img = imread(filename)
-	except:
+        except:
             tkMessageBox.showwarning('Sorry','Loading image file from Bocachica not working...')
             return
-	ll_lat,ll_lon,ur_lat,ur_lon = -40.0,-30.0,10.0,40.0
-	self.line.addfigure_under(img[42:674,50:1015,:],ll_lat,ll_lon,ur_lat,ur_lon)
-	#self.line.addfigure_under(img[710:795,35:535,:],ll_lat-7.0,ll_lon,ll_lat-5.0,ur_lon-10.0,outside=True)
+        ll_lat,ll_lon,ur_lat,ur_lon = -40.0,-30.0,10.0,40.0
+        self.line.addfigure_under(img[42:674,50:1015,:],ll_lat,ll_lon,ur_lat,ur_lon)
+        #self.line.addfigure_under(img[710:795,35:535,:],ll_lat-7.0,ll_lon,ll_lat-5.0,ur_lon-10.0,outside=True)
+        self.baddbocachica.config(text='Remove Forecast\nfrom Bocachica')
+        self.baddbocachica.config(command=self.gui_rmbocachica,bg='dark grey')
+        
+    def gui_rmbocachica(self):
+        'GUI handler for removing the bocachica forecast image'
+        self.line.tb.set_message('Removing bocachica figure under')
+        try:
+            self.line.m.figure_under.remove()
+        except:
+            for f in self.line.m.figure_under:
+                f.remove()
+        self.baddbocachica.config(text='Add Forecast\nfrom Bocachica')
+        self.baddbocachica.config(command=self.gui_addbocachica,bg=self.bg)
+        self.line.get_bg(redraw=True)
+        
 
     def gui_addfigure(self,ll_lat=None,ll_lon=None,ur_lat=None,ur_lon=None):
         'GUI handler for adding figures forecast maps to basemap plot'
@@ -638,42 +756,60 @@ class gui:
             tkMessageBox.showwarning('Sorry','Error occurred unable to load file')
             return
 	# get the corners
-	if not ll_lat:
-	    ll_lat = tkSimpleDialog.askfloat('Lower left lat','Lower left lat? [deg]')
-	    ll_lon = tkSimpleDialog.askfloat('Lower left lon','Lower left lon? [deg]')
-	    ur_lat = tkSimpleDialog.askfloat('Upper right lat','Upper right lat? [deg]')
-	    ur_lon = tkSimpleDialog.askfloat('Upper right lon','Upper right lon? [deg]')
-	self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon)
+        if not ll_lat:
+            ll_lat = tkSimpleDialog.askfloat('Lower left lat','Lower left lat? [deg]')
+            ll_lon = tkSimpleDialog.askfloat('Lower left lon','Lower left lon? [deg]')
+            ur_lat = tkSimpleDialog.askfloat('Upper right lat','Upper right lat? [deg]')
+            ur_lon = tkSimpleDialog.askfloat('Upper right lon','Upper right lon? [deg]')
+        self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon)
+        self.baddfigure.config(text='Remove Forecast\nfrom image')
+        self.baddfigure.config(command=self.gui_rmfigure,bg='dark grey')
+    
+    def gui_rmfigure(self):
+        'GUI handler for removing the forecast image'
+        self.line.tb.set_message('Removing figure under')
+        try:
+            self.line.m.figure_under.remove()
+        except:
+            for f in self.line.m.figure_under:
+                f.remove()
+        self.baddfigure.config(text='Add Forecast\nfrom image',command=self.gui_addfigure,bg=self.bg)
+        self.line.get_bg(redraw=True)
 
-    def gui_addgeos(self,website='http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx'):
+    def gui_addgeos(self,website='http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=e5131.inst1_2d_hwl_Nx'): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
         'GUI handler for adding the figures from WMS support of GEOS'
         from gui import Popup_list
+        import tkMessageBox
+        tkMessageBox.showwarning('Testing','Trying to load GEOS data from http://wms.gsfc.nasa.gov/ \n ** Might be outdatted ** ')
         try:
             from owslib.wms import WebMapService
             from owslib.util import openURL
             from StringIO import StringIO
             from PIL import Image
+            print 'Loading WMS from :'+website.split('/')[2]
             self.line.tb.set_message('Loading WMS from :'+website.split('/')[2])
             wms = WebMapService(website)
             cont = list(wms.contents)
         except Exception as ie:
             print ie
-            import tkMessageBox
             tkMessageBox.showwarning('Sorry','Loading WMS map file from '+website.split('/')[2]+' servers not working...')
             return
         titles = [wms[c].title for c in cont]
         arr = [x.split('-')[-1]+':  '+y for x,y in zip(cont,titles)]
-        i = Popup_list(arr)
+        popup = Popup_list(arr)
+        i = popup.var.get()
         self.line.tb.set_message('Selected WMS map: '+titles[i].split(',')[-1])
+        print 'Selected WMS map: '+titles[i].split(',')[-1]
         if wms[cont[i]].timepositions:
             times = wms[cont[i]].timepositions
-            j = Popup_list(times)
-            time_sel = times[j]
+            jpop = Popup_list(times)
+            time_sel = times[jpop.var.get()]
         else:
             time_sel = None
         try:
             if not time_sel:
-                time_sel = self.line.ex.datestr+'T12:00'
+                from datetime import datetime
+                time_sel = datetime.now().strftime('%Y-%m-%d')+'T12:00'
             ylim = self.line.line.axes.get_ylim()
             xlim = self.line.line.axes.get_xlim()
             #img = wms.getdata(layers=[cont[i]],
@@ -684,22 +820,46 @@ class gui:
             #                  srs='EPSG:4326',
             #                  format='image/png')
             #leg_call = openURL(img.geturl().replace('GetMap','GetLegend'))
-            img = wms.getdata(layers=[cont[i],'countries'],
-                              bbox=(ylim[0],xlim[0],ylim[1],xlim[1]),
+        except:
+            tkMessageBox.showwarning('Sorry','Problem getting the limits and time of the image')
+            return
+        try:
+            img = wms.getmap(layers=[cont[i]],style=['default'],
+                              bbox=(xlim[0],ylim[0],xlim[1],ylim[1]),
                               size=(480,240),
                               transparent=True,
                               time=time_sel,
                               srs='EPSG:4326',
                               format='image/png')
-            geos = Image.open(StringIO(img.read()))
-            self.line.addfigure_under(geos,xlim[0],ylim[0],xlim[1],ylim[1])
-            #self.line.line.figure.add
-            #leg = Image.open(StringIO(leg_call.read()))
-            #self.line.addfigure_under(leg,xlim[0],ylim[0],xlim[1],ylim[1],outside=True)
-        except:
-            import tkMessageBox
-            tkMessageBox.showwarning('Sorry','Problem getting the image to load')
+        except Exception as ie:
+            print ie
+            tkMessageBox.showwarning('Sorry','Problem getting the image from WMS server')
             return
+        try:
+            geos = Image.open(StringIO(img.read()))
+        except Exception as ie:
+            print ie
+            tkMessageBox.showwarning('Sorry','Problem reading the image that was loaded')
+            return
+        try: 
+            self.line.addfigure_under(geos.transpose(Image.FLIP_TOP_BOTTOM),xlim[0],ylim[0],xlim[1],ylim[1])
+        except Exception as ie:
+            print ie
+            tkMessageBox.showwarning('Sorry','Problem putting the image under plot')
+            return
+        self.baddgeos.config(text='Remove GEOS Forecast')
+        self.baddgeos.config(command=self.gui_rmgeos,bg='dark grey')
+        
+    def gui_rmgeos(self):
+        'GUI handler for removing the GEOS forecast image'
+        self.line.tb.set_message('Removing figure under')
+        try:
+            self.line.m.figure_under.remove()
+        except:
+            for f in self.line.m.figure_under:
+                f.remove()
+        self.baddgeos.config(text='Add GEOS Forecast',command=self.gui_addgeos,bg=self.bg)
+        self.line.get_bg(redraw=True)
             
     def gui_flt_module(self):
         'Program to load the flt_module files and select'
@@ -727,6 +887,7 @@ class Select_flt_mod(tkSimpleDialog.Dialog):
         import Tkinter as tk
         self.rbuttons = []
         self.flt = tk.StringVar()
+        self.flt.set(self.flt_mods.keys()[0])
         tk.Label(master, text=self.text).grid(row=0)
         for i,l in enumerate(self.flt_mods.keys()):
             self.rbuttons.append(tk.Radiobutton(master,text=l, variable=self.flt,value=l))
@@ -849,23 +1010,48 @@ class ask(tkSimpleDialog.Dialog):
     """
     Simple class to ask to enter values for each item in names
     """
-    def __init__(self,names,title='Enter numbers'):
+    def __init__(self,names,choice=[],choice_title=None,choice2=[],choice2_title=None,title='Enter numbers'):
         import Tkinter as tk
         self.names = names
+        self.choice = choice
+        self.choice_title = choice_title
+        self.choice2 = choice2
+        self.choice2_title = choice2_title
         parent = tk._default_root
         tkSimpleDialog.Dialog.__init__(self,parent,title)
         pass
     def body(self,master):
         import Tkinter as tk
+        self.radb_val = tk.StringVar()
+        self.radb_val.set(self.choice[0])
+        self.radbutton = []
+        self.radb2_val = tk.StringVar()
+        self.radb2_val.set(self.choice2[0])
+        self.radbutton2 = []
+        ii = 0
+        if self.choice_title:
+            tk.Label(master,text=self.choice_title).grid(row=0,column=0,columnspan=2)
+            ii = 1
+        for i,l in enumerate(self.choice):
+            self.radbutton.append(tk.Radiobutton(master,text=l,variable=self.radb_val,value=l))
+            self.radbutton[i].grid(row=0+ii,column=i)
+        if self.choice2_title:
+            tk.Label(master,text=self.choice2_title).grid(row=1+ii,column=0,columnspan=2)
+            ii = 3
+        for i,l in enumerate(self.choice2):
+            self.radbutton2.append(tk.Radiobutton(master,text=l,variable=self.radb2_val,value=l))
+            self.radbutton2[i].grid(row=ii,column=i)
         self.fields = range(len(self.names))
         for i,n in enumerate(self.names):
-            tk.Label(master,text=n).grid(row=i)
+            tk.Label(master,text=n).grid(row=i+1+ii)
             self.fields[i] = tk.Entry(master)
-            self.fields[i].grid(row=i,column=1)
+            self.fields[i].grid(row=i+1+ii,column=1)
     def apply(self):
         self.names_val = range(len(self.names))
         for i,n in enumerate(self.names):
             self.names_val[i] = float(self.fields[i].get())
+        self.choice_val = self.radb_val.get()
+        self.choice2_val = self.radb2_val.get()
         return self.names_val          
 
 class Select_profile(tkSimpleDialog.Dialog):
@@ -1033,7 +1219,7 @@ class Select_profile(tkSimpleDialog.Dialog):
             return False
         return True
 
-def Popup_list(arr):
+class Popup_list(tkSimpleDialog.Dialog):
     """
     Purpose:
         Popup box that offers selection of list
@@ -1046,26 +1232,32 @@ def Popup_list(arr):
         Tkinter
     MOdifications:
         written: Samuel LeBlanc, 2015-09-16, NASA Ames, CA
+        Modified: Samuel LeBlanc, 2016-07-13, NASA WFF, VA
+                  - made to be a subclass of the tkSimpleDialog product
     """
-    import Tkinter as tk
-    top = tk.Toplevel()
-    lb = tk.Listbox(top)
-    lb.config(width=0)
-    lb.config(height=20)
-    for i,e in enumerate(arr):
-        lb.insert(tk.END,e)
-    top.winfo_toplevel().wm_geometry("")
-    scroll = tk.Scrollbar(top)
-    scroll.pack(side=tk.RIGHT,fill=tk.Y)
-    lb.config(yscrollcommand=scroll.set)
-    scroll.config(command=lb.yview)
-    var = tk.IntVar()
-    def func(e):
-        value, = lb.curselection()
-        var.set(value)
-        top.after(50,top.destroy())
-    lb.bind('<<ListboxSelect>>',func)
-    lb.pack()
-    return var.get()
-    
-
+    def __init__(self,arr,title='Select graphics from server'):
+        import Tkinter as tk
+        self.arr = arr
+        parent = tk._default_root
+        tkSimpleDialog.Dialog.__init__(self,parent,title)
+        
+    def body(self,master):
+        import Tkinter as tk
+        lb = tk.Listbox(master)
+        lb.config(width=0)
+        lb.config(height=20)
+        for i,e in enumerate(self.arr):
+            lb.insert(tk.END,e)
+        master.winfo_toplevel().wm_geometry("")
+        scroll = tk.Scrollbar(master)
+        scroll.pack(side=tk.RIGHT,fill=tk.Y)
+        lb.config(yscrollcommand=scroll.set)
+        scroll.config(command=lb.yview)
+        self.var = tk.IntVar(master)
+        self.lb = lb
+        self.lb.pack()
+        
+    def apply(self):
+        value, = self.lb.curselection()
+        self.var.set(value)
+        return self.var.get()

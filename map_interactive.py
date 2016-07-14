@@ -45,6 +45,8 @@ class LineBuilder:
                  - added handling of blit draw techinque to get gains in speed when drawing
         Modified: Samuel LeBlanc, 2016-06-22, NASA Ames, CA
                  - added flt_modules functionality
+        Modified: Samuel LeBlanc, 2016-07-12, WFF, VA
+                 - added plotting of aeronet data on map. Taken from internet.
     """
     def __init__(self, line,m=None,ex=None,verbose=False,tb=None, blit=True):
         """
@@ -407,25 +409,44 @@ class LineBuilder:
 
     def addfigure_under(self,img,ll_lat,ll_lon,ur_lat,ur_lon,outside=False,**kwargs):
     	'Program to add a figure under the basemap plot'
-	left,bottom = self.m(ll_lon,ll_lat)
-	right,top = self.m(ur_lon,ur_lat)
-	lons = np.linspace(ll_lon,ur_lon,num=img.shape[1])
-	lats = np.linspace(ll_lat,ur_lat,num=img.shape[0])
-	ix = np.where((lats>self.m.llcrnrlat)&(lats<self.m.urcrnrlat))[0]
-	iy = np.where((lons>self.m.llcrnrlon)&(lons<self.m.urcrnrlon))[0]
-	ix = img.shape[0]-ix
-	if not outside:
-	    self.m.figure_under = None
-	    #self.m.imshow(img,zorder=0,extent=[left,right,top,bottom],**kwargs)
-	    self.m.figure_under = self.m.imshow(img[ix,:,:][:,iy,:],zorder=0,alpha=0.5,**kwargs)
-	else:
-	    u = self.m.imshow(img,clip_on=False,**kwargs)
-	self.line.figure.canvas.draw()
-	self.get_bg()
+     
+        left,bottom = self.m(ll_lon,ll_lat)
+        right,top = self.m(ur_lon,ur_lat)
+        try:
+            lons = np.linspace(ll_lon,ur_lon,num=img.shape[1])
+            lats = np.linspace(ll_lat,ur_lat,num=img.shape[0])
+        except AttributeError:
+            lons = np.linspace(ll_lon,ur_lon,num=img.size[1])
+            lats = np.linspace(ll_lat,ur_lat,num=img.size[0])
+        ix = np.where((lats>self.m.llcrnrlat)&(lats<self.m.urcrnrlat))[0]
+        iy = np.where((lons>self.m.llcrnrlon)&(lons<self.m.urcrnrlon))[0]
+        try:
+            ix = img.shape[0]-ix
+        except AttributeError:
+            ix = img.size[0]-ix
+        if not outside:
+            self.m.figure_under = None
+            #self.m.imshow(img,zorder=0,extent=[left,right,top,bottom],**kwargs)
+            try:
+                self.m.figure_under = self.m.imshow(img[ix,:,:][:,iy,:],zorder=0,alpha=0.5,**kwargs)
+            except:
+                self.m.figure_under = self.m.imshow(img,zorder=0,alpha=0.5,**kwargs)
+        else:
+            u = self.m.imshow(img,clip_on=False,**kwargs)
+        self.line.figure.canvas.draw()
+        self.get_bg()
 
-    def newpoint(self,bearing,distance,alt=None):
-        'program to add a new point at the end of the current track with a bearing and distance, optionally an altitude'
-        newlon,newlat,baz = shoot(self.lons[-1],self.lats[-1],bearing,maxdist=distance)
+    def newpoint(self,Bearing,distance,alt=None,last=True,feet=False,km=True):
+        """
+        program to add a new point at the end of the current track with a bearing and distance, optionally an altitude
+        if feet is set, altitude is defined in feet not the defautl meters.
+        if km is set to True, distance is defined in kilometers (default), if False, it uses nautical miles (nm)
+        """
+        if not km:
+            dist = distance*2.02 #need to check this value.
+        else:
+            dist = distance
+        newlon,newlat,baz = shoot(self.lons[-1],self.lats[-1],Bearing,maxdist=distance)
         if self.verbose:
             print 'New points at lon: %f, lat: %f' %(newlon,newlat)
         if self.m:
@@ -437,16 +458,20 @@ class LineBuilder:
         self.xs.append(x)
         self.ys.append(y)
         self.line.set_data(self.xs, self.ys)
+        
         if self.ex:
+            if alt:
+                if feet:
+                    alt = alt/3.28084
             self.ex.appends(self.lats[-1],self.lons[-1],alt=alt)
             self.ex.calculate()
             self.ex.write_to_excel()
         self.update_labels()
         self.draw_canvas()
 
-    def movepoint(self,i,bearing,distance,last=False):
+    def movepoint(self,i,Bearing,distance,last=False):
         'Program to move a point a certain distance and bearing'
-        newlon,newlat,baz = shoot(self.lons[i],self.lats[i],bearing,maxdist=distance)
+        newlon,newlat,baz = shoot(self.lons[i],self.lats[i],Bearing,maxdist=distance)
         if self.m:
             x,y = self.m(newlon,newlat)
             self.lons[i] = newlon
@@ -466,24 +491,55 @@ class LineBuilder:
 
     def parse_flt_module_file(self,filename):
         """
-        Program that opens a macro file and parses it, runs the move commands
+        Program that opens a macro file and parses it, runs the move commands on each line of the file
+        Added ability to defined either altitude in feet or meters, or the length in km or nm
         
         """
         from gui import ask
         import os
+        # set up predefined values
+        predef = ['azi','AZI','PP','pp']
+        azi = self.ex.azi[-1]
+        pp, AZI, PP = azi,azi,azi
+        
+        # load flt_module
         name = os.path.basename(filename).split('.')[0]
         f = open(filename,'r')
-        s = f.readline()
-        if s.startswith('#'):
-            names = [u.strip() for u in s.strip().strip('#').split(',')]
-        vals = ask(names,title='Enter values for {}'.format(name))
+        s = f.readlines()
+        # get variables in flt_module
+        for l in s:
+            if l.startswith('%'):
+                names = [u.strip() for u in l.strip().strip('%').split(',')]
+        choice = ['feet','meters']
+        choice2 = ['km','nm']
+        # remove values predefined
+        for p in predef:
+            try:
+                names.remove(p)
+            except:
+                pass
+                
+        # ask the user supply the variables
+        vals = ask(names,choice=choice,choice_title='Altitude:',choice2=choice2,choice2_title='Distance:',title='Enter values for {}'.format(name))
         v = vals.names_val
+        if vals.choice_val == 'feet': 
+            use_feet = True 
+        else: 
+            use_feet = False
+        
+        if vals.choice2_val == 'km': 
+            use_km = True 
+        else: 
+            use_km = False
+            
         # make the values variables
         for i,n in enumerate(names):
             exec('{}={}'.format(n,vals.names_val[i]))
-        for l in f:
+        for l in s[1:-1]:
             if not l.startswith('#'):
-                self.newpoint(*eval(l))
+                self.newpoint(*eval(l),last=False,feet=use_feet,km=use_km)
+        if not s[-1].startswith('#'):
+                self.newpoint(*eval(s[-1]),feet=use_feet,km=use_km)
         f.close()
 
     def get_bg(self,redraw=False):
@@ -509,6 +565,18 @@ class LineBuilder:
             self.line.figure.canvas.blit(self.line.axes.bbox)
         else:
             self.line.figure.canvas.draw()
+            
+    def calc_move_from_rot(self,i,angle,lat0,lon0):
+        """
+        Program to calculate a bearing and angle to rotate the point i based on the lat lon points lat0 and lon0
+        Returns a bearing and a distance of the point i to get the correct position
+        """
+        dist = spherical_dist([lat0,lon0],[self.lats[i],self.lons[i]])
+        bearing_start = bearing([lat0,lon0],[self.lats[i],self.lons[i]])
+        newlon,newlat,baz = shoot(lon0,lat0,bearing_start+angle,maxdist=dist)
+        dist_end = spherical_dist([self.lats[i],self.lons[i]],[newlat,newlon])
+        bearing_end = bearing([self.lats[i],self.lons[i]],[newlat,newlon])
+        return bearing_end,dist_end        
         
 def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,proj='cyl',profile=None):
     """
@@ -526,10 +594,15 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,proj='cyl',pr
         upper_right = [pll(profile['Lon_range'][1]),pll(profile['Lat_range'][1])]
         lower_left = [pll(profile['Lon_range'][0]),pll(profile['Lat_range'][0])]
         
-        
-    m = Basemap(projection=proj,lon_0=(upper_right[0]+lower_left[0])/2.0,lat_0=(upper_right[1]+lower_left[1])/2.0,
-            llcrnrlon=lower_left[0], llcrnrlat=lower_left[1],
-            urcrnrlon=upper_right[0], urcrnrlat=upper_right[1],resolution='h',ax=ax)
+    try:
+        import cPickle as pickle
+        m = pickle.load(open('map_{}.pkl'.format(profile['Campaign']),'rb'))
+        #print 'doing it pickle style'
+        m.ax = ax
+    except:
+        m = Basemap(projection=proj,lon_0=(upper_right[0]+lower_left[0])/2.0,lat_0=(upper_right[1]+lower_left[1])/2.0,
+                llcrnrlon=lower_left[0], llcrnrlat=lower_left[1],
+                urcrnrlon=upper_right[0], urcrnrlat=upper_right[1],resolution='i',ax=ax)
     m.artists = []
     m.drawcoastlines()
     #m.fillcontinents(color='#AAAAAA')
@@ -787,6 +860,8 @@ def get_tle_from_file(filename):
             continue
         if not name:
             name = line.strip()
+            if name.startswith('0'):
+                name = name.strip('0').strip()
             continue
         if not first:
             first = line.strip()

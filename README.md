@@ -1,6 +1,6 @@
 # Name:
 
-Moving Lines, version 0.8beta
+Moving Lines, version 0.95beta
 [http://science.arm.gov/~sleblanc/flight_planning/]
     
 # Purpose:
@@ -60,18 +60,24 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 ## Creating a flt module (or macro)
     1) in the flt_module folder create a text file
     2) the text file name should be descriptive of the macro with an extension '.flt'
-    3) first line starts with the hash sign '#' then a list of variables to be used
-    4) each subsequent line is a move command, which can use simple math and the variables defined in the first line
-    5) format of the lines are: bearing,distance,altitude
+    3) first line starts with the percent sign '%' then a list of variables to be used
+    4) Comments can be included, but only at the start of the line, denoted with a hash '#' sign
+    5) each subsequent line is a move command, which can use simple math and the variables defined in the first line
+    6) format of the lines are: bearing,distance,altitude
         where the bearing is the azimuth angle of the plane
         where the distance is the length of that leg
-        where the altitude (which can be omitted) is the default altitude of the plane for the next waypoint
-    6) enter number of points desired for macro then save in the flt_module directory. It is ready to be used in the software.    
+        where the altitude (which can be omitted) is the altitude of the plane for the next waypoint
+    7) enter number of points desired for macro then save in the flt_module directory. It is ready to be used in the software without the need for a restart.   
     
 ## Adding other planes or flight paths:
     1) Press the 'New Flight Path' button
     2) Enter name of new flight path. If it contains the name of a plane (e.g. p3, er2, dc8, c130,baer), will use the predefined speeds for that plane
     3) New flight path will have different color
+    
+## Adding platform default information:
+    1) locate the platform.txt file.
+    2) in the file, there is a series of python dict formats with each a defined list of variables that sets the flight characteristics of the plane/platform
+    3) modify exisiting pltform dict, or create a new one based on the template and the guidance shown in the file.
     
 ## Change which flight path is active:
     1) Press the button related to the flight path desired just above the 'New Flight Path' button
@@ -100,9 +106,9 @@ Takes advantage of clickable map for creating a flight plan, and already existin
     
 # Notes and tips about usage:
 
-    - clicking on the first point will link it again
+    - clicking on the first point will create a waypoint to it
     - second point to be added will have the default transit altitude for that plane (if available)
-    - when holding down the mouse button, range circles will appear, along with the sun's azimuthal location at that time
+    - when holding down the mouse button, range circles will appear, along with the sun's azimuthal location at that time denoted by the yellow star and dashed lines
     - Saving to: ICT button will create a sample ict file with 60 seconds points interpolated between each waypoint
     - plots of solar angle and altitude profiles is created with the Plots buttons
     
@@ -137,8 +143,11 @@ Takes advantage of clickable map for creating a flight plan, and already existin
     - aeronet_locations.txt: csv files with location of aeronet sites. found from : http://aeronet.gsfc.nasa.gov/aeronet_locations.txt
     - sat.tle: Selected data for satellite tracks in form of Two Line Element set from http://www.celestrak.com
     - profiles.txt: text file containing dictionary assignment for map setup defaults. each profile linked to a field mission, python dict format.
+    - platform.txt: text file containing dictionary assignment for details on each platform: max altitude, max speed, speed profile, vertical speed profile, turning rate
     - arc.ico: icon file
     - file.rc: plotting defaults file (python matplotlib.rc format)
+    - map_icons: folder with icons for use on google earth (optional)
+    - flt_modules: folder with multiple flt files. To use when creating the flt_module paths. 
     
 # Source files:
 
@@ -154,7 +163,6 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 
     - add platform info button next to flight paths (to change its settings)
     - extract altitude, speed and climb time calculations from Excel_interface.py to enable easier modifications
-    - Macro generation tool and presets
     - add other forecast imagery from GMAO or others using WMS
     - add current AOD values at AERONET stations
     - add ship tracks, or position of ships
@@ -164,9 +172,8 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 # Known Bugs:
 
     - Sometime slow starting up, especiallly when excel is not open
-    - May not recognise platform after loading an saved excel spreadsheet
-    - Altitude may not always change adequatly, even after manual input
-    - when switching between flight paths, speed may be mixed up
+    - Altitude may not always change adequatly, even after manual input (**possibly resolved**)
+    - when switching between flight paths, speed may be mixed up (**possibly resolved**)
     
 # Modification History:
 
@@ -179,4 +186,14 @@ Takes advantage of clickable map for creating a flight plan, and already existin
                        Added sun position calculations
                        Modified some gui placement
                        Added ICT file creation, and save all button
+    Modified (v0.9b): Samuel LeBlanc, NASA Ames, 2016-06-22
+                       Added flt_module command for creating parts of flights via macros
+    Modified (v0.95b): Samuel LeBlanc, NASA Ames, in transit to WFF, 2016-07-11
+                       Added platform information file to facilitate modification of
+                        default platform parameters (cruising altitude, speed profile, climb time, turning rate)
+                       Added button to remove the satellite tracks
+                       updated the sat.tle file 
+                       bug fix for recognizing platform after excel file load, tried to fix bug in altitude and speed calculations
+                       Added selections for altitude in feet/meter and distance in nm/km for flt_module loading.
+                       
     

@@ -1,0 +1,16 @@
+%length,angle,mid_step_alt,top_step_alt
+angle,0,7500
+angle,length,7500
+angle-180,0,200
+angle-180,length/17,200
+angle-180,length/17,mid_step_alt
+angle-180,length*2/17,mid_step_alt
+angle-180,length/17,top_step_alt
+angle-180,length*2/17,top_step_alt
+angle-180,length*2/17,200
+angle-180,length*2/17,200
+angle-180,length/17,mid_step_alt
+angle-180,length*2/17,mid_step_alt
+angle-180,length/17,top_step_alt
+angle-180,length*2/17,top_step_alt
+
