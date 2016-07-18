@@ -511,6 +511,7 @@ class gui:
     def refresh(self):
         'function to force a refresh of the plotting window'
         self.line.onfigureenter([1])
+        self.line.redraw_pars_mers()
         self.line.get_bg()
     
     def make_gui(self):
@@ -776,11 +777,11 @@ class gui:
         self.baddfigure.config(text='Add Forecast\nfrom image',command=self.gui_addfigure,bg=self.bg)
         self.line.get_bg(redraw=True)
 
-    def gui_addgeos(self,website='http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=e5131.inst1_2d_hwl_Nx'): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
+    def gui_addgeos(self,website='http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx'): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
         'GUI handler for adding the figures from WMS support of GEOS'
         from gui import Popup_list
         import tkMessageBox
-        tkMessageBox.showwarning('Testing','Trying to load GEOS data from http://wms.gsfc.nasa.gov/ \n ** Might be outdatted ** ')
+        tkMessageBox.showwarning('Testing','Trying to load GEOS data from {} \n ** Might be outdatted ** '.format(website.split('/')[2]))
         try:
             from owslib.wms import WebMapService
             from owslib.util import openURL
@@ -835,6 +836,7 @@ class gui:
             print ie
             tkMessageBox.showwarning('Sorry','Problem getting the image from WMS server')
             return
+            
         try:
             geos = Image.open(StringIO(img.read()))
         except Exception as ie:
@@ -1076,8 +1078,7 @@ class Select_profile(tkSimpleDialog.Dialog):
         self.profile = self.default_profiles[0]
         parent = tk._default_root
         tkSimpleDialog.Dialog.__init__(self,parent,title)
-        
-    
+
     def body(self,master):
         import tkSimpleDialog
         import Tkinter as tk

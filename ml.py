@@ -43,9 +43,11 @@
                 - added flt_module files, rotate points, sun's principal plane direction
                 - added profiles, platform information, satellite tracks
                 - fixed some bugs in loading excel
-        Modified: Samuel LeBlanc, 2016-07-13, WFF, CA 
+        Modified: Samuel LeBlanc, 2016-07-13, WFF, VA
                 - added the aeronet AOD plotting
                 - added remove plots on the same buttons as add
+        Modified: Samuel LeBlanc, 2016-07-17, Santa Cruz, CA
+                - fixed bug that spanning past the map looses any plotting.
 """
 import Tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
@@ -78,10 +80,11 @@ import tkSimpleDialog, tkFileDialog, tkMessageBox
 #import six, six.moves
 import warnings
 
-__version__ = 'v0.96beta'
+__version__ = 'v0.97beta'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'
+icon_filename = 'arc.ico'
 
 def Get_basemap_profile():
     'Program to load profile dict basemap values'
@@ -154,7 +157,7 @@ def Create_gui(vertical=True):
     ui.root.wm_title('Flight planning by Samuel LeBlanc, NASA Ames, '+__version__)
     ui.root.geometry('900x950')
     try:
-        ui.root.iconbitmap('arc.ico')
+        ui.root.tk.call('wm','iconbitmap',ui.root._w,'-default',icon_filename)
     except:
         pass
     ui.top = tk.Frame(ui.root)

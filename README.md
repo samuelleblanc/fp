@@ -195,5 +195,9 @@ Takes advantage of clickable map for creating a flight plan, and already existin
                        updated the sat.tle file 
                        bug fix for recognizing platform after excel file load, tried to fix bug in altitude and speed calculations
                        Added selections for altitude in feet/meter and distance in nm/km for flt_module loading.
+    Modified (v0.97b): Samuel LeBlanc, NASA Ames, at Santa Cruz, CA, 2016-07-18
+                       bug fix for improper parallels and meridians drawing. 
+                       Some speed improvements
+                       updated aeronet site locations and sat.tle satellite predictions and icon
                        
     

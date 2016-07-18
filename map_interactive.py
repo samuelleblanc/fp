@@ -169,6 +169,27 @@ class LineBuilder:
         if self.verbose:
             sys.stdout.write('moving:')
             sys.stdout.flush()
+            
+    def redraw_pars_mers(self):
+        'redraws the parallels and meridians based on the current geometry'
+        ylim = self.line.axes.get_ylim()
+        xlim = self.line.axes.get_xlim()
+        self.m.llcrnrlon = xlim[0]
+        self.m.llcrnrlat = ylim[0]
+        self.m.urcrnrlon = xlim[1]
+        self.m.urcrnrlat = ylim[1]
+        round_to_2 = lambda x:(int(x/2)+1)*2
+        round_to_5 = lambda x:(int(x/5)+1)*5
+        if (xlim[1]-xlim[0])<20.0:
+            mer = np.arange(round_to_2(xlim[0]),round_to_2(xlim[1])+2,2)
+        else:
+            mer = np.arange(round_to_5(xlim[0]),round_to_5(xlim[1])+5,5)
+        if (ylim[1]-ylim[0])<20.0:
+            par = np.arange(round_to_2(ylim[0]),round_to_2(ylim[1])+2,2)
+        else:
+            par = np.arange(round_to_5(ylim[0]),round_to_5(ylim[1])+5,5)
+        mi.update_pars_mers(self.m,mer,par,lower_left=(xlim[0],ylim[0]))
+        self.line.figure.canvas.draw()
         
     def onrelease(self,event):
         'Function to set the point location'
@@ -178,24 +199,7 @@ class LineBuilder:
         if self.moving: return
 
         if (self.tb.mode == 'zoom rect') | (self.tb.mode == 'pan/zoom') | (self.tb.mode!=''):
-            ylim = self.line.axes.get_ylim()
-            xlim = self.line.axes.get_xlim()
-            self.m.llcrnrlon = xlim[0]
-            self.m.llcrnrlat = ylim[0]
-            self.m.urcrnrlon = xlim[1]
-            self.m.urcrnrlat = ylim[1]
-            round_to_2 = lambda x:(int(x/2)+1)*2
-            round_to_5 = lambda x:(int(x/5)+1)*5
-            if (xlim[1]-xlim[0])<20.0:
-                mer = np.arange(round_to_2(xlim[0]),round_to_2(xlim[1])+2,2)
-            else:
-                mer = np.arange(round_to_5(xlim[0]),round_to_5(xlim[1])+5,5)
-            if (ylim[1]-ylim[0])<20.0:
-                par = np.arange(round_to_2(ylim[0]),round_to_2(ylim[1])+2,2)
-            else:
-                par = np.arange(round_to_5(ylim[0]),round_to_5(ylim[1])+5,5)
-            mi.update_pars_mers(self.m,mer,par)
-            self.line.figure.canvas.draw()
+            self.redraw_pars_mers()
             self.get_bg()
             return
         elif self.tb.mode!='':
@@ -588,6 +592,8 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,proj='cyl',pr
     Modified: Samuel LeBlanc, 2015-09-15, NASA Ames
             - added profile keyword that contains the basemap profile dict for plotting the corners
             - added programatic determination of basemap parallels and meridians
+    Modified: Samuel LeBlanc, 2016-07-17, Santa Cruz, CA
+            - added plotting of larger region, which is then resized, to have space to pan and zoom.
     """
     from map_interactive import pll
     if profile:
@@ -601,25 +607,56 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,proj='cyl',pr
         m.ax = ax
     except:
         m = Basemap(projection=proj,lon_0=(upper_right[0]+lower_left[0])/2.0,lat_0=(upper_right[1]+lower_left[1])/2.0,
-                llcrnrlon=lower_left[0], llcrnrlat=lower_left[1],
-                urcrnrlon=upper_right[0], urcrnrlat=upper_right[1],resolution='i',ax=ax)
+                llcrnrlon=lower_left[0]-30, llcrnrlat=lower_left[1]-30,
+                urcrnrlon=upper_right[0]+30, urcrnrlat=upper_right[1]+30,resolution='i',ax=ax)
     m.artists = []
     m.drawcoastlines()
     #m.fillcontinents(color='#AAAAAA')
     m.drawstates()
     m.drawcountries()
     round_to_5 = lambda x:(int(x/5)+1)*5 
-    mer = np.arange(round_to_5(lower_left[0]),round_to_5(upper_right[0])+5,5)
-    par = np.arange(round_to_5(lower_left[1]),round_to_5(upper_right[1])+5,5)
-    #mer = np.linspace(-15,20,8).astype(int)
-    #mer = np.linspace(lower_left[0],upper_right[0],8).astype(int)
-    #par = np.linspace(-25,5,7).astype(int)
-    #par = np.linspace(lower_left[1],upper_right[1],8).astype(int)
+    round_to_2 = lambda x:(int(x/2)+1)*2
+    if (upper_right[0]-lower_left[0])<20.0:
+        mer = np.arange(round_to_2(lower_left[0]-30),round_to_2(upper_right[0]+30)+2,2)
+        difx = 0.2
+    else:
+        mer = np.arange(round_to_5(lower_left[0]-30),round_to_5(upper_right[0]+30)+5,5)
+        difx = 1.0
+    if (upper_right[1]-lower_left[1])<20.0:
+        par = np.arange(round_to_2(lower_left[1]-30),round_to_2(upper_right[1]+30)+2,2)
+        dify = 0.2
+    else:
+        par = np.arange(round_to_5(lower_left[1]-30),round_to_5(upper_right[1]+30)+5,5)
+        dify = 1.0
+    if ax:
+        ax.set_xlim(lower_left[0],upper_right[0])
+        ax.set_ylim(lower_left[1],upper_right[1])
     m.artists.append(m.drawmeridians(mer,labels=[0,0,0,1]))
     m.artists.append(m.drawparallels(par,labels=[1,0,0,0]))
+    # move the meridian labels to a proper position
+    for aa in m.artists[0].keys():
+        try:
+            m.artists[0][aa][1][0].set_position((m.artists[0][aa][1][0].get_position()[0],lower_left[1]-difx))
+        except:
+            pass
+    # move the parallels labels to a proper position
+    for aa in m.artists[1].keys():
+        try:
+            m.artists[1][aa][1][0].set_position((lower_left[0]-dify,m.artists[1][aa][1][0].get_position()[1]))
+        except:
+            pass
+    #import pdb; pdb.set_trace()
+    if ax:
+        try:
+            ax.figure.show()
+        except:
+            try:
+                ax.figure.canvas.draw()
+            except:
+                pass
     return m
 
-def update_pars_mers(m,meridians,parallels):
+def update_pars_mers(m,meridians,parallels,lower_left=None):
     'Simple program to remove old meridians and parallels and plot new ones'
     r = 0
     for a in m.artists:
@@ -643,6 +680,18 @@ def update_pars_mers(m,meridians,parallels):
     m.artists = []
     m.artists.append(m.drawmeridians(meridians,labels=[0,0,0,1]))
     m.artists.append(m.drawparallels(parallels,labels=[1,0,0,0]))
+    # move the meridian labels to a proper position
+    difx = (meridians[1]-meridians[0])/5.0
+    dify = (parallels[1]-parallels[0])/5.0
+    if lower_left:
+        x0,y0 = lower_left[0],lower_left[1]
+    else:
+        x0,y0 = parallels[0],meridians[0]
+    for aa in m.artists[0].keys():
+        m.artists[0][aa][1][0].set_position((m.artists[0][aa][1][0].get_position()[0],y0-dify))
+    # move the parallels labels to a proper position
+    for aa in m.artists[1].keys():
+        m.artists[1][aa][1][0].set_position((x0-difx,m.artists[1][aa][1][0].get_position()[1]))
 
 def pll(string):
     """
