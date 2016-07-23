@@ -3,7 +3,6 @@
 
 import numpy as np
 from xlwings import Range
-import Pysolar.solar as sol
 from datetime import datetime
 from scipy import interpolate
 import write_utils as wu
@@ -45,7 +44,7 @@ class dict_position:
         tempfile
         os
         datetime
-        Pysolar
+        Pyephem
     Required files:
         none
     Example:
@@ -77,10 +76,10 @@ class dict_position:
         Modified: Samuel LeBlanc, 2016-07-22, NASA Ames, from Santa Cruz, CA
                  - modified kml saving to also save a kmz with included icons
                  - modified kml/kmz to have the altitude and link to ground set.
+                 - removed dependency of Pysolar, fixed bug in azimuth calculations
     """
     import numpy as np
     from xlwings import Range,Sheet
-    import Pysolar.solar as sol
     from datetime import datetime
 
     import map_interactive as mi
@@ -332,7 +331,6 @@ class dict_position:
         
         self.datetime = self.calcdatetime()
         self.sza,self.azi = mu.get_sza_azi(self.lat,self.lon,self.datetime)
-        self.azi = [a+360.0 for a in self.azi]
         
         self.time2xl()
 
