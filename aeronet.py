@@ -85,25 +85,29 @@ def plot_aero(m,aero,no_colorbar=True,a_max = 1.5):
     from matplotlib import cm
     from matplotlib.lines import Line2D
     import numpy as np
-    x,y = m(aero['Longitude'],aero['Latitude'])
+    x,y = m(aero['Longitude'].astype('double'),aero['Latitude'].astype('double'))
     
     if no_colorbar:
-        colors = np.round(aero['AOT_500']/a_max*7.0)/7.0
+        colors = np.round(aero['AOT_500'].astype('double')/a_max*7.0)/7.0
         c_ar = np.linspace(0,a_max,7)
         leg_ar = ['{:1.2f} - {:1.2f}'.format(c,c_ar[i+1]) for i,c in enumerate(c_ar[0:-1])]
     else:
-        colors = aero['AOT_500']
+        colors = aero['AOT_500'].astype('double')
 
     cls = cm.gist_ncar(c_ar/a_max)
     
     bb = m.scatter(x,y,c=colors,cmap=cm.gist_ncar,marker='s',
-                   vmin=0.0,vmax=a_max,edgecolors='None',s=50)
+                   vmin=0.0,vmax=a_max,edgecolors='None',s=100)
                    
     if no_colorbar:
         fakepoints = []
         for i,cl in enumerate(cls):
-            fakepoints.append(Line2D([0],[0],color=cl,linestyle='None',marker='s'))
-        cbar = m.ax.legend(fakepoints,leg_ar,numpoints=1,frameon=True,loc='lower right',bbox_to_anchor=(0.5,1.04))
+            fakepoints.append(Line2D([0],[0],color=cl,linestyle='None',marker='s',markeredgecolor='None'))
+        cbar = m.ax.legend(fakepoints,leg_ar,numpoints=1,frameon=True,loc='lower right',bbox_to_anchor=(0.45,1.04),title='AOD 500 nm',ncol=2)
+        try:
+            m.ax.add_artist(cbar)
+        except:
+            pass
     else:
         try:
             cbar = m.colorbar(m.ax,bb)

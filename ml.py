@@ -48,6 +48,13 @@
                 - added remove plots on the same buttons as add
         Modified: Samuel LeBlanc, 2016-07-17, Santa Cruz, CA
                 - fixed bug that spanning past the map looses any plotting.
+        Modified: Samuel LeBlanc, 2016-07-22, Santa Cruz, CA
+                - added new icons for the toolbar
+                - added new function calls to have the toolbar direct the refreshing
+                - added showing of figures on the flt_module
+                - added plotting of legend with geos wms, and cursor animation
+                - fixed legend disappear issue when showing satellite tracks and aeronet values
+                - updated to save kmz also, with embedded icons and altitude displayed.
 """
 import Tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
@@ -80,7 +87,7 @@ import tkSimpleDialog, tkFileDialog, tkMessageBox
 #import six, six.moves
 import warnings
 
-__version__ = 'v0.97beta'
+__version__ = 'v1.00'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'
@@ -173,7 +180,7 @@ def Create_gui(vertical=True):
     ui.canvas = FigureCanvasTkAgg(ui.fig,master=ui.root)
     ui.canvas.show()
     ui.canvas.get_tk_widget().pack(in_=ui.bot,side=tk.BOTTOM,fill=tk.BOTH,expand=1)
-    ui.tb = NavigationToolbar2TkAgg(ui.canvas,ui.root)
+    ui.tb = gui.custom_toolbar(ui.canvas,ui.root)
     ui.tb.pack(in_=ui.bot,side=tk.BOTTOM)
     ui.tb.update()
     ui.canvas._tkcanvas.pack(in_=ui.bot,side=tk.TOP,fill=tk.BOTH,expand=1)

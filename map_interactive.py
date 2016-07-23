@@ -47,6 +47,11 @@ class LineBuilder:
                  - added flt_modules functionality
         Modified: Samuel LeBlanc, 2016-07-12, WFF, VA
                  - added plotting of aeronet data on map. Taken from internet.
+        Modified: Samuel LeBlanc, 2016-07-22, Santa Cruz, CA
+                 - added varying circle sizes depending on the size of the plotted map.
+                 - added links to toolbar buttons to enable refreshing when zooming or panning, back forward
+                 - change plotting of sat tracks (added lines)
+                 - fixed legend disappear when showing aeronet and geos
     """
     def __init__(self, line,m=None,ex=None,verbose=False,tb=None, blit=True):
         """
@@ -68,6 +73,7 @@ class LineBuilder:
         self.ys = list(line.get_ydata())
         if self.m:
             self.lons,self.lats = self.m(self.xs,self.ys,inverse=True)
+            self.large = self.m.large
         self.connect()
         self.line.axes.format_coord = self.format_position_simple
         self.press = None
@@ -118,6 +124,7 @@ class LineBuilder:
         if event.inaxes!=self.line.axes: return
         if self.tb.mode!='': return
         if self.moving: return
+        self.set_alt0 = False
         self.contains, attrd = self.line.contains(event)
         if self.contains:
             if self.verbose:
@@ -143,6 +150,7 @@ class LineBuilder:
                     lo,la = self.m(self.xs[self.contains_index],self.ys[self.contains_index],inverse=True)
                     self.lons.append(lo)
                     self.lats.append(la)
+                self.set_alt0 = True
                 self.contains = False
             ilola = self.contains_index
         else:
@@ -169,27 +177,6 @@ class LineBuilder:
         if self.verbose:
             sys.stdout.write('moving:')
             sys.stdout.flush()
-            
-    def redraw_pars_mers(self):
-        'redraws the parallels and meridians based on the current geometry'
-        ylim = self.line.axes.get_ylim()
-        xlim = self.line.axes.get_xlim()
-        self.m.llcrnrlon = xlim[0]
-        self.m.llcrnrlat = ylim[0]
-        self.m.urcrnrlon = xlim[1]
-        self.m.urcrnrlat = ylim[1]
-        round_to_2 = lambda x:(int(x/2)+1)*2
-        round_to_5 = lambda x:(int(x/5)+1)*5
-        if (xlim[1]-xlim[0])<20.0:
-            mer = np.arange(round_to_2(xlim[0]),round_to_2(xlim[1])+2,2)
-        else:
-            mer = np.arange(round_to_5(xlim[0]),round_to_5(xlim[1])+5,5)
-        if (ylim[1]-ylim[0])<20.0:
-            par = np.arange(round_to_2(ylim[0]),round_to_2(ylim[1])+2,2)
-        else:
-            par = np.arange(round_to_5(ylim[0]),round_to_5(ylim[1])+5,5)
-        mi.update_pars_mers(self.m,mer,par,lower_left=(xlim[0],ylim[0]))
-        self.line.figure.canvas.draw()
         
     def onrelease(self,event):
         'Function to set the point location'
@@ -222,7 +209,10 @@ class LineBuilder:
                 self.ex.write_to_excel()
         else:
             if self.ex:
-                self.ex.appends(self.lats[-1],self.lons[-1])
+                if self.set_alt0:
+                    self.ex.appends(self.lats[-1],self.lons[-1],alt=self.ex.alt[0])
+                else:
+                    self.ex.appends(self.lats[-1],self.lons[-1])
                 self.ex.calculate()
                 self.ex.write_to_excel()
         for lrc in self.line.range_circles:
@@ -357,7 +347,10 @@ class LineBuilder:
         'program to plot range circles starting from the last point selected on the map, with principal plane identified'        
         if self.circlesoff:
             return
-        diam = [50.0,100.0,200.0,500.0,1000.0]
+        if self.large:
+            diam = [50.0,100.0,200.0,500.0,1000.0]
+        else:
+            diam = [25.0,50.0,100.0,200.0,500.0]
         colors = ['lightgrey','lightgrey','lightgrey','lightsalmon','crimson']
         line = []
         an = []
@@ -411,7 +404,7 @@ class LineBuilder:
         self.line_arr[i].set_data([],[])
         self.line_arr[i].remove()
 
-    def addfigure_under(self,img,ll_lat,ll_lon,ur_lat,ur_lon,outside=False,**kwargs):
+    def addfigure_under(self,img,ll_lat,ll_lon,ur_lat,ur_lon,outside=False,text=None,alpha=0.5,**kwargs):
     	'Program to add a figure under the basemap plot'
      
         left,bottom = self.m(ll_lon,ll_lat)
@@ -432,13 +425,49 @@ class LineBuilder:
             self.m.figure_under = None
             #self.m.imshow(img,zorder=0,extent=[left,right,top,bottom],**kwargs)
             try:
-                self.m.figure_under = self.m.imshow(img[ix,:,:][:,iy,:],zorder=0,alpha=0.5,**kwargs)
+                self.m.figure_under = self.m.imshow(img[ix,:,:][:,iy,:],zorder=0,alpha=alpha,**kwargs)
             except:
-                self.m.figure_under = self.m.imshow(img,zorder=0,alpha=0.5,**kwargs)
+                self.m.figure_under = self.m.imshow(img,zorder=0,alpha=alpha,**kwargs)
         else:
             u = self.m.imshow(img,clip_on=False,**kwargs)
+        if text:
+            self.m.figure_under_text = self.m.ax.text(ll_lat,ll_lon,text)
         self.line.figure.canvas.draw()
         self.get_bg()
+        
+    def addlegend_image_below(self,img):
+    	'Program to add a image legend to a new axis below the current axis'
+        try: 
+            self.m.legend_axis = self.line.figure.add_axes([0.1,0.0,0.5,0.1],anchor='NW',zorder=-1)
+            self.m.legend_axis.imshow(img)
+            self.m.legend_axis.axis('off')
+        except:
+            return False
+        self.line.figure.canvas.draw()
+        
+    def redraw_pars_mers(self):
+        'redraws the parallels and meridians based on the current geometry'
+        ylim = self.line.axes.get_ylim()
+        xlim = self.line.axes.get_xlim()
+        self.m.llcrnrlon = xlim[0]
+        self.m.llcrnrlat = ylim[0]
+        self.m.urcrnrlon = xlim[1]
+        self.m.urcrnrlat = ylim[1]
+        round_to_2 = lambda x:(int(x/2)+1)*2
+        round_to_5 = lambda x:(int(x/5)+1)*5
+        self.large = True
+        if (xlim[1]-xlim[0])<20.0:
+            mer = np.arange(round_to_2(xlim[0]),round_to_2(xlim[1])+2,2)
+            self.large = False
+        else:
+            mer = np.arange(round_to_5(xlim[0]),round_to_5(xlim[1])+5,5)
+        if (ylim[1]-ylim[0])<20.0:
+            par = np.arange(round_to_2(ylim[0]),round_to_2(ylim[1])+2,2)
+            self.large = False
+        else:
+            par = np.arange(round_to_5(ylim[0]),round_to_5(ylim[1])+5,5)
+        mi.update_pars_mers(self.m,mer,par,lower_left=(xlim[0],ylim[0]))
+        self.line.figure.canvas.draw()
 
     def newpoint(self,Bearing,distance,alt=None,last=True,feet=False,km=True):
         """
@@ -614,17 +643,20 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,proj='cyl',pr
     #m.fillcontinents(color='#AAAAAA')
     m.drawstates()
     m.drawcountries()
+    m.large = True
     round_to_5 = lambda x:(int(x/5)+1)*5 
     round_to_2 = lambda x:(int(x/2)+1)*2
     if (upper_right[0]-lower_left[0])<20.0:
         mer = np.arange(round_to_2(lower_left[0]-30),round_to_2(upper_right[0]+30)+2,2)
         difx = 0.2
+        m.large = False
     else:
         mer = np.arange(round_to_5(lower_left[0]-30),round_to_5(upper_right[0]+30)+5,5)
         difx = 1.0
     if (upper_right[1]-lower_left[1])<20.0:
         par = np.arange(round_to_2(lower_left[1]-30),round_to_2(upper_right[1]+30)+2,2)
         dify = 0.2
+        m.large = False
     else:
         par = np.arange(round_to_5(lower_left[1]-30),round_to_5(upper_right[1]+30)+5,5)
         dify = 1.0
@@ -854,7 +886,7 @@ def plot_sat_tracks(m,sat):
         else:
             (lon,lat) = sat[k]
         x,y = m(lon,lat)
-        sat_obj.append(m.plot(x,y,'.',label=k))
+        sat_obj.append(m.plot(x,y,marker='.',label=k,linestyle='-',linewidth=0.2))
         co = sat_obj[-1][-1].get_color()
         #sat_obj.append(mu.mplot_spec(m,lon,lat,'-',linewidth=0.2))
         if type(sat[k]) is dict:
@@ -868,7 +900,9 @@ def plot_sat_tracks(m,sat):
         ncol = 2
     else:
         ncol = 1
-    sat_obj.append(m.ax.legend(loc='lower right',bbox_to_anchor=(1.0,1.04),ncol=ncol))
+    sat_legend = m.ax.legend(loc='lower right',bbox_to_anchor=(1.05,1.04),ncol=ncol)
+    m.ax.add_artist(sat_legend)
+    sat_obj.append(sat_legend)
     return sat_obj
 
 def get_sat_tracks_from_tle(datestr):
@@ -932,7 +966,9 @@ def get_flt_modules():
     for f in fnames:
         png = os.path.abspath(os.path.join('.','flt_module',f.split('.')[0]+'.png'))
         if not os.path.isfile(png):
-            png = None
+            png = os.path.abspath(os.path.join('.','flt_module',f.split('.')[0]+'.PNG'))
+            if not os.path.isfile(png):
+                png = None
         dict[f] = {'path':os.path.abspath(os.path.join('.','flt_module',f)),
                    'png':png}
     return dict

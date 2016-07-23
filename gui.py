@@ -1,6 +1,9 @@
 # gui codes to use in coordination with moving_lines software
 # Copyright 2015 Samuel LeBlanc
 import tkSimpleDialog
+import Tkinter as Tk
+from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg, ToolTip
+from matplotlib.backend_bases import Event
 
 class gui:
     """
@@ -47,6 +50,12 @@ class gui:
                   - fixed a few bugs
         Modidifed: Samuel LeBlanc, 2016-07-12, WFF, VA
                   - added a plot aeronet values
+        Modified: Samuel LeBlanc, 2016-07-22, NASA Ames at Santa Cruz, CA
+                  - made custom toolbar, with new buttons, and event call backs for refreshing when zooming or panning, back or forward.
+                  - loading larger part of map to simplify panning and zooming
+                  - fixed some bug reporting
+                  - added figures to the flt_module selections
+                  - added exchange cursor to geos selection
                   
     """
     def __init__(self,line=None,root=None,noplt=False):
@@ -66,6 +75,11 @@ class gui:
             self.root = root
         self.noplt = noplt
         self.newflight_off = True
+        self.line.line.figure.canvas.mpl_connect('home_event', self.refresh)
+        self.line.line.figure.canvas.mpl_connect('pan_event', self.refresh)
+        self.line.line.figure.canvas.mpl_connect('zoom_event', self.refresh)
+        self.line.line.figure.canvas.mpl_connect('back_event', self.refresh)
+        self.line.line.figure.canvas.mpl_connect('forward_event', self.refresh)
     
     def gui_file_select(self,ext='*',
                         ftype=[('Excel 1997-2003','*.xls'),('Excel','*.xlsx'),
@@ -231,7 +245,7 @@ class gui:
             from matplotlib.figure import Figure
             import Tkinter as tk
             root = tk.Toplevel()
-            root.wm_title('Alt vs. Time')
+            root.wm_title('Alt vs. Time: {}'.format(self.line.ex.name))
             fig = Figure()
             canvas = FigureCanvasTkAgg(fig, master=root)
             canvas.show()
@@ -282,7 +296,7 @@ class gui:
         from matplotlib.figure import Figure
         import Tkinter as tk
         root = tk.Toplevel()
-        root.wm_title('Solar position vs. Time')
+        root.wm_title('Solar position vs. Time: {}'.format(self.line.ex.name))
         root.geometry('800x550')
         fig = Figure()
         canvas = FigureCanvasTkAgg(fig, master=root)
@@ -508,7 +522,7 @@ class gui:
         #import sys
         #sys.exit()
 
-    def refresh(self):
+    def refresh(self,*arg,**karg):
         'function to force a refresh of the plotting window'
         self.line.onfigureenter([1])
         self.line.redraw_pars_mers()
@@ -648,6 +662,10 @@ class gui:
     def gui_rmsat(self):
         'Gui button to remove the satellite tracks'
         self.line.tb.set_message('Removing satellite tracks')
+        try:
+            self.sat_obj[-1].set_visible(False)
+        except:
+            pass
         for s in self.sat_obj:
             if type(s) is list:
                 for so in s:
@@ -684,6 +702,11 @@ class gui:
     def gui_rmaeronet(self):
         'Gui function to remove the aeronet points on the map'
         self.line.tb.set_message('Removing aeronet AOD values')
+        #remove the legend first
+        try:
+            self.aero_obj[-1].set_visible(False)
+        except:
+            pass
         try: 
             self.aero_obj.remove()
         except:
@@ -781,7 +804,9 @@ class gui:
         'GUI handler for adding the figures from WMS support of GEOS'
         from gui import Popup_list
         import tkMessageBox
-        tkMessageBox.showwarning('Testing','Trying to load GEOS data from {} \n ** Might be outdatted ** '.format(website.split('/')[2]))
+        tkMessageBox.showwarning('Downloading from internet','Trying to load GEOS data from {}\n with most current model run'.format(website.split('/')[2]))
+        self.root.config(cursor='exchange')
+        self.root.update()
         try:
             from owslib.wms import WebMapService
             from owslib.util import openURL
@@ -793,14 +818,18 @@ class gui:
             cont = list(wms.contents)
         except Exception as ie:
             print ie
+            self.root.config(cursor='')
             tkMessageBox.showwarning('Sorry','Loading WMS map file from '+website.split('/')[2]+' servers not working...')
             return
         titles = [wms[c].title for c in cont]
         arr = [x.split('-')[-1]+':  '+y for x,y in zip(cont,titles)]
+        self.root.config(cursor='')
         popup = Popup_list(arr)
         i = popup.var.get()
         self.line.tb.set_message('Selected WMS map: '+titles[i].split(',')[-1])
         print 'Selected WMS map: '+titles[i].split(',')[-1]
+        self.root.config(cursor='exchange')
+        self.root.update()
         if wms[cont[i]].timepositions:
             times = wms[cont[i]].timepositions
             jpop = Popup_list(times)
@@ -813,15 +842,9 @@ class gui:
                 time_sel = datetime.now().strftime('%Y-%m-%d')+'T12:00'
             ylim = self.line.line.axes.get_ylim()
             xlim = self.line.line.axes.get_xlim()
-            #img = wms.getdata(layers=[cont[i]],
-            #                  bbox=(ylim[0],xlim[0],ylim[1],xlim[1]),
-            #                  size=(480,240),
-            #                  transparent=True,
-            #                  time=time_sel,
-            #                  srs='EPSG:4326',
-            #                  format='image/png')
-            #leg_call = openURL(img.geturl().replace('GetMap','GetLegend'))
         except:
+            self.root.config(cursor='')
+            self.root.update()
             tkMessageBox.showwarning('Sorry','Problem getting the limits and time of the image')
             return
         try:
@@ -834,21 +857,43 @@ class gui:
                               format='image/png')
         except Exception as ie:
             print ie
+            self.root.config(cursor='')
+            self.root.update()
             tkMessageBox.showwarning('Sorry','Problem getting the image from WMS server')
             return
             
         try:
+            legend_call = openURL(img.geturl().replace('GetMap','GetLegend'))
+            geos_legend = Image.open(StringIO(legend_call.read()))
+        except:
+            self.root.config(cursor='')
+            self.root.update()
+            tkMessageBox.showwarning('Sorry','Problem getting the legend image from WMS server')
+
+        try:
             geos = Image.open(StringIO(img.read()))
         except Exception as ie:
             print ie
+            self.root.config(cursor='')
+            self.root.update()
             tkMessageBox.showwarning('Sorry','Problem reading the image that was loaded')
             return
         try: 
-            self.line.addfigure_under(geos.transpose(Image.FLIP_TOP_BOTTOM),xlim[0],ylim[0],xlim[1],ylim[1])
+            self.line.addfigure_under(geos.transpose(Image.FLIP_TOP_BOTTOM),xlim[0],ylim[0],xlim[1],ylim[1],text=time_sel,alpha=1.0)
         except Exception as ie:
             print ie
+            self.root.config(cursor='')
+            self.root.update()
             tkMessageBox.showwarning('Sorry','Problem putting the image under plot')
             return
+            
+        try:
+            self.line.addlegend_image_below(geos_legend)
+        except:
+            print 'Problem with adding the legend from WMS below the plot'
+            
+        self.root.config(cursor='')
+        self.root.update()
         self.baddgeos.config(text='Remove GEOS Forecast')
         self.baddgeos.config(command=self.gui_rmgeos,bg='dark grey')
         
@@ -859,7 +904,22 @@ class gui:
             self.line.m.figure_under.remove()
         except:
             for f in self.line.m.figure_under:
-                f.remove()
+                f.remove
+        try:
+            self.line.m.figure_under_text.remove()
+        except:
+            for f in self.line.m.figure_under_text:
+                f.remove    
+        try:
+            if type(self.line.line) is list:
+                lin = self.line.line[0]
+            else:
+                lin = self.line.line
+            lin.figure.delaxes(self.line.m.legend_axis)
+            lin.figure.canvas.draw()
+        except Exception as ie:
+            print ie    
+            print 'Problem removing legend axis'
         self.baddgeos.config(text='Add GEOS Forecast',command=self.gui_addgeos,bg=self.bg)
         self.line.get_bg(redraw=True)
             
@@ -869,8 +929,12 @@ class gui:
         from gui import Select_flt_mod
         flt_mods = get_flt_modules()
         select = Select_flt_mod(flt_mods)
-        print 'Applying the flt_module {}'.format(select.selected_flt)
-        self.line.parse_flt_module_file(select.mod_path)
+        try:
+            print 'Applying the flt_module {}'.format(select.selected_flt)
+            self.line.parse_flt_module_file(select.mod_path)
+        except:
+            print 'flt_module selection cancelled'
+            return
             
 class Select_flt_mod(tkSimpleDialog.Dialog):
     """
@@ -887,12 +951,24 @@ class Select_flt_mod(tkSimpleDialog.Dialog):
         pass
     def body(self,master):
         import Tkinter as tk
+        from PIL import Image, ImageTk
         self.rbuttons = []
         self.flt = tk.StringVar()
         self.flt.set(self.flt_mods.keys()[0])
         tk.Label(master, text=self.text).grid(row=0)
         for i,l in enumerate(self.flt_mods.keys()):
-            self.rbuttons.append(tk.Radiobutton(master,text=l, variable=self.flt,value=l))
+            try:
+                im = Image.open(self.flt_mods[l]['png'])
+                resized = im.resize((60, 60),Image.ANTIALIAS)
+                photo = ImageTk.PhotoImage(resized)
+                try:
+                    bu = tk.Radiobutton(master,text=l, variable=self.flt,value=l,image=photo,compound='left')
+                    bu.photo = photo
+                    self.rbuttons.append(bu)
+                except Exception as io:
+                    print io
+            except:
+                self.rbuttons.append(tk.Radiobutton(master,text=l, variable=self.flt,value=l))
             self.rbuttons[i].grid(row=i+1,sticky=tk.W)
         return
     def apply(self):
@@ -1262,3 +1338,100 @@ class Popup_list(tkSimpleDialog.Dialog):
         value, = self.lb.curselection()
         self.var.set(value)
         return self.var.get()
+        
+class custom_toolbar(NavigationToolbar2TkAgg):
+    """
+    Custom set of toolbar points, based on the NavigationToolbar2TkAgg
+    
+     - removes the configure subplots_adjust
+     - makes the buttons become grey when selected, and ungray when deselected
+    """
+
+    # Icons for the toolbar used from Minicons Free Vector Icons Pack fround at: www.webalys.com/minicons
+    toolitems = (
+        ('Home', 'Reset original view', 'ml_home', 'home'),
+        ('Back', 'Back to  previous view', 'ml_back', 'back'),
+        ('Forward', 'Forward to next view', 'ml_forward', 'forward'),
+        (None, None, None, None),
+        ('Pan', 'Pan axes with left mouse, zoom with right', 'ml_pan', 'pan'),
+        ('Zoom', 'Zoom to rectangle', 'ml_zoom', 'zoom'),
+        (None, None, None, None),
+        (None, None, None, None),
+        ('Save', 'Save the figure', 'ml_save', 'save_figure'),
+      )
+                 
+    def zoom(self, *args):
+        'decorator for the zoom function'
+        super(custom_toolbar,self).zoom(*args)
+        if self._active=='ZOOM':
+            self.buttons['zoom'].config(bg='dark grey')
+            self.buttons['pan'].config(bg=self.bg)
+        else:
+            self.buttons['zoom'].config(bg=self.bg)
+        s = 'zoom_event'
+        event = Event(s, self)
+        self.canvas.callbacks.process(s, event)
+        
+    def release_zoom(self, event):
+        super(custom_toolbar,self).release_zoom(event)
+        s = 'zoom_event'
+        event1 = Event(s, self)
+        self.canvas.callbacks.process(s, event1)
+        
+    def back(self, *args):
+        super(custom_toolbar,self).back(*args)
+        s = 'back_event'
+        event = Event(s, self)
+        self.canvas.callbacks.process(s, event)
+        
+    def forward(self, *args):
+        super(custom_toolbar,self).forward(*args)
+        s = 'forward_event'
+        event = Event(s, self)
+        self.canvas.callbacks.process(s, event)
+
+    def pan(self, *args):
+        'decorator for the pan function'
+        super(custom_toolbar,self).pan(*args)
+        if self._active=='PAN':
+            self.buttons['pan'].config(bg='dark grey')
+            self.buttons['zoom'].config(bg=self.bg)
+        else:
+            self.buttons['pan'].config(bg=self.bg)
+        s = 'pan_event'
+        event = Event(s, self)
+        self.canvas.callbacks.process(s, event)
+            
+    def _init_toolbar(self):
+        xmin, xmax = self.canvas.figure.bbox.intervalx
+        height, width = 50, xmax-xmin
+        Tk.Frame.__init__(self, master=self.window,
+                          width=int(width), height=int(height),
+                          borderwidth=2)
+        self.update()  # Make axes menu
+        self.buttons = {}
+        for text, tooltip_text, image_file, callback in self.toolitems:
+            if text is None:
+                # spacer, unhandled in Tk
+                pass
+            else:
+                button = self._Button(text=text, file=image_file,
+                                   command=getattr(self, callback),extension='.gif') # modified extension to use gif
+                self.buttons[callback] = button # modified to save button instances
+                if tooltip_text is not None:
+                    ToolTip.createToolTip(button, tooltip_text)
+        self.bg = button.cget('bg')
+        self.message = Tk.StringVar(master=self)
+        self._message_label = Tk.Label(master=self, textvariable=self.message)
+        self._message_label.pack(side=Tk.RIGHT)
+        self.pack(side=Tk.BOTTOM, fill=Tk.X)    
+        
+    def home(self,*args):
+        'home function that will be used to overwrite the current home button'
+        super(custom_toolbar,self).home(*args)
+        s = 'home_event'
+        event = Event(s, self)
+        self.canvas.callbacks.process(s, event)
+
+
+        

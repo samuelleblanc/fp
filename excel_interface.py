@@ -73,7 +73,10 @@ class dict_position:
                     - added handling of the profile dict of lat lon and starting positions
         Modified: Samuel LeBlanc, 2016-07-10, NASA Ames, from Santa Cruz, CA
                  - added handling of platform info from external files.
-                 - added bearing info to excel file and vlight planning version info with date
+                 - added bearing info to excel file and flight planning version info with date
+        Modified: Samuel LeBlanc, 2016-07-22, NASA Ames, from Santa Cruz, CA
+                 - modified kml saving to also save a kmz with included icons
+                 - modified kml/kmz to have the altitude and link to ground set.
     """
     import numpy as np
     from xlwings import Range,Sheet
@@ -945,6 +948,8 @@ class dict_position:
             net = self.netkml.newnetworklink(name=self.datestr)
             net.link.href = filename
             net.link.refreshmode = simplekml.RefreshMode.onchange
+            net.link.camera = simplekml.Camera(latitude=self.lat[0], longitude=self.lon[0], altitude=3000.0, roll=0, tilt=0,
+                          altitudemode=simplekml.AltitudeMode.relativetoground)
             filenamenet = filename+'_net.kml'
             self.netkml.save(filenamenet)
             self.kml = simplekml.Kml(open=1)
@@ -957,15 +962,24 @@ class dict_position:
             #self.kml.document = simplekml.Folder(name = self.name)
             self.print_points_kml(self.kmlfolder)
             self.print_path_kml(self.kmlfolder,color=self.color,j=j)
+        self.kml.camera = simplekml.Camera(latitude=self.lat[0], longitude=self.lon[0], altitude=3000.0, roll=0, tilt=0,
+                          altitudemode=simplekml.AltitudeMode.relativetoground)
         self.kml.save(filename)
+        try: 
+            self.kml.savekmz(filename.replace('kml','kmz'))
+        except:
+            print 'saving kmz didnt work'
+            
         if not self.googleearthopened:
-            self.openGoogleEarth(filenamenet)
+            #self.openGoogleEarth(filenamenet)
+            self.openGoogleEarth(filename.replace('kml','kmz'))
             self.googleearthopened = True
 
     def print_points_kml(self,folder):
         """
         print the points saved in lat, lon
         """
+        import simplekml
         from excel_interface import get_curdir
         if not self.kml:
             raise NameError('kml not initilaized')
@@ -973,8 +987,14 @@ class dict_position:
         for i in xrange(self.n):
             pnt = folder.newpoint()
             pnt.name = 'WP # {}'.format(self.WP[i])
-            pnt.coords = [(self.lon[i],self.lat[i])]
-            pnt.style.iconstyle.icon.href = get_curdir()+'//map_icons//number_{}.png'.format(self.WP[i])
+            pnt.coords = [(self.lon[i],self.lat[i],self.alt[i]*10.0)]
+            pnt.altitudemode = simplekml.AltitudeMode.relativetoground
+            pnt.extrude = 1
+            try:
+                path = self.kml.addfile(get_curdir()+'//map_icons//number_{}.png'.format(self.WP[i]))
+                pnt.style.iconstyle.icon.href = path
+            except:
+                pnt.style.iconstyle.icon.href = get_curdir()+'//map_icons//number_{}.png'.format(self.WP[i])
             pnt.description = """UTC[H]=%2.2f\nLocal[H]=%2.2f\nCumDist[km]=%f\nspeed[m/s]=%4.2f\ndelayT[min]=%f\nSZA[deg]=%3.2f\nAZI[deg]=%3.2f\nBearing[deg]=%3.2f\nClimbT[min]=%f\nComments:%s""" % (self.utc[i],self.local[i],self.cumdist[i],
                                                                    self.speed[i],self.delayt[i],self.sza[i],
                                                                    self.azi[i],self.bearing[i],self.climb_time[i],self.comments[i])
@@ -989,9 +1009,9 @@ class dict_position:
                simplekml.Color.magenta,simplekml.Color.yellow,simplekml.Color.black,simplekml.Color.lightcoral,
                simplekml.Color.teal,simplekml.Color.darkviolet,simplekml.Color.orange]
         path = folder.newlinestring(name=self.name)
-        coords = [(lon,lat,alt) for (lon,lat,alt) in np.array((self.lon,self.lat,self.alt)).T]
+        coords = [(lon,lat,alt*10) for (lon,lat,alt) in np.array((self.lon,self.lat,self.alt)).T]
         path.coords = coords
-        path.altitudemode = simplekml.AltitudeMode.clamptoground
+        path.altitudemode = simplekml.AltitudeMode.relativetoground
         path.extrude = 1
         path.style.linestyle.color = cls[j]
         path.style.linestyle.width = 4.0
