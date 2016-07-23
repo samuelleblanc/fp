@@ -800,7 +800,27 @@ def load_map_labels(filename,skip_lines=0):
                 continue
             out.append({'label':sp[0],'lon':mi.pll(sp[1]),'lat':mi.pll(sp[2]),'marker':sp[3].rstrip('\n')})
     return out
-
+    
+def load_WMS_file(filename,skip_lines=0):
+    """
+    Program to load a file with multiple WMS servers
+    each line is comma delimited
+    first part is the name of the server, second is the website
+    returns list of dictionary with each key as a seperate server
+    # denotes a comment line
+    
+    """
+    out = []
+    with open(filename,'r') as f:
+        for i in range(skip_lines):
+            next(f)
+        for line in f:
+            sp = line.split(',')
+            if sp[0].startswith('#'):
+                continue
+            out.append({'name':sp[0].strip(),'website':sp[1].rstrip('\n')})
+    return out
+    
 def load_sat_from_net():
     """
     Program to load the satllite track prediction from the internet

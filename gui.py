@@ -241,7 +241,8 @@ class gui:
     def gui_plotalttime(self):
         'gui function to run the plot of alt vs. time'
         if self.noplt:
-            from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+            from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+            from gui import custom_toolbar
             from matplotlib.figure import Figure
             import Tkinter as tk
             root = tk.Toplevel()
@@ -250,7 +251,7 @@ class gui:
             canvas = FigureCanvasTkAgg(fig, master=root)
             canvas.show()
             canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-            tb = NavigationToolbar2TkAgg(canvas,root)
+            tb = custom_toolbar(canvas,root)
             tb.pack(side=tk.BOTTOM)
             tb.update()
             canvas._tkcanvas.pack(side=tk.TOP,fill=tk.BOTH,expand=1)
@@ -260,24 +261,24 @@ class gui:
             return
         ax1.plot(self.line.ex.cumlegt,self.line.ex.alt,'x-')
         ax1.set_title('Altitude vs time for %s on %s' %(self.line.ex.name,self.line.ex.datestr),y=1.08)
-	fig.subplots_adjust(top=0.85,right=0.8)
-	ax1.set_xlabel('Flight duration [Hours]')
+        fig.subplots_adjust(top=0.85,right=0.8)
+        ax1.set_xlabel('Flight duration [Hours]')
         ax1.set_ylabel('Alt [m]')
         ax1.xaxis.tick_bottom()
         ax2 = ax1.twiny()
         ax2.xaxis.tick_top()
         ax2.set_xlabel('UTC [Hours]')
         ax2.set_xticks(ax1.get_xticks())
-	cum2utc = self.line.ex.utc[0]
-	utc_label = ['%2.2f'%(u+cum2utc) for u in ax1.get_xticks()]
-	ax2.set_xticklabels(utc_label)
-	ax3 = ax1.twinx()
-	ax3.yaxis.tick_right()
-	ax3.set_ylabel('Altitude [Kft]')
-	ax3.set_yticks(ax1.get_yticks())
-	alt_labels = ['%2.2f'%(a*3.28084/1000.0) for a in ax1.get_yticks()]
-	ax3.set_yticklabels(alt_labels)
-	ax1.grid()
+        cum2utc = self.line.ex.utc[0]
+        utc_label = ['%2.2f'%(u+cum2utc) for u in ax1.get_xticks()]
+        ax2.set_xticklabels(utc_label)
+        ax3 = ax1.twinx()
+        ax3.yaxis.tick_right()
+        ax3.set_ylabel('Altitude [Kft]')
+        ax3.set_yticks(ax1.get_yticks())
+        alt_labels = ['%2.2f'%(a*3.28084/1000.0) for a in ax1.get_yticks()]
+        ax3.set_yticklabels(alt_labels)
+        ax1.grid()
         if self.noplt:
             canvas.draw()
         else:
@@ -292,7 +293,8 @@ class gui:
         if not self.noplt:
              print 'No figure handler, sorry will not work'
              return
-        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+        from gui import custom_toolbar
         from matplotlib.figure import Figure
         import Tkinter as tk
         root = tk.Toplevel()
@@ -302,7 +304,7 @@ class gui:
         canvas = FigureCanvasTkAgg(fig, master=root)
         canvas.show()
         canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        tb = NavigationToolbar2TkAgg(canvas,root)
+        tb = custom_toolbar(canvas,root)
         tb.pack(side=tk.BOTTOM)
         tb.update()
         canvas._tkcanvas.pack(side=tk.TOP,fill=tk.BOTH,expand=1)
@@ -325,9 +327,11 @@ class gui:
         ax2 = fig.add_subplot(2,1,2,sharex=ax1)
         ax2.plot(self.line.ex.cumlegt,self.line.ex.azi,'ok',label='Sun PP')
         ax2.plot(self.line.ex.cumlegt,[a-180 for a in self.line.ex.azi],'o',color='lightgrey',label='Sun anti-PP')
+        ax2.plot(self.line.ex.cumlegt,[a+180 for a in self.line.ex.azi],'o',color='lightgrey')
         ax2.set_ylabel('Azimuth angle [degree]')
         ax2.set_xlabel('Flight duration [Hours]')
         ax2.grid()
+        ax2.set_ylim(0,360)
         ax2.plot(self.line.ex.cumlegt,self.line.ex.bearing,'xr',label='{} bearing'.format(self.line.ex.name))
         box = ax1.get_position()
         ax1.set_position([box.x0, box.y0, box.width * 0.75, box.height])
@@ -799,12 +803,33 @@ class gui:
                 f.remove()
         self.baddfigure.config(text='Add Forecast\nfrom image',command=self.gui_addfigure,bg=self.bg)
         self.line.get_bg(redraw=True)
-
-    def gui_addgeos(self,website='http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx'): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
+        
+    def gui_addgeos(self):
+        'wrapper for the add wms function, specifically for GEOS'
+        r = self.add_WMS(website='http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx',name='GEOS')
+        if r:
+            self.baddgeos.config(text='Remove GEOS Forecast')
+            self.baddgeos.config(command=self.gui_rmgeos,bg='dark grey')
+            
+    def gui_add_any_WMS(self,filename='WMS.txt'):
+        'Button to add any WMS layer defined in a WMS txt file, each line has name of server, then the website'
+        from map_interactive import load_WMS_file
+        out = load_WMS_file(filename)
+        arr = ['{} : {}'.format(dict['name'],dict['website']) for dict in out]
+        popup = Popup_list(arr)
+        i = popup.var.get()
+        self.line.tb.set_message('Selected WMS server: {}'.format(out[i]['name']))
+        r = self.add_WMS(website=out[i]['website'],name=out[i]['name'])
+        if r:
+            self.wmsname = out[i]['name']
+            self.baddwms.config(text='Remove WMS: {}'.format(out[i]['name']))
+            self.baddwms.config(command=self.gui_rm_wms,bg='dark grey')
+        
+    def add_WMS(self,website='http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx',name='GEOS'): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
         'GUI handler for adding the figures from WMS support of GEOS'
         from gui import Popup_list
         import tkMessageBox
-        tkMessageBox.showwarning('Downloading from internet','Trying to load GEOS data from {}\n with most current model run'.format(website.split('/')[2]))
+        tkMessageBox.showwarning('Downloading from internet','Trying to load {} data from {}\n with most current model run'.format(name,website.split('/')[2]))
         self.root.config(cursor='exchange')
         self.root.update()
         try:
@@ -820,7 +845,7 @@ class gui:
             print ie
             self.root.config(cursor='')
             tkMessageBox.showwarning('Sorry','Loading WMS map file from '+website.split('/')[2]+' servers not working...')
-            return
+            return False
         titles = [wms[c].title for c in cont]
         arr = [x.split('-')[-1]+':  '+y for x,y in zip(cont,titles)]
         self.root.config(cursor='')
@@ -846,7 +871,7 @@ class gui:
             self.root.config(cursor='')
             self.root.update()
             tkMessageBox.showwarning('Sorry','Problem getting the limits and time of the image')
-            return
+            return False
         try:
             img = wms.getmap(layers=[cont[i]],style=['default'],
                               bbox=(xlim[0],ylim[0],xlim[1],ylim[1]),
@@ -860,7 +885,7 @@ class gui:
             self.root.config(cursor='')
             self.root.update()
             tkMessageBox.showwarning('Sorry','Problem getting the image from WMS server')
-            return
+            return False
             
         try:
             legend_call = openURL(img.geturl().replace('GetMap','GetLegend'))
@@ -877,7 +902,7 @@ class gui:
             self.root.config(cursor='')
             self.root.update()
             tkMessageBox.showwarning('Sorry','Problem reading the image that was loaded')
-            return
+            return False
         try: 
             self.line.addfigure_under(geos.transpose(Image.FLIP_TOP_BOTTOM),xlim[0],ylim[0],xlim[1],ylim[1],text=time_sel,alpha=1.0)
         except Exception as ie:
@@ -885,7 +910,7 @@ class gui:
             self.root.config(cursor='')
             self.root.update()
             tkMessageBox.showwarning('Sorry','Problem putting the image under plot')
-            return
+            return False
             
         try:
             self.line.addlegend_image_below(geos_legend)
@@ -894,12 +919,11 @@ class gui:
             
         self.root.config(cursor='')
         self.root.update()
-        self.baddgeos.config(text='Remove GEOS Forecast')
-        self.baddgeos.config(command=self.gui_rmgeos,bg='dark grey')
+        return True
         
-    def gui_rmgeos(self):
-        'GUI handler for removing the GEOS forecast image'
-        self.line.tb.set_message('Removing figure under')
+    def rm_WMS(self,name='GEOS',button=None,newcommand=None):
+        'core of removing the WMS plots on the figure and relinking command'
+        self.line.tb.set_message('Removing {} figure under'.format(name))
         try:
             self.line.m.figure_under.remove()
         except:
@@ -920,8 +944,22 @@ class gui:
         except Exception as ie:
             print ie    
             print 'Problem removing legend axis'
-        self.baddgeos.config(text='Add GEOS Forecast',command=self.gui_addgeos,bg=self.bg)
+        button_label = button.config()['text'][-1]
+        button.config(command=newcommand,bg=self.bg)
+        button.config(text=button_label.replace('Remove','Add'))
+        try:
+            button.config(text=button_label.replace('Remove','Add').replace(': {}'.format(name),' layer'))
+        except:
+            pass
         self.line.get_bg(redraw=True)
+        
+    def gui_rmgeos(self):
+        'GUI handler for removing the GEOS forecast image, wrapper to rm_WMS'
+        self.rm_WMS(name='GEOS',button=self.baddgeos,newcommand=self.gui_addgeos)
+        
+    def gui_rm_wms(self):
+        'GUI handler for removing any WMS image, wrapper to rm_WMS'
+        self.rm_WMS(name=self.wmsname,button=self.baddwms,newcommand=self.gui_add_any_WMS)
             
     def gui_flt_module(self):
         'Program to load the flt_module files and select'

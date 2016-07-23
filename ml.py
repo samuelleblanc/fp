@@ -55,6 +55,7 @@
                 - added plotting of legend with geos wms, and cursor animation
                 - fixed legend disappear issue when showing satellite tracks and aeronet values
                 - updated to save kmz also, with embedded icons and altitude displayed.
+                - fixed bug in bearing calculations
 """
 import Tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
@@ -81,7 +82,6 @@ import aeronet
 import tkSimpleDialog, tkFileDialog, tkMessageBox
 #import owslib, owslib.wms, owslib.util
 #from xlwings import Range, Sheet, Workbook
-#import Pysolar, Pysolar.solar
 #import win32com, win32com.client
 #import FileDialog
 #import six, six.moves
@@ -310,6 +310,10 @@ def build_buttons(ui,lines,vertical=True):
     g.baddgeos = tk.Button(g.root,text='Add GEOS Forecast',
                          command = g.gui_addgeos)
     g.baddgeos.pack(in_=ui.top)
+    #g.baddwms = tk.Button(g.root,text='Add WMS layer',
+    #                     command = g.gui_add_any_WMS)
+    #g.baddwms.pack(in_=ui.top)
+
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
              ).pack(in_=ui.top,side=side,padx=8,pady=5)
     tk.Button(g.root,text='Quit',command=g.stopandquit,bg='lightcoral'
