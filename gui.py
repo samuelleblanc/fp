@@ -829,16 +829,19 @@ class gui:
         'Button to add Special Use Airspace WMS layer'
         import tkMessageBox
         tkMessageBox.showwarning('SUA for US only','Special Use Airspace for US only')
-        r = self.add_WMS(website='https://sua.faa.gov/geoserver/wms?LAYERS=SUA',printurl=True,notime=True)
+        r = self.add_WMS(website='https://sua.faa.gov/geoserver/wms?LAYERS=SUA',name='SUA',
+                         printurl=True,notime=True,alpha=0.5,popup=False,
+                         cql_filter='low_altitude<240')
         if r:
             self.baddsua.config(text='Remove SUA')
             self.baddsua.config(command=self.gui_rm_SUA_WMS,bg='dark grey')
         
-    def add_WMS(self,website='http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx',name='GEOS',printurl=False,notime=False): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
+    def add_WMS(self,website='http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx',name='GEOS',printurl=False,notime=False,alpha=1.0,popup=True,cql_filter=None): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
         'GUI handler for adding the figures from WMS support of GEOS'
         from gui import Popup_list
         import tkMessageBox
-        tkMessageBox.showwarning('Downloading from internet','Trying to load {} data from {}\n with most current model run'.format(name,website.split('/')[2]))
+        if popup:
+            tkMessageBox.showwarning('Downloading from internet','Trying to load {} data from {}\n with most current model run'.format(name,website.split('/')[2]))
         self.root.config(cursor='exchange')
         self.root.update()
         try:
@@ -876,8 +879,10 @@ class gui:
                 time_sel = datetime.now().strftime('%Y-%m-%d')+'T12:00'
             if notime:
                 time_sel = None
-            ylim = self.line.line.axes.get_ylim()
-            xlim = self.line.line.axes.get_xlim()
+            #ylim = self.line.line.axes.get_ylim()
+            #xlim = self.line.line.axes.get_xlim()
+            ylim = self.line.m.llcrnrlat,self.line.m.urcrnrlat
+            xlim = self.line.m.llcrnrlon,self.line.m.urcrnrlon
         except:
             self.root.config(cursor='')
             self.root.update()
@@ -886,11 +891,12 @@ class gui:
         try:
             img = wms.getmap(layers=[cont[i]],style=['default'],
                               bbox=(xlim[0],ylim[0],xlim[1],ylim[1]),
-                              size=(480,240),
+                              size=(1080,720),
                               transparent=True,
                               time=time_sel,
                               srs='EPSG:4326',
-                              format='image/png')
+                              format='image/png',
+                              CQL_filter=cql_filter)
         except Exception as ie:
             print ie
             self.root.config(cursor='')
@@ -901,9 +907,7 @@ class gui:
             legend_call = openURL(img.geturl().replace('GetMap','GetLegend'))
             geos_legend = Image.open(StringIO(legend_call.read()))
         except:
-            self.root.config(cursor='')
-            self.root.update()
-            tkMessageBox.showwarning('Sorry','Problem getting the legend image from WMS server')
+            print 'Problem getting the legend image from WMS server'
         if printurl:
             print img.geturl()        
         try:
@@ -920,10 +924,11 @@ class gui:
                     self.root.update()
                     img = wms.getmap(layers=[cont[i]],style=['default'],
                               bbox=(xlim[0],ylim[0],xlim[1],ylim[1]),
-                              size=(480,240),
+                              size=(1080,720),
                               transparent=True,
                               srs='EPSG:4326',
-                              format='image/png')
+                              format='image/png',
+                              CQL_filter=cql_filter)
                     geos = Image.open(StringIO(img.read()))
             except:
                 self.root.config(cursor='')
@@ -931,7 +936,7 @@ class gui:
                 tkMessageBox.showwarning('Sorry','Problem reading the image a second time... abandonning')
                 return False
         try: 
-            self.line.addfigure_under(geos.transpose(Image.FLIP_TOP_BOTTOM),xlim[0],ylim[0],xlim[1],ylim[1],text=time_sel,alpha=1.0)
+            self.line.addfigure_under(geos.transpose(Image.FLIP_TOP_BOTTOM),xlim[0],ylim[0],xlim[1],ylim[1],text=time_sel,alpha=alpha)
         except Exception as ie:
             print ie
             self.root.config(cursor='')
@@ -959,8 +964,11 @@ class gui:
         try:
             self.line.m.figure_under_text.remove()
         except:
-            for f in self.line.m.figure_under_text:
-                f.remove    
+            try:
+                for f in self.line.m.figure_under_text:
+                    f.remove  
+            except AttributeError:
+                pass
         try:
             if type(self.line.line) is list:
                 lin = self.line.line[0]
@@ -973,7 +981,7 @@ class gui:
             print 'Problem removing legend axis'
         button_label = button.config()['text'][-1]
         button.config(command=newcommand,bg=self.bg)
-        button.config(text='Add WMS layer')
+        button.config(text='Add {} layer'.format(name))
         self.line.get_bg(redraw=True)
         
     def gui_rmgeos(self):
@@ -982,7 +990,7 @@ class gui:
         
     def gui_rm_wms(self):
         'GUI handler for removing any WMS image, wrapper to rm_WMS'
-        self.rm_WMS(name=self.wmsname,button=self.baddwms,newcommand=self.gui_add_any_WMS)
+        self.rm_WMS(name='WMS',button=self.baddwms,newcommand=self.gui_add_any_WMS)
         
     def gui_rm_SUA_WMS(self):
         'Button to add Special Use Airspace WMS layer'
