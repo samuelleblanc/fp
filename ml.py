@@ -87,7 +87,7 @@ import tkSimpleDialog, tkFileDialog, tkMessageBox
 #import six, six.moves
 import warnings
 
-__version__ = 'v1.00'
+__version__ = 'v1.02'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'
@@ -310,9 +310,12 @@ def build_buttons(ui,lines,vertical=True):
     g.baddgeos = tk.Button(g.root,text='Add GEOS Forecast',
                          command = g.gui_addgeos)
     g.baddgeos.pack(in_=ui.top)
-    #g.baddwms = tk.Button(g.root,text='Add WMS layer',
-    #                     command = g.gui_add_any_WMS)
-    #g.baddwms.pack(in_=ui.top)
+    g.baddsua = tk.Button(g.root,text='Add Special Use Airspace',
+                         command = g.gui_add_SUA_WMS)
+    g.baddsua.pack(in_=ui.top)
+    g.baddwms = tk.Button(g.root,text='Add WMS layer',
+                         command = g.gui_add_any_WMS)
+    g.baddwms.pack(in_=ui.top)
 
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
              ).pack(in_=ui.top,side=side,padx=8,pady=5)

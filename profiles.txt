@@ -25,7 +25,7 @@
                  'start_alt':775.0}
 {'Profile':'ORACLES-WFF','Plane_name':'P3',
                  'Start_lon':'75.466389W','Start_lat':'37.940194N ',
-                 'Lon_range':[-80,-55],'Lat_range':[30,45],
+                 'Lon_range':[-80,-60],'Lat_range':[30,45],
                  'UTC_start':12.0,'UTC_conversion':-5.0,
                  'start_alt':10.0}
 {'Profile':'ORACLES-Ascension','Plane_name':'P3',

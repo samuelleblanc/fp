@@ -1,4 +1,7 @@
 GEOS,http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx
+GEOS_weather,http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst3_2d_met_Nx
 Public_ECMWF,http://apps.ecmwf.int/wms/?token=MetOceanIE
 GEFS,http://motherlode.ucar.edu:8080/thredds/wms/fmrc/NCEP/GEFS/Global_1p0deg_Ensemble/derived/NCEP-GEFS-Global_1p0deg_Ensemble-derived_best.ncd?service=WMS
 GFS,http://oos.soest.hawaii.edu/erddap/wms/NCEP_Global_Best
+GFS_NCEP,http://oos.soest.hawaii.edu/thredds/wms/hioos/model/atm/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd?
+SUA,https://sua.faa.gov/geoserver/wms?LAYERS=SUA

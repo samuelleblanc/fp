@@ -426,7 +426,9 @@ class LineBuilder:
             #self.m.imshow(img,zorder=0,extent=[left,right,top,bottom],**kwargs)
             try:
                 self.m.figure_under = self.m.imshow(img[ix,:,:][:,iy,:],zorder=0,alpha=alpha,**kwargs)
-            except:
+            except Exception as ie:
+                print 'problem occurred when placing under figure'
+                print ie
                 self.m.figure_under = self.m.imshow(img,zorder=0,alpha=alpha,**kwargs)
         else:
             u = self.m.imshow(img,clip_on=False,**kwargs)

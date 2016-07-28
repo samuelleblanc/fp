@@ -6,6 +6,9 @@ from xlwings import Range
 from datetime import datetime
 from scipy import interpolate
 import write_utils as wu
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
 
 import map_interactive as mi
 from map_interactive import pll
@@ -922,13 +925,13 @@ class dict_position:
             '  LegT[H]  Dist[km]  CumDist[km]'+
             '  Dist[nm]  CumDist[nm]  Speed[kt]'+
             '  Altitude[kft]  SZA[deg]  AZI[deg]  Bearing[deg]  Climbt[min]  Comments\n')
-	for i in xrange(self.n):
-	    f.write("""%-2i  %+2.8f  %+2.8f  %-4.2f  %-3i  %-5.1f  %-2.2f  %-2.2f  %-2.2f  %-2.2f  %-5.1f  %-5.1f  %-5.1f  %-5.1f  %-3.1f %-3.2f  %-3.1f  %-3.1f  %-3.1f  %-3i  %s  \n""" %(
+        for i in xrange(self.n):
+            f.write("""%-2i  %+2.8f  %+2.8f  %-4.2f  %-3i  %-5.1f  %-2.2f  %-2.2f  %-2.2f  %-2.2f  %-5.1f  %-5.1f  %-5.1f  %-5.1f  %-3.1f %-3.2f  %-3.1f  %-3.1f  %-3.1f  %-3i  %s  \n""" %(
                     i+1,self.lon[i],self.lat[i],self.speed[i],
-                           self.delayt[i],self.alt[i],self.cumlegt[i],
-			   self.utc[i],self.local[i],self.legt[i],
-                           self.dist[i],self.cumdist[i],self.dist_nm[i],self.cumdist_nm[i],
-                           self.speed_kts[i],self.alt_kft[i],self.sza[i],self.azi[i],self.bearing[i],self.climb_time[i],self.comments[i]))
+                    self.delayt[i],self.alt[i],self.cumlegt[i],
+                    self.utc[i],self.local[i],self.legt[i],
+                    self.dist[i],self.cumdist[i],self.dist_nm[i],self.cumdist_nm[i], 
+                    self.speed_kts[i],self.alt_kft[i],self.sza[i],self.azi[i],self.bearing[i],self.climb_time[i],self.comments[i]))
 
 
     def save2kml(self,filename=None):
