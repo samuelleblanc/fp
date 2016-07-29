@@ -56,6 +56,12 @@
                 - fixed legend disappear issue when showing satellite tracks and aeronet values
                 - updated to save kmz also, with embedded icons and altitude displayed.
                 - fixed bug in bearing calculations
+        Modified: Samuel LeBlanc, 2016-07-28, NASA Ames, CA
+                - modified code to load special use airspace from sua.faa.gov WMS server
+                - modified some potential bugs when moving lines
+                - fixed bug in WMS image handling, added hires command
+                - added saving excel file for pilots
+                
 """
 import Tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
@@ -87,7 +93,7 @@ import tkSimpleDialog, tkFileDialog, tkMessageBox
 #import six, six.moves
 import warnings
 
-__version__ = 'v1.02'
+__version__ = 'v1.03'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'
@@ -207,6 +213,8 @@ def build_buttons(ui,lines,vertical=True):
                             command=g.gui_open_xl)
     g.bsavexl = tk.Button(g.root,text='Save',
                           command=g.gui_save_xl)
+    g.bsavexl_pilot = tk.Button(g.root,text='for pilot',
+                          command=g.gui_save_xl_pilot)
     g.bsavetxt = tk.Button(g.root,text='TXT',
                           command=g.gui_save_txt)
     g.bsaveas2kml = tk.Button(g.root,text='SaveAs',
@@ -228,6 +236,7 @@ def build_buttons(ui,lines,vertical=True):
     tk.Label(ui.top,text='Excel file:').pack(in_=g.frame_xl,side=tk.LEFT)
     g.bopenfile.pack(in_=g.frame_xl,side=tk.LEFT)
     g.bsavexl.pack(in_=g.frame_xl,side=tk.LEFT)
+    g.bsavexl_pilot.pack(in_=g.frame_xl,side=tk.LEFT)
     g.frame_kml = tk.Frame(ui.top)
     g.frame_kml.pack(in_=ui.top,side=side,fill=tk.X,pady=2)
     tk.Label(ui.top,text='Kml file:').pack(in_=g.frame_kml,side=tk.LEFT)
