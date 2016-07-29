@@ -80,6 +80,8 @@ class dict_position:
                  - modified kml saving to also save a kmz with included icons
                  - modified kml/kmz to have the altitude and link to ground set.
                  - removed dependency of Pysolar, fixed bug in azimuth calculations
+        Modified: Samuel LeBlanc, 2016-07-28, NASA Ames, CA
+                 - fixed utc convertion issue when reading in an excel file
     """
     import numpy as np
     from xlwings import Range,Sheet
@@ -93,7 +95,7 @@ class dict_position:
                  UTC_conversion=+1.0,alt0=0.0,
                  verbose=False,filename=None,datestr=None,
                  newsheetonly=False,name='P3 Flight path',sheet_num=1,color='red',
-                 profile=None,campaign='None',version='v0.8beta',platform_file='platform.txt'):
+                 profile=None,campaign='None',version='v1.02',platform_file='platform.txt'):
 
         if profile:
             lon0,lat0,UTC_start = profile['Start_lon'],profile['Start_lat'],profile['UTC_start']
@@ -130,6 +132,7 @@ class dict_position:
         self.name = name
         self.campaign = campaign
         self.platform, self.p_info,use_file = self.get_platform_info(name,platform_file)
+        self.pilot_format = self.p_info.get('pilot_format','DD MM SS')
         if use_file:
             print 'Using platform data for: {} from platform file: {}'.format(self.platform,platform_file)
         else:
@@ -148,7 +151,7 @@ class dict_position:
             except:
                 print 'writing to excel failed'
         else:
-            self.wb = self.Open_excel(filename=filename,sheet_num=sheet_num,campaign=campaign)
+            self.wb = self.Open_excel(filename=filename,sheet_num=sheet_num,campaign=campaign,platform_file=platform_file)
             self.check_xl()
             self.calculate()
             self.write_to_excel()
@@ -765,11 +768,12 @@ class dict_position:
                 v[i] = np.nan
                 setattr(self,s,v)
         if not self.comments[i] == comm:
-            self.comments[i] = comm
-            changed = True
+            if comm: 
+                self.comments[i] = comm
+                changed = True
         return changed
 
-    def Open_excel(self,filename=None,sheet_num=1,campaign='None'):
+    def Open_excel(self,filename=None,sheet_num=1,campaign='None',platform_file='platform.txt'):
         """
         Purpose:
             Program that opens and excel file and creates the proper links with pytho
@@ -792,6 +796,8 @@ class dict_position:
             Modified: Samuel LeBlanc, 2016-06-07, NASA Ames, CA
                       - updated to handle the new excel format with climb time and bearing
                       - added datestr checking and dialog interface
+            Modified: Samuel LeBlanc, 2016-07-28, NASA Ames, CA
+                      - updated to handle the platform file definitions and check on utc_conversion factor
         """
         from xlwings import Workbook, Sheet, Range
         import numpy as np
@@ -806,7 +812,7 @@ class dict_position:
         self.name = Sheet(sheet_num).name
         Sheet(sheet_num).activate()
         print 'Activating sheet:%i, name:%s'%(sheet_num,Sheet(sheet_num).name)
-        self.platform = self.check_platform(self.name)
+        self.platform, self.p_info,use_file = self.get_platform_info(self.name,platform_file)
         print 'Using platform data for: %s' %self.platform
         self.datestr = str(Range('W1').value).split(' ')[0]
         self.verify_datestr()
@@ -815,6 +821,7 @@ class dict_position:
         else:
             self.campaign = str(Range('X1').value).split(' ')[0]
             self.verify_campaign()
+        self.UTC_conversion = self.verify_UTC_conversion()
         return wb
         
     def verify_datestr(self):
@@ -834,6 +841,13 @@ class dict_position:
         'verify the input campaign value'
         import tkSimpleDialog
         self.campaign = tkSimpleDialog.askstring('Campaign name','Please verify campaign name:',initialvalue=self.campaign)
+        
+    def verify_UTC_conversion(self):
+        'verify the input UTC conversion when reading a excel file'
+        from xlwings import Range
+        tmp0 = Range('A2:U2').value
+        _,_,_,_,_,_,_,utc,loc,_,_,_,_,_,_,_ = tmp0[0:16]
+        return loc*24-utc*24
 
     def Create_excel(self,name='P3 Flight path',newsheetonly=False):
         """
@@ -1162,7 +1176,73 @@ def populate_ex_arr(filename=None,colorcycle=['red','blue','green']):
             campaign = arr[i-1].campaign
         arr.append(ex.dict_position(filename=filename,sheet_num=i+1,color=colorcycle[i],campaign='None'))
     return arr
-
+    
+def save2xl_for_pilots(filename,ex_arr):
+    """
+    Purpose:
+        Program that opens and saves a new excel file, and runs through the current opened sheets 
+        creates an excel file in the format defined for pilots. format option is defined in the dict_position
+    Input:
+        filename: filename of new excel file
+        ex_arr: array of excel interface dict_position to be saved
+    Output:
+        new file
+    Dependices:
+        xlwings
+    History:
+        written: Samuel LeBlanc, NASA Ames, CA 2016-07-28
+    """
+    from xlwings import Workbook,Sheet,Range
+    from excel_interface import format_lat_lon
+    wb_pilot = Workbook()
+    sheet_one = True
+    for a in ex_arr:
+        if sheet_one:
+            Sheet(1).name = a.name
+            sheet_one = False
+        else:
+            Sheet(1).add(name=a.name)
+        Range('A1').value = ['WP','Lat\n[+-90]','Lon\n[+-180]',
+                             'Altitude\n[kft]','Comments']
+        top_line = Range('A1').horizontal
+        address = top_line.get_address(False,False)
+        from sys import platform
+        if platform.startswith('win'):
+            from win32com.client import Dispatch
+            xl = Dispatch("Excel.Application")
+            xl.ActiveWorkbook.Windows(1).SplitRow = 1.0
+            xl.Range(address).Font.Bold = True
+        top_line.autofit()
+        Range('G2:J2').number_format = 'hh:mm'
+        Range('W1').value = a.datestr
+        Range('X1').value = a.campaign
+        Range('Z1').value = 'Created with'
+        Range('Z2').value = 'moving_lines'
+        Range('Z3').value = a.__version__
+        Range('W:W').autofit('c')
+        Range('X:X').autofit('c')
+        Range('Z:Z').autofit('c')
+        for i in range(len(a.lon)):
+            lat_f,lon_f = format_lat_lon(a.lat[i],a.lon[i],format=a.pilot_format)
+            Range('A{:d}'.format(i+2)).value = [a.WP[i],lat_f,lon_f,a.alt_kft[i],a.comments[i]]
+    wb_pilot.save(filename)
+    wb_pilot.close()        
+        
+def format_lat_lon(lat,lon,format='DD MM SS'):
+    'Lat and lon formatter'
+    if format == 'DD MM SS':
+        def deg_to_dms(deg):
+            d = int(deg)
+            md = abs(deg - d) * 60
+            m = int(md)
+            sd = (md - m) * 60
+            return [d, m, sd]
+        latv = deg_to_dms(lat)
+        lonv = deg_to_dms(lon)
+        lat_f = '{:02d} {:02d} {:02.3f}'.format(latv[0],latv[1],latv[2])
+        lon_f = '{:02d} {:02d} {:02.3f}'.format(lonv[0],lonv[1],lonv[2])
+    return lat_f,lon_f
+        
 def get_curdir():
     'Program that gets the path of the script: for use in finding extra files'
     from os.path import dirname, realpath

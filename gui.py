@@ -177,6 +177,17 @@ class gui:
         if not filename: return
         print 'Saving Excel file to :'+filename
         self.line.ex.save2xl(filename)
+        
+    def gui_save_xl_pilot(self):
+        'gui wrapper for calling the save2xl_for_pilots excel_interface method'
+        from excel_interface import save2xl_for_pilots
+        filename = self.gui_file_save(ext='.xlsx',ftype=[('All files','*.*'),
+                                                         ('Excel 1997-2003','*.xls'),
+                                                         ('Excel','*.xlsx')])
+        if not filename: return
+        print 'Saving Pilot Excel file to :'+filename
+        save2xl_for_pilots(filename,self.line.ex_arr)
+        self.line.ex.wb.set_current()
 
     def gui_open_xl(self):
         if not self.line:
@@ -484,6 +495,7 @@ class gui:
     def gui_saveall(self):
         'gui program to run through and save all the file formats, without verbosity, for use in distribution'
         from os import path
+        from excel_interface import save2xl_for_pilots
         filename = self.gui_file_save(ext='*',ftype=[('Excel','*.xlsx')])
         if not filename:
             tkMessageBox.showwarning('Cancelled','Saving all files cancelled')
@@ -491,6 +503,8 @@ class gui:
         f_name,_ = path.splitext(filename)
         print 'Saving Excel file to :'+f_name+'.xlsx'
         self.line.ex.save2xl(f_name+'.xlsx')
+        print 'Saving Excel file for pilots to :'+f_name+'_for_pilots.xlsx'
+        save2xl_for_pilots(f_name+'_for_pilots.xlsx',self.line.ex_arr)
         print 'Saving figure file to :'+f_name+'_map.png'
         if type(self.line.line) is list:
             lin = self.line.line[0]
@@ -582,14 +596,19 @@ class gui:
         wp_arr = []
         for w in self.line.ex.WP:
             wp_arr.append('WP #%i'%w)
-        p = Select_flights(wp_arr,title='Move points',Text='Select points to move:')
-        m = Move_point()
-        self.line.moving = True
-        for i,val in enumerate(p.result):
-            if val:
-                self.line.movepoint(i,m.bear,m.dist,last=False)
-        self.line.movepoint(0,0,0,last=True)
-        self.line.moving = False
+        try:
+            p = Select_flights(wp_arr,title='Move points',Text='Select points to move:')
+            m = Move_point()
+            self.line.moving = True
+            for i,val in enumerate(p.result):
+                if val:
+                    self.line.movepoint(i,m.bear,m.dist,last=False)
+            self.line.movepoint(0,0,0,last=True)
+            self.line.moving = False
+        except:
+            import tkMessageBox
+            tkMessageBox.showwarning('Sorry','Error occurred unable to move points')
+            return
         
     def gui_rotatepoints(self):
         'GUI button to rotate many points at once'
@@ -831,15 +850,20 @@ class gui:
         tkMessageBox.showwarning('SUA for US only','Special Use Airspace for US only')
         r = self.add_WMS(website='https://sua.faa.gov/geoserver/wms?LAYERS=SUA',name='SUA',
                          printurl=True,notime=True,alpha=0.5,popup=False,
-                         cql_filter='low_altitude<240')
+                         cql_filter='low_altitude<240',hires=True)
         if r:
             self.baddsua.config(text='Remove SUA')
             self.baddsua.config(command=self.gui_rm_SUA_WMS,bg='dark grey')
         
-    def add_WMS(self,website='http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx',name='GEOS',printurl=False,notime=False,alpha=1.0,popup=True,cql_filter=None): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
+    def add_WMS(self,website='http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx',
+                name='GEOS',printurl=False,notime=False,alpha=1.0,popup=True,cql_filter=None,hires=False): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
         'GUI handler for adding the figures from WMS support of GEOS'
         from gui import Popup_list
         import tkMessageBox
+        if hires:
+            res = (2160,1680)
+        else:
+            res = (1080,720)
         if popup:
             tkMessageBox.showwarning('Downloading from internet','Trying to load {} data from {}\n with most current model run'.format(name,website.split('/')[2]))
         self.root.config(cursor='exchange')
@@ -891,7 +915,7 @@ class gui:
         try:
             img = wms.getmap(layers=[cont[i]],style=['default'],
                               bbox=(xlim[0],ylim[0],xlim[1],ylim[1]),
-                              size=(1080,720),
+                              size=res,
                               transparent=True,
                               time=time_sel,
                               srs='EPSG:4326',
@@ -924,11 +948,20 @@ class gui:
                     self.root.update()
                     img = wms.getmap(layers=[cont[i]],style=['default'],
                               bbox=(xlim[0],ylim[0],xlim[1],ylim[1]),
-                              size=(1080,720),
+                              size=res,
                               transparent=True,
                               srs='EPSG:4326',
                               format='image/png',
                               CQL_filter=cql_filter)
+                    geos = Image.open(StringIO(img.read()))
+                elif r.lower().find('property')>-1:
+                    print 'problem with the CQL_filter on the WMS server, retrying...'
+                    img = wms.getmap(layers=[cont[i]],style=['default'],
+                              bbox=(xlim[0],ylim[0],xlim[1],ylim[1]),
+                              size=res,
+                              transparent=True,
+                              srs='EPSG:4326',
+                              format='image/png')
                     geos = Image.open(StringIO(img.read()))
             except:
                 self.root.config(cursor='')
