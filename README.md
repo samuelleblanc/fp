@@ -25,6 +25,7 @@ Takes advantage of clickable map for creating a flight plan, and already existin
     7) wait for map to initialize and excel to load
     8) move cursor over map to refresh map
     9) create points, move points by clicking or by manually entering in excel spreadsheet
+    10) Once happy save all the figures, files, excel files, kml files by either selecting each point, or by pressing the 'saveall' button
     
 ## Adding points:
     1) click and drag on map to create new point 
@@ -67,7 +68,8 @@ Takes advantage of clickable map for creating a flight plan, and already existin
         where the bearing is the azimuth angle of the plane
         where the distance is the length of that leg
         where the altitude (which can be omitted) is the altitude of the plane for the next waypoint
-    7) enter number of points desired for macro then save in the flt_module directory. It is ready to be used in the software without the need for a restart.   
+    7) enter number of points desired for macro then save in the flt_module directory. It is ready to be used in the software without the need for a restart.
+    8) if desired, make a screenshot of the resulting flt_module and save it with the same name in the flt_module folder as a .png
     
 ## Adding other planes or flight paths:
     1) Press the 'New Flight Path' button
@@ -103,6 +105,12 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 *or*
 
     1) Save the Excel file, from Excel using normal dialog
+    
+## Change definitions of platform speeds, and altitudes
+    1) open the platform.txt file
+    2) follow the documentation in the header for creating or modifying any line defining the platform
+    3) save the file as platform.txt and share
+    4) put the new platform.txt in the sam folder as the ml.py script or ml executable
     
 # Notes and tips about usage:
 
@@ -144,10 +152,12 @@ Takes advantage of clickable map for creating a flight plan, and already existin
     - sat.tle: Selected data for satellite tracks in form of Two Line Element set from http://www.celestrak.com
     - profiles.txt: text file containing dictionary assignment for map setup defaults. each profile linked to a field mission, python dict format.
     - platform.txt: text file containing dictionary assignment for details on each platform: max altitude, max speed, speed profile, vertical speed profile, turning rate
+    - WMS.txt: list of possible WMS servers for getting map images from the internet.
     - arc.ico: icon file
     - file.rc: plotting defaults file (python matplotlib.rc format)
     - map_icons: folder with icons for use on google earth (optional)
     - flt_modules: folder with multiple flt files. To use when creating the flt_module paths. 
+    - map_???.pkl: files to enable faster initial loading of the basemap
     
 # Source files:
 
@@ -158,13 +168,11 @@ Takes advantage of clickable map for creating a flight plan, and already existin
     - map_utils.py: various map utilities, like bearing calculations, great circle calculations
     - write_utils.py: writing utitlies, expecially for ICT file creation
     - load_utils.py: loading of various format utilities and conversion of input formats
+    - aeronet.py: loading and presenting the aeronet real time AOD on the map
 
 # To do/wish list:
 
     - add platform info button next to flight paths (to change its settings)
-    - extract altitude, speed and climb time calculations from Excel_interface.py to enable easier modifications
-    - add other forecast imagery from GMAO or others using WMS
-    - add current AOD values at AERONET stations
     - add ship tracks, or position of ships
     - add capabilities to load hdf files and put contour as background
     - add remove flight button
@@ -199,5 +207,14 @@ Takes advantage of clickable map for creating a flight plan, and already existin
                        bug fix for improper parallels and meridians drawing. 
                        Some speed improvements
                        updated aeronet site locations and sat.tle satellite predictions and icon
-                       
-    
+    Modified (v1.00): Samuel LeBlanc, NASA Ames, CA, 2016-07-22
+                       bug fix to sza and azimuth calculations
+                       bug fix to aircraft bearing calculations
+                       new icons and kmz saving
+                       new modes for WMS loading with GEOS and other
+                       extracted definitions of platform speeds and altitude to a seperate file
+    Modified (v1.03): Samuel LeBlanc, NASA Ames, CA, 2016-07-22
+                       bug fix to excel file loading and improper time zone correction
+                       new Special Use Airspace button
+                       generalized WMS interface for loading maps from the internet
+                       special excel spreadsheet fiel saving for pilots 
