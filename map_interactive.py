@@ -52,6 +52,8 @@ class LineBuilder:
                  - added links to toolbar buttons to enable refreshing when zooming or panning, back forward
                  - change plotting of sat tracks (added lines)
                  - fixed legend disappear when showing aeronet and geos
+        Modified: Samuel LeBlanc, 2016-08-01, WFF, VA
+                 - fixed redraw bug where after a redraw, the corners don't match and cause a problem to WMS loading.
     """
     def __init__(self, line,m=None,ex=None,verbose=False,tb=None, blit=True):
         """
@@ -61,7 +63,7 @@ class LineBuilder:
             for interfacing with Excel spreadsheet
         
         """
-	self.line = line
+        self.line = line
         self.line_arr = []
         self.line_arr.append(line)
         self.iactive = 0
@@ -451,10 +453,10 @@ class LineBuilder:
         'redraws the parallels and meridians based on the current geometry'
         ylim = self.line.axes.get_ylim()
         xlim = self.line.axes.get_xlim()
-        self.m.llcrnrlon = xlim[0]
-        self.m.llcrnrlat = ylim[0]
-        self.m.urcrnrlon = xlim[1]
-        self.m.urcrnrlat = ylim[1]
+        #self.m.llcrnrlon = xlim[0]
+        #self.m.llcrnrlat = ylim[0]
+        #self.m.urcrnrlon = xlim[1]
+        #self.m.urcrnrlat = ylim[1]
         round_to_2 = lambda x:(int(x/2)+1)*2
         round_to_5 = lambda x:(int(x/5)+1)*5
         self.large = True
@@ -895,7 +897,7 @@ def get_sat_tracks(datestr,kml):
             print 'Skipping %s; no points downloaded' %name
     return sat
 
-def plot_sat_tracks(m,sat): 
+def plot_sat_tracks(m,sat,label_every=20): 
     """
     Program that goes through and plots the satellite tracks
     """
@@ -915,7 +917,7 @@ def plot_sat_tracks(m,sat):
             latrange = [m.llcrnrlat,m.urcrnrlat]
             lonrange = [m.llcrnrlon,m.urcrnrlon]
             for i,d in enumerate(sat[k]['d']):
-                if not i%20:
+                if not i%label_every:
                     if ((lat[i]>=latrange[0])&(lat[i]<=latrange[1])&(lon[i]>=lonrange[0])&(lon[i]<=lonrange[1])):
                         sat_obj.append(m.ax.text(x[i],y[i],'%02i:%02i' % (d.tuple()[3],d.tuple()[4]),color=co))
     if len(sat.keys())>4:

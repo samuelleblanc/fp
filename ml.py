@@ -26,7 +26,7 @@
         arc.ico: icon for main window
     Example:
         ...
-    Modification History:
+    Modification History:   
         Written: Samuel LeBlanc, 2015-08-07, Santa Cruz, CA
                 Copyright 2015 Samuel LeBlanc
         Modified: Samuel LeBlanc, 2015-09-02, NASA Ames, Santa Cruz, CA
@@ -93,7 +93,7 @@ import tkSimpleDialog, tkFileDialog, tkMessageBox
 #import six, six.moves
 import warnings
 
-__version__ = 'v1.03'
+__version__ = 'v1.04'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'

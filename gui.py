@@ -505,6 +505,7 @@ class gui:
         self.line.ex.save2xl(f_name+'.xlsx')
         print 'Saving Excel file for pilots to :'+f_name+'_for_pilots.xlsx'
         save2xl_for_pilots(f_name+'_for_pilots.xlsx',self.line.ex_arr)
+        self.line.ex.wb.set_current()
         print 'Saving figure file to :'+f_name+'_map.png'
         if type(self.line.line) is list:
             lin = self.line.line[0]
@@ -639,7 +640,7 @@ class gui:
         self.line.movepoint(0,0,0,last=True)
         self.line.moving = False
         
-    def gui_addsat(self):
+    def gui_addsat(self,label_sep=20):
         'Gui button to add the satellite tracks'
         from tkMessageBox import askquestion
         answer = askquestion('Verify import satellite tracks','Do you want to get the satellite tracks from the internet?')
@@ -664,7 +665,8 @@ class gui:
             self.line.tb.set_message('parsing file...')
             sat = get_sat_tracks(self.line.ex.datestr,kml)
             self.line.tb.set_message('Plotting satellite tracks') 
-            self.sat_obj = plot_sat_tracks(self.line.m,sat)
+            if not self.line.large: label_sep = 7
+            self.sat_obj = plot_sat_tracks(self.line.m,sat,label_every=label_sep)
         self.line.get_bg()
         
     def dummy_func(self):
@@ -931,7 +933,7 @@ class gui:
             legend_call = openURL(img.geturl().replace('GetMap','GetLegend'))
             geos_legend = Image.open(StringIO(legend_call.read()))
         except:
-            print 'Problem getting the legend image from WMS server'
+            self.line.tb.set_message('legend image from WMS server problem')
         if printurl:
             print img.geturl()        
         try:
@@ -971,7 +973,7 @@ class gui:
         try: 
             self.line.addfigure_under(geos.transpose(Image.FLIP_TOP_BOTTOM),xlim[0],ylim[0],xlim[1],ylim[1],text=time_sel,alpha=alpha)
         except Exception as ie:
-            print ie
+            #print ie
             self.root.config(cursor='')
             self.root.update()
             tkMessageBox.showwarning('Sorry','Problem putting the image under plot')
@@ -980,8 +982,7 @@ class gui:
         try:
             self.line.addlegend_image_below(geos_legend)
         except:
-            print 'Problem with adding the legend from WMS below the plot'
-            
+            self.line.tb.set_message('WMS Legend problem')
         self.root.config(cursor='')
         self.root.update()
         return True
@@ -1009,9 +1010,8 @@ class gui:
                 lin = self.line.line
             lin.figure.delaxes(self.line.m.legend_axis)
             lin.figure.canvas.draw()
-        except Exception as ie:
-            print ie    
-            print 'Problem removing legend axis'
+        except:
+            self.line.tb.set_message('Removing legend problem')
         button_label = button.config()['text'][-1]
         button.config(command=newcommand,bg=self.bg)
         button.config(text='Add {} layer'.format(name))
