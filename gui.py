@@ -598,12 +598,13 @@ class gui:
         for w in self.line.ex.WP:
             wp_arr.append('WP #%i'%w)
         try:
-            p = Select_flights(wp_arr,title='Move points',Text='Select points to move:')
+            p = Popup_list(wp_arr,title='Move points',Text='Select points to move:',multi=True)
             m = Move_point()
             self.line.moving = True
-            for i,val in enumerate(p.result):
-                if val:
-                    self.line.movepoint(i,m.bear,m.dist,last=False)
+            for i in p.result:
+            #for i,val in enumerate(p.result):
+            #    if val:
+                self.line.movepoint(i,m.bear,m.dist,last=False)
             self.line.movepoint(0,0,0,last=True)
             self.line.moving = False
         except:
@@ -618,8 +619,8 @@ class gui:
         wp_arr = []
         for w in self.line.ex.WP:
             wp_arr.append('WP #%i'%w)
-        p0 = Select_flights(wp_arr,title='Center rotation point',Text='Select one point to act as center of rotation:')
-        p = Select_flights(wp_arr,title='Rotate points',Text='Select points to rotate:')
+        p0 = Popup_list(wp_arr,title='Center rotation point',Text='Select one point to act as center of rotation:',multi=False)
+        p = Popup_list(wp_arr,title='Rotate points',Text='Select points to rotate:',multi=True)
         try:
             angle = float(tkSimpleDialog.askstring('Rotation angle','Enter angle of Rotation:'))
         except:
@@ -629,14 +630,16 @@ class gui:
             return
         self.line.moving = True
         # get the rotation point
-        for i,val in enumerate(p0.result):
-            if val:
-                lat0,lon0 = self.line.lats[i],self.line.lons[i]
+        #for i,val in enumerate(p0.result):
+        #    if val:
+        #for i in p0.result:
+        lat0,lon0 = self.line.lats[p0.result],self.line.lons[p0.result]
         # rotate agains that center point
-        for i,val in enumerate(p.result):
-            if val:
-                bear,dist = self.line.calc_move_from_rot(i,angle,lat0,lon0)
-                self.line.movepoint(i,bear,dist,last=False)
+        for i in p.result:
+        #for i,val in enumerate(p.result):
+        #    if val:
+            bear,dist = self.line.calc_move_from_rot(i,angle,lat0,lon0)
+            self.line.movepoint(i,bear,dist,last=False)
         self.line.movepoint(0,0,0,last=True)
         self.line.moving = False
         
@@ -1041,6 +1044,39 @@ class gui:
         except:
             print 'flt_module selection cancelled'
             return
+    
+   # def gui_python(self):
+   #     'Program to open a new window with a python command line'
+   #     import Tkinter as tk
+   #     from gui import prompt
+   #     root = tk.Toplevel()
+   #     root.wm_title('Python command line')
+   #     root.geometry('800x650')
+   #     termf = tk.Frame(root,height=800,width=650)
+   #     termf.pack(fill=tk.BOTH,expand=tk.YES)
+   #     wid = termf.winfo_id()
+        
+    
+# def prompt(vars, message):
+    # 'function that calls for a python prompt'
+    # #prompt_message = "Welcome!  Useful: G is the graph, DB, C"
+    # prompt_message = message
+    # try:
+        # from IPython.Shell import IPShellEmbed
+        # ipshell = IPShellEmbed(argv=[''],banner=prompt_message,exit_msg="Goodbye")
+        # return  ipshell
+    # except ImportError:
+        # ## this doesn't quite work right, in that it doesn't go to the right env
+        # ## so we just fail.
+        # import code
+        # import rlcompleter
+        # import readline
+        # readline.parse_and_bind("tab: complete")
+        # # calling this with globals ensures we can see the environment
+        # print prompt_message
+        # shell = code.InteractiveConsole(vars)
+        # return shell.interact
+        
             
 class Select_flt_mod(tkSimpleDialog.Dialog):
     """
@@ -1112,13 +1148,13 @@ class Select_flights(tkSimpleDialog.Dialog):
         import Tkinter as tk
         self.results = []
         tk.Label(master, text=self.Text).grid(row=0)
+
         self.cbuttons = []
         for i,l in enumerate(self.pt_list):
             var = tk.IntVar()
             self.results.append(var)
             self.cbuttons.append(tk.Checkbutton(master,text=l, variable=var))
             self.cbuttons[i].grid(row=i+1,sticky=tk.W)
-        return
 
     def apply(self):
         self.result = map((lambda var: var.get()),self.results)
@@ -1409,6 +1445,7 @@ class Popup_list(tkSimpleDialog.Dialog):
         Whatever is clicked, the window closes and returns the resulting index
     Inputs:
         arr: list of text values
+        multi: (optional) if True, then enables selecting multiple lines
     Outputs:
         index value of selection
     Dependencies:
@@ -1417,16 +1454,25 @@ class Popup_list(tkSimpleDialog.Dialog):
         written: Samuel LeBlanc, 2015-09-16, NASA Ames, CA
         Modified: Samuel LeBlanc, 2016-07-13, NASA WFF, VA
                   - made to be a subclass of the tkSimpleDialog product
+        Modified: Samuel LeBlanc, 2016-08-09, Santa Cruz, CA
+                  - added the multi keyword for selecting multiple possible values
     """
-    def __init__(self,arr,title='Select graphics from server'):
+    def __init__(self,arr,title='Select graphics from server',Text=None,multi=False):
         import Tkinter as tk
         self.arr = arr
         parent = tk._default_root
+        self.multi = multi
+        self.Text = Text
         tkSimpleDialog.Dialog.__init__(self,parent,title)
         
     def body(self,master):
         import Tkinter as tk
-        lb = tk.Listbox(master)
+        if self.Text:
+            tk.Label(master, text=self.Text).pack(master)
+        if self.multi:
+            lb = tk.Listbox(master,selectmode=tk.EXTENDED)
+        else:
+            lb = tk.Listbox(master)
         lb.config(width=0)
         lb.config(height=20)
         for i,e in enumerate(self.arr):
@@ -1441,8 +1487,13 @@ class Popup_list(tkSimpleDialog.Dialog):
         self.lb.pack()
         
     def apply(self):
-        value, = self.lb.curselection()
-        self.var.set(value)
+        if not self.multi:
+            value, = self.lb.curselection()
+            self.var.set(value)
+            self.result = value
+        else:
+            value = self.lb.curselection()
+            self.result = map(int,value)
         return self.var.get()
         
 class custom_toolbar(NavigationToolbar2TkAgg):

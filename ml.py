@@ -61,6 +61,9 @@
                 - modified some potential bugs when moving lines
                 - fixed bug in WMS image handling, added hires command
                 - added saving excel file for pilots
+        Modified: Samuel LeBlanc, 2016-08-10, NASA Ames, CA
+                - modified the point selection to be a listbox instead of check marks
+                - added add point dialog to put points in between others
                 
 """
 import Tkinter as tk
@@ -93,7 +96,7 @@ import tkSimpleDialog, tkFileDialog, tkMessageBox
 #import six, six.moves
 import warnings
 
-__version__ = 'v1.04'
+__version__ = 'v1.05'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'
@@ -326,6 +329,10 @@ def build_buttons(ui,lines,vertical=True):
                          command = g.gui_add_any_WMS)
     g.baddwms.pack(in_=ui.top)
 
+    #g.bpythoncmd = tk.Button(g.root,text='Python command line',
+    #                     command = g.gui_python)
+    #g.bpythoncmd.pack(in_=ui.top)
+    
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
              ).pack(in_=ui.top,side=side,padx=8,pady=5)
     tk.Button(g.root,text='Quit',command=g.stopandquit,bg='lightcoral'
