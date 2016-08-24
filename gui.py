@@ -610,7 +610,7 @@ class gui:
         except:
             import tkMessageBox
             tkMessageBox.showwarning('Sorry','Error occurred unable to move points')
-            return
+        return
         
     def gui_rotatepoints(self):
         'GUI button to rotate many points at once'
@@ -630,10 +630,8 @@ class gui:
             return
         self.line.moving = True
         # get the rotation point
-        #for i,val in enumerate(p0.result):
-        #    if val:
-        #for i in p0.result:
-        lat0,lon0 = self.line.lats[p0.result],self.line.lons[p0.result]
+        for i,val in enumerate(p0.result):
+            lat0,lon0 = self.line.lats[int(val)],self.line.lons[int(val)]
         # rotate agains that center point
         for i in p.result:
         #for i,val in enumerate(p.result):
@@ -1468,7 +1466,7 @@ class Popup_list(tkSimpleDialog.Dialog):
     def body(self,master):
         import Tkinter as tk
         if self.Text:
-            tk.Label(master, text=self.Text).pack(master)
+            tk.Label(master, text=self.Text).pack()
         if self.multi:
             lb = tk.Listbox(master,selectmode=tk.EXTENDED)
         else:
