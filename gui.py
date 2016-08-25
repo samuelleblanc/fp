@@ -56,6 +56,8 @@ class gui:
                   - fixed some bug reporting
                   - added figures to the flt_module selections
                   - added exchange cursor to geos selection
+        Modified: Samuel LeBlanc, 2016-08-25, NASA P3, on transit between Barbados to Ascension
+                  - Added point insert featurs in the addpoint dialog
                   
     """
     def __init__(self,line=None,root=None,noplt=False):
@@ -587,9 +589,19 @@ class gui:
 
     def gui_addpoint(self):
         'Gui button to add a point via a dialog'
-        from gui import Move_point
-        m = Move_point(speed=self.line.ex.speed[-1])
-        self.line.newpoint(m.bear,m.dist)
+        from gui import Move_point, ask_option
+        r = ask_option(title='Select Option',Text='Select where to put the points',button1='At End',button2='In Between\nPoints')
+        if r.out.get()==0:
+            m = Move_point(speed=self.line.ex.speed[-1])
+            self.line.newpoint(m.bear,m.dist)
+        else:
+            wp_arr = []
+            for w in self.line.ex.WP:
+                wp_arr.append('WP #%i'%w)
+            p0 = Popup_list(wp_arr,title='After which point?',Text='Select the point before the one you want to add:',multi=False)
+            i0 = int(p0.result[0])
+            m = Move_point(speed=self.line.ex.speed[-1])
+            self.line.newpoint(m.bear,m.dist,insert=True,insert_i=i0)            
 
     def gui_movepoints(self):
         'GUI button to move many points at once'
@@ -1493,6 +1505,41 @@ class Popup_list(tkSimpleDialog.Dialog):
             value = self.lb.curselection()
             self.result = map(int,value)
         return self.var.get()
+        
+class ask_option(tkSimpleDialog.Dialog):
+    """
+    program to ask to select between two options with buttons
+    """
+    def __init__(self,title='Select option',Text=None,button1='At End',button2='In Between\npoints'):
+        import Tkinter as tk
+        self.b1 = button1
+        self.b2 = button2
+        parent = tk._default_root
+        self.Text = Text
+        tkSimpleDialog.Dialog.__init__(self,parent,title)
+    def body(self,master):
+        import Tkinter as tk
+        if self.Text:
+            tk.Label(master, text=self.Text).pack()
+    def buttonbox(self):
+        import Tkinter as tk
+        box = tk.Frame(self)
+        self.out = tk.IntVar()
+        def but1():
+            self.but(0)
+        def but2():
+            self.but(1)
+        w = tk.Button(box, text=self.b1, width=10, command=but1, default=tk.ACTIVE)
+        w.pack(side=tk.LEFT, padx=5, pady=5)
+        w = tk.Button(box, text=self.b2, width=10, command=but2)
+        w.pack(side=tk.LEFT, padx=5, pady=5)
+        self.bind("<Return>", self.ok)
+        self.bind("<Escape>", self.cancel)
+        box.pack()
+    def but(self,i):
+        import Tkinter as tk
+        self.out.set(i)
+        self.ok()        
         
 class custom_toolbar(NavigationToolbar2TkAgg):
     """

@@ -82,6 +82,8 @@ class dict_position:
                  - removed dependency of Pysolar, fixed bug in azimuth calculations
         Modified: Samuel LeBlanc, 2016-07-28, NASA Ames, CA
                  - fixed utc convertion issue when reading in an excel file
+        Modified: Samuel LeBlanc, 2016-08-25, NASA P3, transit from Barbados to Ascension
+                 - added inserts method to insert a point in between other points.
     """
     import numpy as np
     from xlwings import Range,Sheet
@@ -706,6 +708,43 @@ class dict_position:
         self.sza = np.append(self.sza,sza)
         self.azi = np.append(self.azi,azi)
         self.comments.append(comm)
+        
+    def inserts(self,i,lat,lon,sp=None,dt=None,alt=None,
+                clt=None,utc=None,loc=None,lt=None,d=None,cd=None,
+                dnm=None,cdnm=None,spkt=None,altk=None,
+                bear=0.0,endbear=0.0,turnd=0.0,turnt=0.0,climbt=0.0,
+                sza=None,azi=None,comm=None):
+        """
+        Program that appends to the current class with values supplied, or with defaults from the command line
+        """
+        import numpy as np
+        self.lat = np.insert(self.lat,i,lat)
+        self.lon = np.insert(self.lon,i,lon)
+        self.speed = np.insert(self.speed,i,sp)
+        self.delayt = np.insert(self.delayt,i,dt)
+        self.alt = np.insert(self.alt,i,alt)
+        if not clt: clt = np.nan
+        if not utc: utc = np.nan
+        if not loc: loc = np.nan
+        if not lt: lt = np.nan
+        self.cumlegt = np.insert(self.cumlegt,i,clt*24.0)
+        self.utc = np.insert(self.utc,i,utc*24.0)
+        self.local = np.insert(self.local,i,loc*24.0)
+        self.legt = np.insert(self.legt,i,lt*24.0)
+        self.dist = np.insert(self.dist,i,d)
+        self.cumdist = np.insert(self.cumdist,i,cd)
+        self.dist_nm = np.insert(self.dist_nm,i,dnm)
+        self.cumdist_nm = np.insert(self.cumdist_nm,i,cdnm)
+        self.speed_kts = np.insert(self.speed_kts,i,spkt)
+        self.alt_kft = np.insert(self.alt_kft,i,altk)
+        self.bearing = np.insert(self.bearing,i,bear)
+        self.endbearing = np.insert(self.endbearing,i,endbear)
+        self.turn_deg = np.insert(self.turn_deg,i,turnd)
+        self.turn_time = np.insert(self.turn_time,i,turnt)
+        self.climb_time = np.insert(self.climb_time,i,climbt)
+        self.sza = np.insert(self.sza,i,sza)
+        self.azi = np.insert(self.azi,i,azi)
+        self.comments.insert(i,comm)
 
     def mods(self,i,lat=None,lon=None,sp=None,spkt=None,
              dt=None,alt=None,altk=None,comm=None):

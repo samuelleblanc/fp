@@ -473,34 +473,46 @@ class LineBuilder:
         mi.update_pars_mers(self.m,mer,par,lower_left=(xlim[0],ylim[0]))
         self.line.figure.canvas.draw()
 
-    def newpoint(self,Bearing,distance,alt=None,last=True,feet=False,km=True):
+    def newpoint(self,Bearing,distance,alt=None,last=True,feet=False,km=True,insert=False,insert_i=-1):
         """
         program to add a new point at the end of the current track with a bearing and distance, optionally an altitude
         if feet is set, altitude is defined in feet not the defautl meters.
         if km is set to True, distance is defined in kilometers (default), if False, it uses nautical miles (nm)
+        update to use insert keyword for placing a point in the middle of the line, at the position of insert_i
         """
         if not km:
             dist = distance*2.02 #need to check this value.
         else:
             dist = distance
-        newlon,newlat,baz = shoot(self.lons[-1],self.lats[-1],Bearing,maxdist=distance)
+        newlon,newlat,baz = shoot(self.lons[insert_i],self.lats[insert_i],Bearing,maxdist=distance)
         if self.verbose:
             print 'New points at lon: %f, lat: %f' %(newlon,newlat)
         if self.m:
             x,y = self.m(newlon,newlat)
-            self.lons.append(newlon)
-            self.lats.append(newlat)
+            if not insert:
+                self.lons.append(newlon)
+                self.lats.append(newlat)
+            else:
+                self.lons.insert(insert_i+1,newlon)
+                self.lats.insert(insert_i+1,newlat)
         else:
             x,y = newlon,newlat
-        self.xs.append(x)
-        self.ys.append(y)
+        if not insert:
+            self.xs.append(x)
+            self.ys.append(y)
+        else:
+            self.xs.insert(insert_i+1,x)
+            self.ys.insert(insert_i+1,y)
         self.line.set_data(self.xs, self.ys)
         
         if self.ex:
             if alt:
                 if feet:
                     alt = alt/3.28084
-            self.ex.appends(self.lats[-1],self.lons[-1],alt=alt)
+            if not insert:
+                self.ex.appends(self.lats[-1],self.lons[-1],alt=alt)
+            else:
+                self.ex.inserts(insert_i+1,newlat,newlon,alt=alt)
             self.ex.calculate()
             self.ex.write_to_excel()
         self.update_labels()
