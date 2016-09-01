@@ -54,6 +54,11 @@ class LineBuilder:
                  - fixed legend disappear when showing aeronet and geos
         Modified: Samuel LeBlanc, 2016-08-01, WFF, VA
                  - fixed redraw bug where after a redraw, the corners don't match and cause a problem to WMS loading.
+        Modified: Samuel LeBlanc, 2016-08-30, Swakopmund, Namibia
+                 - fixed the upside down bocachica image
+        Modified: Samuel LeBlanc, 2016-08-31, Swakopmund, Namibia
+                 - fixed the bocachica plotting issue
+                 - fixed some issue with time indications on wms plotting
     """
     def __init__(self, line,m=None,ex=None,verbose=False,tb=None, blit=True):
         """
@@ -339,10 +344,13 @@ class LineBuilder:
                 self.lbl = [self.line.axes.annotate(s+'%i'%i,
                                                     (self.xs[i-1],self.ys[i-1]))]
             else:
-                if not self.xs[i-1]:
-                    continue
-                self.lbl.append(self.line.axes.
-                                annotate(s+'%i'%i,(self.xs[i-1],self.ys[i-1])))
+                try:
+                    if not self.xs[i-1]:
+                        continue
+                    self.lbl.append(self.line.axes.
+                                    annotate(s+'%i'%i,(self.xs[i-1],self.ys[i-1])))
+                except IndexError:
+                    pass                    
         self.line.figure.canvas.draw()
 
     def plt_range_circles(self,lon,lat,azi=None):
@@ -414,28 +422,45 @@ class LineBuilder:
         try:
             lons = np.linspace(ll_lon,ur_lon,num=img.shape[1])
             lats = np.linspace(ll_lat,ur_lat,num=img.shape[0])
+            print 'in first try addfigure under'
         except AttributeError:
             lons = np.linspace(ll_lon,ur_lon,num=img.size[1])
             lats = np.linspace(ll_lat,ur_lat,num=img.size[0])
+        if (ur_lon-ll_lon) < (self.m.urcrnrlon-self.m.llcrnrlon):
+            too_big_extent = True
+        else:
+            too_big_extent = False
         ix = np.where((lats>self.m.llcrnrlat)&(lats<self.m.urcrnrlat))[0]
         iy = np.where((lons>self.m.llcrnrlon)&(lons<self.m.urcrnrlon))[0]
         try:
+            si = img.shape[0]
             ix = img.shape[0]-ix
         except AttributeError:
+            si = img.size[0]
             ix = img.size[0]-ix
+        ix[ix==si] = si-1
         if not outside:
             self.m.figure_under = None
             #self.m.imshow(img,zorder=0,extent=[left,right,top,bottom],**kwargs)
             try:
-                self.m.figure_under = self.m.imshow(img[ix,:,:][:,iy,:],zorder=0,alpha=alpha,**kwargs)
+                if too_big_extent:
+                    try:
+                        x0,y0 = self.m(ll_lon,ll_lat)
+                        x1,y1 = self.m(ur_lon,ur_lat)
+                        self.m.figure_under = self.m.ax.imshow(np.flipud(img[ix,:,:][:,iy,:]),zorder=0,alpha=alpha,extent=[x0,x1,y0,y1],**kwargs)
+                    except:
+                        import pdb
+                        pdb.set_trace()
+                else:
+                    self.m.figure_under = self.m.imshow(img[ix,:,:][:,iy,:],zorder=0,alpha=alpha,**kwargs)
             except Exception as ie:
-                print 'problem occurred when placing under figure'
+                print 'problem occurred when placing under figure, trying anyway'
                 print ie
                 self.m.figure_under = self.m.imshow(img,zorder=0,alpha=alpha,**kwargs)
         else:
             u = self.m.imshow(img,clip_on=False,**kwargs)
         if text:
-            self.m.figure_under_text = self.m.ax.text(ll_lat,ll_lon,text)
+            self.m.figure_under_text = self.m.ax.text(0.0,0.0,text,transform=self.m.ax.transAxes)
         self.line.figure.canvas.draw()
         self.get_bg()
         
@@ -583,12 +608,21 @@ class LineBuilder:
             
         # make the values variables
         for i,n in enumerate(names):
-            exec('{}={}'.format(n,vals.names_val[i]))
+            try:
+                exec('{}={}'.format(n,vals.names_val[i]))
+            except:
+                print 'problem for {}={}'.format(n,vals.names_val[i])
         for l in s[1:-1]:
-            if not l.startswith('#'):
-                self.newpoint(*eval(l),last=False,feet=use_feet,km=use_km)
-        if not s[-1].startswith('#'):
-                self.newpoint(*eval(s[-1]),feet=use_feet,km=use_km)
+            if not (l.startswith('#') or l.startswith('%')):
+                try:
+                    self.newpoint(*eval(l),last=False,feet=use_feet,km=use_km)
+                except:
+                    print 'problem with {}'.format(l)
+        if not s[-1].startswith('#') or not s[-1].startswith('%'):
+                try:
+                    self.newpoint(*eval(s[-1]),feet=use_feet,km=use_km)
+                except:
+                    print 'problem with last {}'.format(s[-1])
         f.close()
 
     def get_bg(self,redraw=False):

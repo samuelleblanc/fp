@@ -84,6 +84,11 @@ class dict_position:
                  - fixed utc convertion issue when reading in an excel file
         Modified: Samuel LeBlanc, 2016-08-25, NASA P3, transit from Barbados to Ascension
                  - added inserts method to insert a point in between other points.
+        Modified: Samuel LeBlanc, 2016-08-30, Swakopmund, Namibia
+                 - added a force speed calculation
+        Modified: Samuel LeBlanc, 2016-08-31, Swakopmund, Namibia
+                 - fixed saving for pilots, added delay time in comments
+                 - 
     """
     import numpy as np
     from xlwings import Range,Sheet
@@ -341,6 +346,15 @@ class dict_position:
         self.sza,self.azi = mu.get_sza_azi(self.lat,self.lon,self.datetime)
         
         self.time2xl()
+        
+    def force_calcspeed(self):
+        """
+        Program to override the current speed written in and calculate a new one
+        """
+        self.n = len(self.lon)
+        for i in xrange(self.n-1):
+            self.speed[i+1] = self.calcspeed(self.alt[i],self.alt[i+1])
+            self.speed_kts[i+1] = self.speed[i+1]*1.94384449246
 
     def calcspeed(self,alt0,alt1):
         """
@@ -1263,7 +1277,11 @@ def save2xl_for_pilots(filename,ex_arr):
         Range('Z:Z').autofit('c')
         for i in range(len(a.lon)):
             lat_f,lon_f = format_lat_lon(a.lat[i],a.lon[i],format=a.pilot_format)
-            Range('A{:d}'.format(i+2)).value = [a.WP[i],lat_f,lon_f,a.alt_kft[i],a.comments[i]]
+            if a.delayt[i]>3.0:
+                comment = 'delay: {} min, {}'.format(a.delayt[i],a.comments[i])
+            else:
+                comment = a.comments[i]
+            Range('A{:d}'.format(i+2)).value = [a.WP[i],lat_f,lon_f,a.alt_kft[i],comment]
     wb_pilot.save(filename)
     wb_pilot.close()        
         

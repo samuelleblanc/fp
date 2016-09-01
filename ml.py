@@ -96,7 +96,7 @@ import tkSimpleDialog, tkFileDialog, tkMessageBox
 #import six, six.moves
 import warnings
 
-__version__ = 'v1.05'
+__version__ = 'v1.07'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'
@@ -212,6 +212,8 @@ def build_buttons(ui,lines,vertical=True):
     g.refresh = tk.Button(g.root,text='Refresh',
                           command=g.refresh,
                           bg='chartreuse')
+    g.refreshspeed = tk.Button(g.root,text='Refresh without Speeds',
+                          command=g.refresh_nospeed)
     g.bopenfile = tk.Button(g.root,text='Open',
                             command=g.gui_open_xl)
     g.bsavexl = tk.Button(g.root,text='Save',
@@ -232,7 +234,8 @@ def build_buttons(ui,lines,vertical=True):
 			    command=g.gui_savefig)    
     g.bsaveall = tk.Button(g.root,text='Save All',
 			    command=g.gui_saveall,bg='lightskyblue')
-    g.refresh.pack(in_=ui.top,side=side,fill=tk.X,pady=8)
+    g.refresh.pack(in_=ui.top,side=side,fill=tk.X,pady=6)
+    g.refreshspeed.pack(in_=ui.top,side=side,fill=tk.X,pady=2)
     tk.Label(g.root,text='File options').pack(in_=ui.top,side=side) 
     g.frame_xl = tk.Frame(ui.top)
     g.frame_xl.pack(in_=ui.top,side=side,fill=tk.X,pady=2)
@@ -260,6 +263,9 @@ def build_buttons(ui,lines,vertical=True):
     g.frame_plot = tk.Frame(ui.top)
     g.frame_plot.pack(in_=ui.top,side=side,fill=tk.X,pady=2)
     tk.Label(ui.top,text='Plots:').pack(in_=g.frame_plot,side=tk.LEFT)
+    g.bplotlat = tk.Button(g.root,text='Alt vs Lat',
+                           command=g.gui_plotaltlat)
+    g.bplotlat.pack(in_=g.frame_plot,side=tk.RIGHT)
     g.bplotalt = tk.Button(g.root,text='Alt vs time',
                            command=g.gui_plotalttime)
     g.bplotalt.pack(in_=g.frame_plot,side=tk.RIGHT)

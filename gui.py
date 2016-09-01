@@ -48,7 +48,7 @@ class gui:
         Modified: Samuel LeBlanc, 2016-07-11, on plane from SFO -> WFF
                   - added remove satellite tracks button.
                   - fixed a few bugs
-        Modidifed: Samuel LeBlanc, 2016-07-12, WFF, VA
+        Modified: Samuel LeBlanc, 2016-07-12, WFF, VA
                   - added a plot aeronet values
         Modified: Samuel LeBlanc, 2016-07-22, NASA Ames at Santa Cruz, CA
                   - made custom toolbar, with new buttons, and event call backs for refreshing when zooming or panning, back or forward.
@@ -58,6 +58,12 @@ class gui:
                   - added exchange cursor to geos selection
         Modified: Samuel LeBlanc, 2016-08-25, NASA P3, on transit between Barbados to Ascension
                   - Added point insert featurs in the addpoint dialog
+        Modified: Samuel LeBlanc, 2016-08-30, Swakopmund, Namibia
+                  - added force speed calculation button function handler
+        MOdified: Samuel LeBlanc, 2016-08-31, Swakopmund, Namibia
+                  - added plot alt vs lat
+                  - added waypoints on sza and alt plots
+                  - made refresh also refresh the speeds
                   
     """
     def __init__(self,line=None,root=None,noplt=False):
@@ -273,6 +279,8 @@ class gui:
             print 'Problem with loading a new figure handler'
             return
         ax1.plot(self.line.ex.cumlegt,self.line.ex.alt,'x-')
+        for i,w in enumerate(self.line.ex.WP):
+            ax1.annotate('{}'.format(w),(self.line.ex.cumlegt[i],self.line.ex.alt[i]),color='r')
         ax1.set_title('Altitude vs time for %s on %s' %(self.line.ex.name,self.line.ex.datestr),y=1.08)
         fig.subplots_adjust(top=0.85,right=0.8)
         ax1.set_xlabel('Flight duration [Hours]')
@@ -285,6 +293,48 @@ class gui:
         cum2utc = self.line.ex.utc[0]
         utc_label = ['%2.2f'%(u+cum2utc) for u in ax1.get_xticks()]
         ax2.set_xticklabels(utc_label)
+        ax3 = ax1.twinx()
+        ax3.yaxis.tick_right()
+        ax3.set_ylabel('Altitude [Kft]')
+        ax3.set_yticks(ax1.get_yticks())
+        alt_labels = ['%2.2f'%(a*3.28084/1000.0) for a in ax1.get_yticks()]
+        ax3.set_yticklabels(alt_labels)
+        ax1.grid()
+        if self.noplt:
+            canvas.draw()
+        else:
+            plt.figure(f1.number)
+        return fig
+        
+    def gui_plotaltlat(self):
+        'gui function to run the plot of alt vs. latitude'
+        if self.noplt:
+            from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+            from gui import custom_toolbar
+            from matplotlib.figure import Figure
+            import Tkinter as tk
+            root = tk.Toplevel()
+            root.wm_title('Alt vs. Latitude: {}'.format(self.line.ex.name))
+            fig = Figure()
+            canvas = FigureCanvasTkAgg(fig, master=root)
+            canvas.show()
+            canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+            tb = custom_toolbar(canvas,root)
+            tb.pack(side=tk.BOTTOM)
+            tb.update()
+            canvas._tkcanvas.pack(side=tk.TOP,fill=tk.BOTH,expand=1)
+            ax1 = fig.add_subplot(111)
+        else:
+            print 'Problem with loading a new figure handler'
+            return
+        ax1.plot(self.line.ex.lat,self.line.ex.alt,'x-')
+        for i,w in enumerate(self.line.ex.WP):
+            ax1.annotate('{}'.format(w),(self.line.ex.lat[i],self.line.ex.alt[i]),color='r')
+        ax1.set_title('Latitude vs time for %s on %s' %(self.line.ex.name,self.line.ex.datestr),y=1.08)
+        fig.subplots_adjust(top=0.85,right=0.8)
+        ax1.set_xlabel('Latitude [Degrees]')
+        ax1.set_ylabel('Alt [m]')
+        ax1.xaxis.tick_bottom()
         ax3 = ax1.twinx()
         ax3.yaxis.tick_right()
         ax3.set_ylabel('Altitude [Kft]')
@@ -323,6 +373,8 @@ class gui:
         canvas._tkcanvas.pack(side=tk.TOP,fill=tk.BOTH,expand=1)
         ax1 = fig.add_subplot(2,1,1)
         ax1.plot(self.line.ex.cumlegt,self.line.ex.sza,'x-')
+        for i,w in enumerate(self.line.ex.WP):
+            ax1.annotate('{}'.format(w),(self.line.ex.cumlegt[i],self.line.ex.sza[i]),color='r')
         ax1.set_title('Solar position along flight track for %s on %s' %(self.line.ex.name,self.line.ex.datestr), y=1.18)
         fig.subplots_adjust(top=0.85)
         #ax1.set_xlabel('Flight duration [Hours]')
@@ -530,6 +582,9 @@ class gui:
             fig = self.gui_plotsza()
             print 'Saving the SZA vs time plot at:'+f_name+'_sza_{}.png'.format(x.name)
             fig.savefig(f_name+'_sza_{}.png'.format(x.name),dpi=600,transparent=False)
+            fig = self.gui_plotaltlat()
+            print 'Saving the Alt vs Latitude plot at:'+f_name+'_alt_lat_{}.png'.format(x.name)
+            fig.savefig(f_name+'_alt_lat_{}.png'.format(x.name),dpi=600,transparent=False)
         print 'Saving kml file to :'+f_name+'.kml'
         self.kmlfilename = f_name+'.kml'
         self.line.ex.save2kml(filename=self.kmlfilename)
@@ -546,8 +601,23 @@ class gui:
     def refresh(self,*arg,**karg):
         'function to force a refresh of the plotting window'
         self.line.onfigureenter([1])
+        self.refresh_speed()
         self.line.redraw_pars_mers()
         self.line.get_bg()
+        
+    def refresh_nospeed(self,*arg,**karg):
+        'function to force a refresh of the plotting window'
+        self.line.onfigureenter([1])
+        self.line.redraw_pars_mers()
+        self.line.get_bg()
+        
+    def refresh_speed(self):
+        ' function to force a refresh on the speed calculations'
+        print 'Recalculating the speed at each waypoint for {}'.format(self.line.ex.name)
+        self.line.ex.force_calcspeed()
+        self.line.ex.write_to_excel()
+        self.line.ex.calculate()
+        self.line.ex.write_to_excel()
     
     def make_gui(self):
         """
@@ -1051,7 +1121,8 @@ class gui:
         try:
             print 'Applying the flt_module {}'.format(select.selected_flt)
             self.line.parse_flt_module_file(select.mod_path)
-        except:
+        except Exception as ie:
+            print ie
             print 'flt_module selection cancelled'
             return
     
@@ -1206,7 +1277,7 @@ class Move_point(tkSimpleDialog.Dialog):
         if self.speed:
             self.speed = self.speed*3.6
             tk.Label(master,text='or').grid(row=0,column=2)
-            tk.Label(master,text='Time [h]').grid(row=0,column=3)
+            tk.Label(master,text='Time [min]').grid(row=0,column=3)
             self.etime = tk.Entry(master)
             self.etime.grid(row=0,column=4)
         return self.edist
@@ -1215,7 +1286,7 @@ class Move_point(tkSimpleDialog.Dialog):
         try:
             self.dist = float(self.edist.get())
         except:
-            self.dist = float(self.speed)*float(self.etime.get())
+            self.dist = float(self.speed)*float(self.etime.get())/60.0
         self.bear = float(self.ebear.get())
         return self.dist,self.bear
 
