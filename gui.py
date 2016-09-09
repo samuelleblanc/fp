@@ -330,7 +330,7 @@ class gui:
         ax1.plot(self.line.ex.lat,self.line.ex.alt,'x-')
         for i,w in enumerate(self.line.ex.WP):
             ax1.annotate('{}'.format(w),(self.line.ex.lat[i],self.line.ex.alt[i]),color='r')
-        ax1.set_title('Latitude vs time for %s on %s' %(self.line.ex.name,self.line.ex.datestr),y=1.08)
+        ax1.set_title('Altitude vs. Latitude for %s on %s' %(self.line.ex.name,self.line.ex.datestr),y=1.08)
         fig.subplots_adjust(top=0.85,right=0.8)
         ax1.set_xlabel('Latitude [Degrees]')
         ax1.set_ylabel('Alt [m]')
@@ -1572,6 +1572,7 @@ class Popup_list(tkSimpleDialog.Dialog):
             value, = self.lb.curselection()
             self.var.set(value)
             self.result = value
+            print value
         else:
             value = self.lb.curselection()
             self.result = map(int,value)

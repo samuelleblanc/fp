@@ -200,8 +200,8 @@ class dict_position:
         'function that returns the default dict of platform info'
         if platform=='p3':
             p_info = {'Platform':'p3','names':['p3','P3','P-3','p-3','p 3','P 3'],
-                      'max_alt':7500.0,'base_speed':130.0,'speed_per_alt':0.0075,
-                      'max_speed':175.0,'max_speed_alt':6000.0,'descent_speed_decrease':15.0,
+                      'max_alt':7000.0,'base_speed':110.0,'speed_per_alt':0.0070,
+                      'max_speed':155.0,'max_speed_alt':5000.0,'descent_speed_decrease':15.0,
                       'climb_vert_speed':5.0,'descent_vert_speed':-5.0,'alt_for_variable_vert_speed':6000.0,
                       'vert_speed_base':4.5,'vert_speed_per_alt':7e-05,
                       'rate_of_turn':None,'turn_bank_angle':15.0,
@@ -1040,8 +1040,12 @@ class dict_position:
             
         if not self.googleearthopened:
             #self.openGoogleEarth(filenamenet)
-            self.openGoogleEarth(filename.replace('kml','kmz'))
-            self.googleearthopened = True
+            try:
+                self.openGoogleEarth(filename.replace('kml','kmz'))
+                self.googleearthopened = True
+            except:
+                print 'Not able to open google earth'
+                self.googleearthopened = True
 
     def print_points_kml(self,folder):
         """

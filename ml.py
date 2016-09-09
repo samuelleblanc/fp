@@ -96,7 +96,7 @@ import tkSimpleDialog, tkFileDialog, tkMessageBox
 #import six, six.moves
 import warnings
 
-__version__ = 'v1.07'
+__version__ = 'v1.08'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'
@@ -145,7 +145,7 @@ def Get_default_profile(filename):
         profile = [{'Profile':'ORACLES','Plane_name':'P3',
                      'Start_lon':'14 38.717E','Start_lat':'22 58.783S',
                      'Lon_range':[-20,20],'Lat_range':[-30,10],
-                     'UTC_start':7.0,'UTC_conversion':+1.0,
+                     'UTC_start':7.0,'UTC_conversion':+2.0,
                      'start_alt':95.0},
                     {'Profile':'NAAMES','Plane_name':'C130',
                      'Start_lon':'52 44.547W','Start_lat':'47 37.273N',
