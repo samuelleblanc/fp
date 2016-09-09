@@ -986,8 +986,8 @@ def get_sat_tracks_from_tle(datestr):
         sat = get_tle_from_file('.\sat.tle')
     except:
         try:
-            import gui as g
-            fname = g.gui_file_select(ext='*.tle',ftype=[('Two Line element','*.tle'),('All files','*.*')])
+            from gui import gui_file_select_fx
+            fname = gui_file_select_fx(ext='*.tle',ftype=[('All files','*.*'),('Two Line element','*.tle')])
             sat = get_tle_from_file(fname)
         except:
             import tkMessageBox

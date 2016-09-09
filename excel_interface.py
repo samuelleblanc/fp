@@ -190,9 +190,9 @@ class dict_position:
         except IOError:
             print '** Error reading platform information file: {} **'.format(filename)
             try:
-                from gui import gui
-                filename_new = gui.gui_file_select(ext='platform.txt',ftype=[('Platform file','*.txt'),('All files','*.*')])
-                p = read_prof_file(filename)
+                from gui import gui_file_select_fx
+                filename_new = gui_file_select_fx(ext='platform.txt',ftype=[('All files','*.*'),('Platform file','*.txt')])
+                p = read_prof_file(filename_new)
                 for d in p:
                     if any(o in name for o in d['names']):
                         platform = d['Platform']

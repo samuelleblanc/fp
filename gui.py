@@ -1728,5 +1728,18 @@ class custom_toolbar(NavigationToolbar2TkAgg):
         event = Event(s, self)
         self.canvas.callbacks.process(s, event)
 
-
+def gui_file_select_fx(ext='*',
+                       ftype=[('Excel 1997-2003','*.xls'),('Excel','*.xlsx'),
+                           ('Kml','*.kml'),('All files','*.*')]):
+    """
+    Simple gui file select program. Uses TKinter for interface, returns full path
+    """
+    from Tkinter import Tk
+    from tkFileDialog import askopenfilename
+    from os.path import abspath
+    Tk().withdraw() # we don't want a full GUI, so keep the root window from appearing
+    filename = askopenfilename(defaultextension=ext,filetypes=ftype) # show an "Open" dialog box and return the path to the selected file
+    if filename:
+        filename = abspath(filename)
+    return filename
         
