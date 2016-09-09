@@ -985,9 +985,14 @@ def get_sat_tracks_from_tle(datestr):
     try:
         sat = get_tle_from_file('.\sat.tle')
     except:
-        import tkMessageBox
-        tkMessageBox.showerror('No sat','There was an error reading the sat.tle file')
-        return None
+        try:
+            import gui as g
+            fname = g.gui_file_select(ext='*.tle',ftype=[('Two Line element','*.tle'),('All files','*.*')])
+            sat = get_tle_from_file(fname)
+        except:
+            import tkMessageBox
+            tkMessageBox.showerror('No sat','There was an error reading the sat.tle file')
+            return None
     for k in sat.keys():
         sat[k]['ephem'] = ephem.readtle(k,sat[k]['tle1'],sat[k]['tle2'])
         sat[k]['d'] = [ephem.Date(datestr+' 00:00')]

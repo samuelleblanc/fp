@@ -662,7 +662,7 @@ class gui:
         from gui import Move_point, ask_option
         r = ask_option(title='Select Option',Text='Select where to put the points',button1='At End',button2='In Between\nPoints')
         if r.out.get()==0:
-            m = Move_point(speed=self.line.ex.speed[-1])
+            m = Move_point(speed=self.line.ex.speed[-1],pp=self.line.ex.azi[-1])
             self.line.newpoint(m.bear,m.dist)
         else:
             wp_arr = []
@@ -670,7 +670,7 @@ class gui:
                 wp_arr.append('WP #%i'%w)
             p0 = Popup_list(wp_arr,title='After which point?',Text='Select the point before the one you want to add:',multi=False)
             i0 = int(p0.result[0])
-            m = Move_point(speed=self.line.ex.speed[-1])
+            m = Move_point(speed=self.line.ex.speed[-1],pp=self.line.ex.azi[-1])
             self.line.newpoint(m.bear,m.dist,insert=True,insert_i=i0)            
 
     def gui_movepoints(self):
@@ -1257,10 +1257,13 @@ class Move_point(tkSimpleDialog.Dialog):
         written: Samuel LeBlanc, 2015-09-14, NASA Ames, Santa Cruz, CA
         Modified: Samuel LeBlanc, 2016-06-06, NASA Ames, in Santa Cruz, CA
                   - added the speed input for calculating the distance based on time until point.
+        Modified: Samuel LeBlanc, 2016-09-09, Swakopmund, Namibia
+                  - added pp (principal plane) keyword for setting the bearing along the principal plane
     """
-    def __init__(self,title='New point info',speed=None):
+    def __init__(self,title='New point info',speed=None,pp=None):
         import Tkinter as tk
         self.speed = speed
+        self.pp = pp
         parent = tk._default_root
         tkSimpleDialog.Dialog.__init__(self,parent,title)
         pass
@@ -1280,6 +1283,11 @@ class Move_point(tkSimpleDialog.Dialog):
             tk.Label(master,text='Time [min]').grid(row=0,column=3)
             self.etime = tk.Entry(master)
             self.etime.grid(row=0,column=4)
+        if self.pp:
+            tk.Label(master,text='or PP offset').grid(row=1,column=2)
+            tk.Label(master,text='Degrees').grid(row=1,column=3)
+            self.epp = tk.Entry(master)
+            self.epp.grid(row=1,column=4)
         return self.edist
 
     def apply(self):
@@ -1287,24 +1295,37 @@ class Move_point(tkSimpleDialog.Dialog):
             self.dist = float(self.edist.get())
         except:
             self.dist = float(self.speed)*float(self.etime.get())/60.0
-        self.bear = float(self.ebear.get())
+        try:
+            self.bear = float(self.ebear.get())
+        except:
+            self.bear = float(self.epp.get())+float(self.pp)
         return self.dist,self.bear
 
     def validate(self):
         try:
             self.dist = float(self.edist.get())
-            self.bear = float(self.ebear.get())
         except ValueError:
             if self.speed:
                 try:
                     self.time = float(self.etime.get())
-                    self.bear = float(self.ebear.get())
                 except ValueError:
                     import tkMessageBox
-                    tkMessageBox.showwarning('Bad input','Can not format values, try again')
+                    tkMessageBox.showwarning('Bad input','Can not format distance and time values, try again')
             else:
                 import tkMessageBox
-                tkMessageBox.showwarning('Bad input','Can not format values, try again')
+                tkMessageBox.showwarning('Bad input','Can not format distance and time values, try again')
+        try:
+            self.bear = float(self.ebear.get())
+        except ValueError:
+            if self.pp:
+                try:
+                    self.bear = float(self.epp.get())+float(self.pp)
+                except ValueError:
+                    import tkMessageBox
+                    tkMessageBox.showwarning('Bad input','Can not format bearing and pp values, try again')
+            else:
+                import tkMessageBox
+                tkMessageBox.showwarning('Bad input','Can not format bearing and pp values, try again')
         return True
 
 class ask(tkSimpleDialog.Dialog):

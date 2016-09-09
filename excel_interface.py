@@ -102,7 +102,7 @@ class dict_position:
                  UTC_conversion=+1.0,alt0=0.0,
                  verbose=False,filename=None,datestr=None,
                  newsheetonly=False,name='P3 Flight path',sheet_num=1,color='red',
-                 profile=None,campaign='None',version='v1.02',platform_file='platform.txt'):
+                 profile=None,campaign='None',version='v1.09',platform_file='platform.txt'):
 
         if profile:
             lon0,lat0,UTC_start = profile['Start_lon'],profile['Start_lat'],profile['UTC_start']
@@ -189,9 +189,21 @@ class dict_position:
                 p_info = self.default_p_info(platform)
         except IOError:
             print '** Error reading platform information file: {} **'.format(filename)
-            print '** Using default platform profiles **'
-            platform = self.check_platform(name)
-            p_info = self.default_p_info(platform)
+            try:
+                from gui import gui
+                filename_new = gui.gui_file_select(ext='platform.txt',ftype=[('Platform file','*.txt'),('All files','*.*')])
+                p = read_prof_file(filename)
+                for d in p:
+                    if any(o in name for o in d['names']):
+                        platform = d['Platform']
+                        p_info = d
+                        use_file = True
+                        break
+            except IOError:
+                print '** Error reading platform information file: {} **'.format(filename)
+                print '** Using default platform profiles **'
+                platform = self.check_platform(name)
+                p_info = self.default_p_info(platform)
         if p_info['warning']:
             tkMessageBox.showwarning('Check needed','Platform default speeds and altitude may be off for {}. Please double check.'.format(platform))
         return platform, p_info, use_file

@@ -64,6 +64,9 @@
         Modified: Samuel LeBlanc, 2016-08-10, NASA Ames, CA
                 - modified the point selection to be a listbox instead of check marks
                 - added add point dialog to put points in between others
+        Modified: Samuel LeBlanc, v1.09, 2016-09-09, Swakopmund, Namibia
+                - Modified code to have the user select a profile.txt file and platform.txt, and sat.tle file if not found (for fixing mac)
+                - added principal plane selection button.
                 
 """
 import Tkinter as tk
@@ -96,7 +99,7 @@ import tkSimpleDialog, tkFileDialog, tkMessageBox
 #import six, six.moves
 import warnings
 
-__version__ = 'v1.08'
+__version__ = 'v1.09'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'
