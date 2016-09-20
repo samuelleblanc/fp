@@ -119,7 +119,7 @@ def write_ict(header_dict,data_dict,filepath,data_id,loc_id,date,rev,order=[],de
     loc_id = loc_id.replace('_','-')
     if file_comment:
         file_comment = '_'+file_comment.replace(' ','-').replace('_','-')
-    fname = filepath+'{data_id}_{loc_id}_{date}_{rev}{file_comment}.ict'.format(            data_id=data_id,loc_id=loc_id,date=date,rev=rev,file_comment=file_comment)
+    fname = filepath+'{data_id}_{loc_id}_{date}_{rev}{file_comment}.ict'.format(data_id=data_id,loc_id=loc_id,date=date,rev=rev,file_comment=file_comment)
     #f = open(fname,'w')
     
     # set the default dict values

@@ -260,8 +260,8 @@ class dict_position:
                         'warning':True}
         else:
             p_info = {'Platform':'p3','names':['p3','P3','P-3','p-3','p 3','P 3'],
-                      'max_alt':7500.0,'base_speed':130.0,'speed_per_alt':0.0075,
-                      'max_speed':175.0,'max_speed_alt':6000.0,'descent_speed_decrease':15.0,
+                      'max_alt':7000.0,'base_speed':110.0,'speed_per_alt':0.007,
+                      'max_speed':155.0,'max_speed_alt':5000.0,'descent_speed_decrease':15.0,
                       'climb_vert_speed':5.0,'descent_vert_speed':-5.0,'alt_for_variable_vert_speed':6000.0,
                       'vert_speed_base':4.5,'vert_speed_per_alt':7e-05,
                       'rate_of_turn':None,'turn_bank_angle':15.0,
@@ -1031,8 +1031,8 @@ class dict_position:
             net.link.camera = simplekml.Camera(latitude=self.lat[0], longitude=self.lon[0], altitude=3000.0, roll=0, tilt=0,
                           altitudemode=simplekml.AltitudeMode.relativetoground)
             filenamenet = filename+'_net.kml'
-            self.netkml.save(filenamenet)
-            self.kml = simplekml.Kml(open=1)
+            #self.netkml.save(filenamenet)
+        self.kml = simplekml.Kml()
         for j in xrange(Sheet.count()):
             self.switchsheet(j)
             self.name = Sheet(j+1).name
@@ -1146,6 +1146,7 @@ class dict_position:
     def save2ict(self,filepath=None):
         'Program to save the flight track as simulated ict file. Similar to what is returned from flights'
         from datetime import datetime
+        import getpass
         import re
         if not filepath:
             print '** no filepath selected, returning without saving **'
@@ -1162,27 +1163,33 @@ class dict_position:
                    'Bearing':{'original_data':self.bearing,'unit':'degrees from north','long_description':'Direction of travel of the plane per respect to north'}}
         d_dict = self.interp_points_for_ict(dict_in,dt=dt) 
         # setup header dict
-        hdict = {'PI':'Samuel LeBlanc',
+        hdict = {'PI':getpass.getuser(),
                  'Institution':'NASA Ames Research Center',
                  'Instrument':'Simulated flight plan',
                  'campaign':self.campaign,
                  'time_interval':dt,
                  'now':datetime.strptime(self.datestr,'%Y-%m-%d'),
                  'special_comments':'Simulated aircraft data interpolated from flight plan waypoints',
-                 'PI_contact':'Samuel LeBlanc, samuel.leblanc@nasa.gov',
+                 'PI_contact':getpass.getuser(),
                  'platform':self.platform,
                  'location':'N/A',
                  'instrument_info':'None',
                  'data_info':'Compiled with flight planner: moving lines {version}'.format(version=self.__version__),
                  'uncertainty':'Undefined',
-                 'DM_contact':'See PI',
+                 'DM_contact':'Samuel LeBlanc, samuel.leblanc@nasa.gov',
                  'project_info':self.campaign,
                  'stipulations':'None',
                  'rev_comments':"""  RA: First iteration of the flight plan"""}
         order = ['Latitude','Longitude','Altitude','speed','Bearing','SZA','AZI']
         fcomment = self.name.upper().replace(self.platform.upper(),'').strip('_').strip('-').strip()
+        rev = get_next_revision(filepath+'//'+'{data_id}_{loc_id}_{date}_{rev}{file_comment}.ict'.format(data_id='{}-Flt-plan'.format(self.campaign),loc_id=self.platform,
+                                date=self.datestr.replace('-',''),rev='R?',file_comment=fcomment))
+        if hdict['rev_comments'].find(rev)<0:
+            num = ord(rev[1].lower())-ord('a')+1
+            hdict['rev_comments'] = """ {}: Version {} of the flight plan ict \n""".format(rev,num)+hdict['rev_comments']
         wu.write_ict(hdict,d_dict,filepath=filepath+'//',
-                     data_id='{}-Flt-plan'.format(self.campaign),loc_id=self.platform,date=self.datestr.replace('-',''),rev='RA',order=order,file_comment=fcomment)
+                     data_id='{}-Flt-plan'.format(self.campaign),loc_id=self.platform,
+                     date=self.datestr.replace('-',''),rev=rev,order=order,file_comment=fcomment)
         
     def interp_points_for_ict(self,dict_in,dt=60.0):
         'Program to interpolate between the waypoints to have a consistent time, defined by dt (defaults to 60 seconds), the variables to be interpolated is defined by dict_in'
@@ -1216,6 +1223,20 @@ class dict_position:
         'Program to remove the current Sheet'
         print 'Not yet'
         pass
+        
+def get_next_revision(fname):
+    'Program that returns the next revision value for a given filename of ict file'
+    import os, glob
+    a = []
+    for f in glob.glob(fname):
+        a.append(f)
+    if len(a)==0:
+        return 'RA'
+    a.sort()
+    b = a[-1]
+    rev = os.path.basename(b.strip('.ict')).split('_')[3]
+    newrev = rev[0]+chr(ord(rev[1])+1)
+    return newrev
         
 
 def populate_ex_arr(filename=None,colorcycle=['red','blue','green']):

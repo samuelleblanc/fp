@@ -59,6 +59,9 @@ class LineBuilder:
         Modified: Samuel LeBlanc, 2016-08-31, Swakopmund, Namibia
                  - fixed the bocachica plotting issue
                  - fixed some issue with time indications on wms plotting
+        Modified: Samuel LeBlanc, 2016-09-19, Santa Cruz, CA
+                 - made the legend draggable
+                 
     """
     def __init__(self, line,m=None,ex=None,verbose=False,tb=None, blit=True):
         """
@@ -971,6 +974,7 @@ def plot_sat_tracks(m,sat,label_every=20):
     else:
         ncol = 1
     sat_legend = m.ax.legend(loc='lower right',bbox_to_anchor=(1.05,1.04),ncol=ncol)
+    sat_legend.draggable()
     m.ax.add_artist(sat_legend)
     sat_obj.append(sat_legend)
     return sat_obj

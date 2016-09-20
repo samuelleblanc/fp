@@ -67,6 +67,11 @@
         Modified: Samuel LeBlanc, v1.09, 2016-09-09, Swakopmund, Namibia
                 - Modified code to have the user select a profile.txt file and platform.txt, and sat.tle file if not found (for fixing mac)
                 - added principal plane selection button.
+        Modified: Samuel LeBlanc, v1.1, 2016-09-19, Santa Cruz, CA
+                - modified to have the ict file creation not override itself
+                - made that kml files don't repeat
+                - draggable legend
+                - better update when changing window size
                 
 """
 import Tkinter as tk
@@ -99,7 +104,7 @@ import tkSimpleDialog, tkFileDialog, tkMessageBox
 #import six, six.moves
 import warnings
 
-__version__ = 'v1.09'
+__version__ = 'v1.1'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'
@@ -175,6 +180,7 @@ def Create_gui(vertical=True):
     ui.root = tk.Tk()
     ui.root.wm_title('Flight planning by Samuel LeBlanc, NASA Ames, '+__version__)
     ui.root.geometry('900x950')
+    ui.w = 900
     try:
         ui.root.tk.call('wm','iconbitmap',ui.root._w,'-default',icon_filename)
     except:
@@ -398,6 +404,16 @@ def goto_cwd():
     else:
         path = dirname(realpath(argv[0]))
     chdir(path)
+    
+def bind_move_window(ui,lines):
+    'program to bind any move to the window to a redraw event'
+    ui.w = ui.root.winfo_width()
+    def redraw_when_moved(event):
+        if not ui.w==ui.root.winfo_width():
+            ui.w = ui.root.winfo_width()
+            lines.get_bg(redraw=True)
+            lines.redraw_pars_mers()
+    ui.root.bind('<Configure>',redraw_when_moved)
 
 def Create_interaction(test=False,profile=None,**kwargs):
     'Main program to start the moving lines and set up all the map and interactions'
@@ -434,6 +450,7 @@ def Create_interaction(test=False,profile=None,**kwargs):
     
     build_buttons(ui,lines)
     lines.get_bg(redraw=True)
+    bind_move_window(ui,lines)
     ui.tb.set_message('Ready for interaction')
     def stopandquit():
         'simple function to handle the stop and quit'
