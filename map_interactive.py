@@ -664,7 +664,7 @@ class LineBuilder:
         bearing_end = bearing([self.lats[i],self.lons[i]],[newlat,newlon])
         return bearing_end,dist_end        
         
-def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,proj='cyl',profile=None):
+def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,proj='cyl',profile=None,larger=True):
     """
     First try at a building of the basemap with a 'stere' projection
     Must put in the values of the lower left corner and upper right corner (lon and lat)
@@ -688,9 +688,13 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,proj='cyl',pr
         #print 'doing it pickle style'
         m.ax = ax
     except:
+        if larger:
+            dp = 30
+        else:
+            dp = 0
         m = Basemap(projection=proj,lon_0=(upper_right[0]+lower_left[0])/2.0,lat_0=(upper_right[1]+lower_left[1])/2.0,
-                llcrnrlon=lower_left[0]-30, llcrnrlat=lower_left[1]-30,
-                urcrnrlon=upper_right[0]+30, urcrnrlat=upper_right[1]+30,resolution='i',ax=ax)
+                llcrnrlon=lower_left[0]-dp, llcrnrlat=lower_left[1]-dp,
+                urcrnrlon=upper_right[0]+dp, urcrnrlat=upper_right[1]+dp,resolution='i',ax=ax)
     m.artists = []
     m.drawcoastlines()
     #m.fillcontinents(color='#AAAAAA')
@@ -700,18 +704,18 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,proj='cyl',pr
     round_to_5 = lambda x:(int(x/5)+1)*5 
     round_to_2 = lambda x:(int(x/2)+1)*2
     if (upper_right[0]-lower_left[0])<20.0:
-        mer = np.arange(round_to_2(lower_left[0]-30),round_to_2(upper_right[0]+30)+2,2)
+        mer = np.arange(round_to_2(lower_left[0]-dp),round_to_2(upper_right[0]+dp)+2,2)
         difx = 0.2
         m.large = False
     else:
-        mer = np.arange(round_to_5(lower_left[0]-30),round_to_5(upper_right[0]+30)+5,5)
+        mer = np.arange(round_to_5(lower_left[0]-dp),round_to_5(upper_right[0]+dp)+5,5)
         difx = 1.0
     if (upper_right[1]-lower_left[1])<20.0:
-        par = np.arange(round_to_2(lower_left[1]-30),round_to_2(upper_right[1]+30)+2,2)
+        par = np.arange(round_to_2(lower_left[1]-dp),round_to_2(upper_right[1]+dp)+2,2)
         dify = 0.2
         m.large = False
     else:
-        par = np.arange(round_to_5(lower_left[1]-30),round_to_5(upper_right[1]+30)+5,5)
+        par = np.arange(round_to_5(lower_left[1]-dp),round_to_5(upper_right[1]+dp)+5,5)
         dify = 1.0
     if ax:
         ax.set_xlim(lower_left[0],upper_right[0])
