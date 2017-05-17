@@ -1,6 +1,6 @@
 # Name:
 
-Moving Lines, version 0.95beta
+Moving Lines, version 1.1
 [http://science.arm.gov/~sleblanc/flight_planning/]
     
 # Purpose:
@@ -218,3 +218,8 @@ Takes advantage of clickable map for creating a flight plan, and already existin
                        new Special Use Airspace button
                        generalized WMS interface for loading maps from the internet
                        special excel spreadsheet fiel saving for pilots 
+    Modified (v1.1): Samuel LeBlanc, NASA 
+                       bug fixes to presentation and file saving
+                       faster updating of the map screen and draggable legend
+                       User modifiable default aircraft propeties (platform.txt) and map properties (profiles.txt)
+                       Included loading of special map severs (special use airspace, WMS, GEOS)
