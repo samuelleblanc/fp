@@ -1,4 +1,9 @@
-{'Profile':'ORACLES','Plane_name':'P3',
+{'Profile':'ORACLES-2017','Plane_name':'P3',
+                 'Start_lon':'6.70820','Start_lat':'0.378006',
+                 'Lon_range':[-20,20],'Lat_range':[-30,10],
+                 'UTC_start':8.0,'UTC_conversion':+0.0,
+                 'start_alt':95.0}
+{'Profile':'ORACLES-2016','Plane_name':'P3',
                  'Start_lon':'14 38.717E','Start_lat':'22 58.783S',
                  'Lon_range':[-20,20],'Lat_range':[-30,10],
                  'UTC_start':7.0,'UTC_conversion':+2.0,
@@ -32,7 +37,7 @@
                  'Start_lon':'14 22.260W','Start_lat':'7 56.343S',
                  'Lon_range':[-18,15],'Lat_range':[-25,5],
                  'UTC_start':8.0,'UTC_conversion':0.0,
-                 'start_alt':10.0}
+                 'start_alt':85.0}
 {'Profile':'CLARIFY','Plane_name':'BEA146',
                  'Start_lon':'14 22.260W','Start_lat':'7 56.343S',
                  'Lon_range':[-18,15],'Lat_range':[-25,5],

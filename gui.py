@@ -550,6 +550,7 @@ class gui:
         'gui program to run through and save all the file formats, without verbosity, for use in distribution'
         from os import path
         from excel_interface import save2xl_for_pilots
+        import tkMessageBox
         filename = self.gui_file_save(ext='*',ftype=[('Excel','*.xlsx')])
         if not filename:
             tkMessageBox.showwarning('Cancelled','Saving all files cancelled')
@@ -559,7 +560,10 @@ class gui:
         self.line.ex.save2xl(f_name+'.xlsx')
         print 'Saving Excel file for pilots to :'+f_name+'_for_pilots.xlsx'
         save2xl_for_pilots(f_name+'_for_pilots.xlsx',self.line.ex_arr)
-        self.line.ex.wb.set_current()
+        try:
+            self.line.ex.wb.set_current()
+        except:
+            tkMessageBox.showwarning('Unable to close for_pilots spreadsheet, please close manually')
         print 'Saving figure file to :'+f_name+'_map.png'
         if type(self.line.line) is list:
             lin = self.line.line[0]
@@ -669,7 +673,9 @@ class gui:
             for w in self.line.ex.WP:
                 wp_arr.append('WP #%i'%w)
             p0 = Popup_list(wp_arr,title='After which point?',Text='Select the point before the one you want to add:',multi=False)
-            i0 = int(p0.result[0])
+            #print 'p0 result ',p0.result[0],p0.result[:],int(p0.result)
+            i0 = int(p0.result[:])
+            #print 'indexed point ',i0
             m = Move_point(speed=self.line.ex.speed[-1],pp=self.line.ex.azi[-1])
             self.line.newpoint(m.bear,m.dist,insert=True,insert_i=i0)            
 
@@ -867,6 +873,39 @@ class gui:
         self.baddbocachica.config(command=self.gui_addbocachica,bg=self.bg)
         self.line.get_bg(redraw=True)
         
+        
+    def gui_addtrajectory(self):
+        'GUI handler for adding bocachica foreacast maps to basemap plot'
+        import tkMessageBox
+        try:
+            from scipy.misc import imread
+            filename = self.gui_file_select(ext='.png',ftype=[('All files','*.*'),
+                        				  ('PNG','*.png')])
+            if not filename:
+                print 'Cancelled, no file selected'
+                return
+            print 'Opening png File:'+filename
+            img = imread(filename)
+        except:
+            tkMessageBox.showwarning('Sorry','Loading image file from Bocachica not working...')
+            return
+        ll_lat,ll_lon,ur_lat,ur_lon = -59.392,-47.46,26.785,47.5
+        self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon)
+        #self.line.addfigure_under(img[710:795,35:535,:],ll_lat-7.0,ll_lon,ll_lat-5.0,ur_lon-10.0,outside=True)
+        self.baddtrajectory.config(text='Remove trajectory\nImage')
+        self.baddtrajectory.config(command=self.gui_rmtrajectory,bg='dark grey')
+        
+    def gui_rmtrajectory(self):
+        'GUI handler for removing the bocachica forecast image'
+        self.line.tb.set_message('Removing trajectory figure under')
+        try:
+            self.line.m.figure_under.remove()
+        except:
+            for f in self.line.m.figure_under:
+                f.remove()
+        self.baddtrajectory.config(text='Add Trajectory\nImage')
+        self.baddtrajectory.config(command=self.gui_addtrajectory,bg=self.bg)
+        self.line.get_bg(redraw=True)
 
     def gui_addfigure(self,ll_lat=None,ll_lon=None,ur_lat=None,ur_lon=None):
         'GUI handler for adding figures forecast maps to basemap plot'
@@ -999,7 +1038,7 @@ class gui:
             return False
         try:
             img = wms.getmap(layers=[cont[i]],style=['default'],
-                              bbox=(xlim[0],ylim[0],xlim[1],ylim[1]),
+                              bbox=(ylim[0],xlim[0],ylim[1],xlim[1]),
                               size=res,
                               transparent=True,
                               time=time_sel,

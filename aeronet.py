@@ -53,7 +53,8 @@ def get_aeronet(daystr=None,lat_range=[],lon_range=[]):
     print 'Getting file from internet: at aeronet.gsfc.nasa.gov'
     print url
     try:
-        html = urlopen(url).read()
+        htm = urlopen(url)
+        html = htm.read()
         soup = BeautifulSoup(html)
     except:
         print 'failed to communicate with internet returning nothing'

@@ -1320,7 +1320,10 @@ def save2xl_for_pilots(filename,ex_arr):
                 comment = a.comments[i]
             Range('A{:d}'.format(i+2)).value = [a.WP[i],lat_f,lon_f,a.alt_kft[i],comment]
     wb_pilot.save(filename)
-    wb_pilot.close()        
+    try:
+        wb_pilot.close()
+    except:
+        print '** unable to close for_pilots spreadsheet, may need to close manually **'
         
 def format_lat_lon(lat,lon,format='DD MM SS'):
     'Lat and lon formatter'
@@ -1335,6 +1338,15 @@ def format_lat_lon(lat,lon,format='DD MM SS'):
         lonv = deg_to_dms(lon)
         lat_f = '{:02d} {:02d} {:02.3f}'.format(latv[0],latv[1],latv[2])
         lon_f = '{:02d} {:02d} {:02.3f}'.format(lonv[0],lonv[1],lonv[2])
+    if format == 'DD MM':
+        def deg_to_dm(deg):
+            d = int(deg)
+            md = abs(deg - d) * 60
+            return [d, md]
+        latv = deg_to_dm(lat)
+        lonv = deg_to_dm(lon)
+        lat_f = '{:02d} {:02.3f}'.format(latv[0],latv[1])
+        lon_f = '{:02d} {:02.3f}'.format(lonv[0],lonv[1])
     return lat_f,lon_f
         
 def get_curdir():

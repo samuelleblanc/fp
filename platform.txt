@@ -42,10 +42,10 @@
 {'Platform':'p3','names':['p3','P3','P-3','p-3','p 3','P 3'],
     'max_alt':7000.0,'base_speed':110.0,'speed_per_alt':0.007,
     'max_speed':155.0,'max_speed_alt':5400.0,'descent_speed_decrease':15.0,
-    'climb_vert_speed':5.0,'descent_vert_speed':-5.0,'alt_for_variable_vert_speed':5400.0,
+    'climb_vert_speed':4.,'descent_vert_speed':-5.0,'alt_for_variable_vert_speed':5400.0,
     'vert_speed_base':4.5,'vert_speed_per_alt':7e-05,
     'rate_of_turn':None,'turn_bank_angle':15.0,
-    'warning':False}
+    'warning':False,'pilot_format':'DD MM'}
 {'Platform':'er2','names':['er2','ER2','ER-2','er-2','ER 2','er 2','Er','eR'],
     'max_alt':19000.0,'base_speed':70.0,'speed_per_alt':0.0071,
     'max_speed':300.0,'max_speed_alt':30000.0,'descent_speed_decrease':0.0,

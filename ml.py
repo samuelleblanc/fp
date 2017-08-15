@@ -104,7 +104,7 @@ import tkSimpleDialog, tkFileDialog, tkMessageBox
 #import six, six.moves
 import warnings
 
-__version__ = 'v1.1'
+__version__ = 'v1.2'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'
@@ -331,6 +331,9 @@ def build_buttons(ui,lines,vertical=True):
     g.baddbocachica = tk.Button(g.root,text='Add Forecast\nfrom Bocachica',
                          command = g.gui_addbocachica)
     g.baddbocachica.pack(in_=ui.top)
+    g.baddtrajectory = tk.Button(g.root,text='Add trajectory\nImage',
+                         command = g.gui_addtrajectory)
+    g.baddtrajectory.pack(in_=ui.top)
     g.baddfigure = tk.Button(g.root,text='Add Forecast\nfrom image',
                          command = g.gui_addfigure)
     g.baddfigure.pack(in_=ui.top)
