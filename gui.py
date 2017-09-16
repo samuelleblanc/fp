@@ -1038,7 +1038,7 @@ class gui:
             return False
         try:
             img = wms.getmap(layers=[cont[i]],style=['default'],
-                              bbox=(ylim[0],xlim[0],ylim[1],xlim[1]),
+                              bbox=(xlim[0],ylim[0],xlim[1],ylim[1]), #(ylim[0],xlim[0],ylim[1],xlim[1]),
                               size=res,
                               transparent=True,
                               time=time_sel,
@@ -1093,7 +1093,7 @@ class gui:
                 tkMessageBox.showwarning('Sorry','Problem reading the image a second time... abandonning')
                 return False
         try: 
-            self.line.addfigure_under(geos.transpose(Image.FLIP_TOP_BOTTOM),xlim[0],ylim[0],xlim[1],ylim[1],text=time_sel,alpha=alpha)
+            self.line.addfigure_under(geos.transpose(Image.FLIP_TOP_BOTTOM),ylim[0],xlim[0],ylim[1],xlim[1],text=time_sel,alpha=alpha)
         except Exception as ie:
             #print ie
             self.root.config(cursor='')
@@ -1116,13 +1116,19 @@ class gui:
             self.line.m.figure_under.remove()
         except:
             for f in self.line.m.figure_under:
-                f.remove
+                try:
+                    f.remove
+                except TypeError:
+                    pass
         try:
             self.line.m.figure_under_text.remove()
         except:
             try:
                 for f in self.line.m.figure_under_text:
-                    f.remove  
+                    try:
+                        f.remove  
+                    except TypeError:
+                        pass
             except AttributeError:
                 pass
         try:

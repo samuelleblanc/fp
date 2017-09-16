@@ -5,3 +5,5 @@ GEFS,http://motherlode.ucar.edu:8080/thredds/wms/fmrc/NCEP/GEFS/Global_1p0deg_En
 GFS,http://oos.soest.hawaii.edu/erddap/wms/NCEP_Global_Best
 GFS_NCEP,http://oos.soest.hawaii.edu/thredds/wms/hioos/model/atm/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd?
 SUA,https://sua.faa.gov/geoserver/wms?LAYERS=SUA
+RealEarth,http://realearth.ssec.wisc.edu/cgi-bin/mapserv?service=WMS&version=1.1.1
+NEO_GFSC,https://neo.sci.gsfc.nasa.gov/wms/wms

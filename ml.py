@@ -104,7 +104,7 @@ import tkSimpleDialog, tkFileDialog, tkMessageBox
 #import six, six.moves
 import warnings
 
-__version__ = 'v1.2'
+__version__ = 'v1.21'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'

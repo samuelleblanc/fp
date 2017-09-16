@@ -61,6 +61,8 @@ class LineBuilder:
                  - fixed some issue with time indications on wms plotting
         Modified: Samuel LeBlanc, 2016-09-19, Santa Cruz, CA
                  - made the legend draggable
+        Modified: Samuel LeBlanc, 2017-09-15, St-John's, NL, Canada
+                 - fixed issue with map pickles not having the dp variable.
                  
     """
     def __init__(self, line,m=None,ex=None,verbose=False,tb=None, blit=True):
@@ -463,7 +465,10 @@ class LineBuilder:
         else:
             u = self.m.imshow(img,clip_on=False,**kwargs)
         if text:
-            self.m.figure_under_text = self.m.ax.text(0.0,0.0,text,transform=self.m.ax.transAxes)
+            try:
+                self.m.figure_under_text = self.m.ax.text(0.0,0.0,text,transform=self.m.ax.transAxes)
+            except:
+                print 'Problem adding text on figure, continuning...'
         self.line.figure.canvas.draw()
         self.get_bg()
         
@@ -681,7 +686,11 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,proj='cyl',pr
     if profile:
         upper_right = [pll(profile['Lon_range'][1]),pll(profile['Lat_range'][1])]
         lower_left = [pll(profile['Lon_range'][0]),pll(profile['Lat_range'][0])]
-        
+
+    if larger:
+        dp = 30
+    else:
+        dp = 0
     try:
         import cPickle as pickle
         m = pickle.load(open('map_{}.pkl'.format(profile['Campaign']),'rb'))

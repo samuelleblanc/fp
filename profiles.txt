@@ -10,7 +10,7 @@
                  'start_alt':95.0}
 {'Profile':'NAAMES','Plane_name':'C130',
                  'Start_lon':'52 44.547W','Start_lat':'47 37.273N',
-                 'Lon_range':[-55,-20],'Lat_range':[40,60],
+                 'Lon_range':[-60,-30],'Lat_range':[40,60],
                  'UTC_start':8.5,'UTC_conversion':-2.5,
                  'start_alt':110.0}
 {'Profile':'KORUS-AQ','Plane_name':'DC8',
