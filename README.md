@@ -1,7 +1,7 @@
 # Name:
 
-Moving Lines, version 1.1
-[http://science.arm.gov/~sleblanc/flight_planning/]
+Moving Lines, version 1.21
+[http://engineering.arm.gov/~sleblanc/flight_planning/]
     
 # Purpose:
     
@@ -144,6 +144,7 @@ Takes advantage of clickable map for creating a flight plan, and already existin
         - owslib
         - xlwings
         - Pysolar (distributed with source)
+        - See requirements.txt for full modules dependencies
         
 # Required files (included in distribution):
 
@@ -223,3 +224,9 @@ Takes advantage of clickable map for creating a flight plan, and already existin
                        faster updating of the map screen and draggable legend
                        User modifiable default aircraft propeties (platform.txt) and map properties (profiles.txt)
                        Included loading of special map severs (special use airspace, WMS, GEOS)
+    Modified (v1.2): Samuel LeBlanc, Sao Tomé, 2017-08-16
+                        for_pilots spreadsheet now can be configured to save either in decimal minutes or decimal seconds (defaults to decimal minutes)
+                        bug fix in add point button
+                        saveall button on mac now has error control
+    Modified (v1.21): Samuel LeBlanc, Sao Tomé, 2017-08-16         
+                        map plotting bug fixes, and Special Use Airspace (SUA) error mitigation.
