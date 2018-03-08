@@ -38,8 +38,13 @@
                  'Lon_range':[-18,15],'Lat_range':[-25,5],
                  'UTC_start':8.0,'UTC_conversion':0.0,
                  'start_alt':85.0}
-{'Profile':'CLARIFY','Plane_name':'BEA146',
+{'Profile':'CLARIFY','Plane_name':'BAE146',
                  'Start_lon':'14 22.260W','Start_lat':'7 56.343S',
                  'Lon_range':[-18,15],'Lat_range':[-25,5],
                  'UTC_start':8.0,'UTC_conversion':0.0,
                  'start_alt':10.0}
+{'Profile':'COSR','Plane_name':'P3',
+                 'Start_lon':'-110.285712','Start_lat':'54.403887',
+                 'Lon_range':[-100,-120],'Lat_range':[50,60],
+                 'UTC_start':8.0,'UTC_conversion':-7.0,
+                 'start_alt':540.0}

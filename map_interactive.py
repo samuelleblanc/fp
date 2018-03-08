@@ -503,7 +503,10 @@ class LineBuilder:
             self.large = False
         else:
             par = np.arange(round_to_5(ylim[0]),round_to_5(ylim[1])+5,5)
-        mi.update_pars_mers(self.m,mer,par,lower_left=(xlim[0],ylim[0]))
+        try:
+            mi.update_pars_mers(self.m,mer,par,lower_left=(xlim[0],ylim[0]))
+        except:
+            print '... Problem updating the parallels and meridians'
         self.line.figure.canvas.draw()
 
     def newpoint(self,Bearing,distance,alt=None,last=True,feet=False,km=True,insert=False,insert_i=-1):
