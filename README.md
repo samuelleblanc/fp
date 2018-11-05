@@ -234,3 +234,18 @@ Takes advantage of clickable map for creating a flight plan, and already existin
                         saveall button on mac now has error control
     Modified (v1.21): Samuel LeBlanc, Sao Tomé, 2017-08-16         
                         map plotting bug fixes, and Special Use Airspace (SUA) error mitigation. Bug fix when using 'save all' button
+# To cite:
+
+Cite as:
+
+Samuel LeBlanc. (2018, November 5). samuelleblanc/fp: Moving Lines: NASA airborne research flight planning tool release (Version v1.21). Zenodo. http://doi.org/10.5281/zenodo.1478126
+
+BibTex:
+@misc{samuel_leblanc_2018_1478126,
+author = {LeBlanc, Samuel},
+doi = {10.5281/zenodo.1478126},
+publisher = {Zenodo},
+title = {{samuelleblanc/fp: Moving Lines: NASA airborne research flight planning tool release (Version v1.21)}},
+url = {https://doi.org/10.5281/zenodo.1478126},
+year = {2018}
+}
