@@ -1,7 +1,9 @@
 # Name:
 
 Moving Lines, version 1.21
-[![DOI](https://zenodo.org/badge/61611242.svg)](https://zenodo.org/badge/latestdoi/61611242)]
+
+[![DOI](https://zenodo.org/badge/61611242.svg)](https://zenodo.org/badge/latestdoi/61611242)
+
 Get the compiled versions for MAC OS and Windows at:
 [http://engineering.arm.gov/~sleblanc/flight_planning/]
     
@@ -183,8 +185,8 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 # Known Bugs:
 
     - Sometime slow starting up, especiallly when excel is not open
-    - Altitude may not always change adequatly, even after manual input (**possibly resolved**)
-    - when switching between flight paths, speed may be mixed up (**possibly resolved**)
+    - issue when adding multiple points in excel, and not pressing the 'refresh' button
+    - comments not appropriately saved when adding/moving/deleting 
     
 # Modification History:
 
