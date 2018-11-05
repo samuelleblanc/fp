@@ -1,6 +1,7 @@
 # Name:
 
 Moving Lines, version 1.21
+Get the compiled versions for MAC OS and Windows at:
 [http://engineering.arm.gov/~sleblanc/flight_planning/]
     
 # Purpose:
@@ -229,4 +230,4 @@ Takes advantage of clickable map for creating a flight plan, and already existin
                         bug fix in add point button
                         saveall button on mac now has error control
     Modified (v1.21): Samuel LeBlanc, Sao Tomé, 2017-08-16         
-                        map plotting bug fixes, and Special Use Airspace (SUA) error mitigation.
+                        map plotting bug fixes, and Special Use Airspace (SUA) error mitigation. Bug fix when using 'save all' button
