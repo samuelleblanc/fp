@@ -1,6 +1,7 @@
 # Name:
 
 Moving Lines, version 1.21
+[![DOI](https://zenodo.org/badge/61611242.svg)](https://zenodo.org/badge/latestdoi/61611242)]
 Get the compiled versions for MAC OS and Windows at:
 [http://engineering.arm.gov/~sleblanc/flight_planning/]
     
