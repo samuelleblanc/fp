@@ -205,8 +205,11 @@ class gui:
                                                          ('Excel 1997-2003','*.xls'),
                                                          ('Excel','*.xlsx')])
         if not filename: return
-        self.line.disconnect()
-        self.line.ex.wb.close()
+        try:
+            self.line.disconnect()
+            self.line.ex.wb.close()
+        except:
+            nul = 0
         self.line.tb.set_message('Opening Excel File:'+filename)
         import excel_interface as ex
         self.flight_num = 0
