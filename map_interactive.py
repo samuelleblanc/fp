@@ -63,6 +63,8 @@ class LineBuilder:
                  - made the legend draggable
         Modified: Samuel LeBlanc, 2017-09-15, St-John's, NL, Canada
                  - fixed issue with map pickles not having the dp variable.
+        Modified: Samuel LeBlanc, 209-06-03, Santa Cruz, CA
+                 - fix linepicker issue with newer matplotlib. 
                  
     """
     def __init__(self, line,m=None,ex=None,verbose=False,tb=None, blit=True):
@@ -143,7 +145,9 @@ class LineBuilder:
                 print 'click is near point:',self.contains,attrd
             self.contains_index = attrd['ind']
             if len(self.contains_index)>1:
-                self.contains_index = self.contains_index[-1]
+                self.contains_index = int(self.contains_index[-1])
+            else:
+                self.contains_index = int(self.contains_index)
             if self.verbose:
                 print 'index:%i'%self.contains_index
             if self.contains_index != 0:

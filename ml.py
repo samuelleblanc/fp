@@ -72,6 +72,8 @@
                 - made that kml files don't repeat
                 - draggable legend
                 - better update when changing window size
+        Modified: Samuel LeBlanc, v1.22, 2019-06-03, Santa Cruz, CA
+                - Bug fixes for line picking and climb time calculations.
                 
 """
 import Tkinter as tk
@@ -104,7 +106,7 @@ import tkSimpleDialog, tkFileDialog, tkMessageBox
 #import six, six.moves
 import warnings
 
-__version__ = 'v1.21'
+__version__ = 'v1.22'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'

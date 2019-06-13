@@ -88,7 +88,8 @@ class dict_position:
                  - added a force speed calculation
         Modified: Samuel LeBlanc, 2016-08-31, Swakopmund, Namibia
                  - fixed saving for pilots, added delay time in comments
-                 - 
+        Modified: Samuel LeBlanc, 2019-06-03, Santa Cruz, CA
+                 - Calc_climb_time typo in reading platform.txt file. 
     """
     import numpy as np
     from xlwings import Range,Sheet
@@ -426,7 +427,7 @@ class dict_position:
             if not alt1: climb = False
         else:
             climb = False
-        if self.p_info.get(''):
+        if self.p_info.get('climb_vert_speed'):
             if climb:
                 if alt1>self.p_info['alt_for_variable_vert_speed']:
                     speed = self.p_info['vert_speed_base']-\

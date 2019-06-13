@@ -4,9 +4,9 @@ block_cipher = None
 
 
 a = Analysis(['ml.py'],
-             pathex=['C:\\Users\\sleblan2\\Research\\py\\pysolar-0.6', 'C:\\fp'],
-             binaries=None,
-             datas=None,
+             pathex=['C:\\Users\\sleblanc\\Research\\py\\pysolar-0.6', 'C:\\Users\\sleblanc\\Research\\fp'],
+             binaries=[],
+             datas=[],
              hiddenimports=['Tkinter', 'numpy.fft.fftpack_lite', 'FixTk', 'Pysolar', 'dateutil.zoneinfo', 'scipy.integrate', 'scipy.integrate._odepack', 'scipy.interpolate', 'scipy.integrate._quadpack'],
              hookspath=['.\\hooks\\'],
              runtime_hooks=[],
