@@ -1320,6 +1320,8 @@ def save2xl_for_pilots(filename,ex_arr):
             else:
                 comment = a.comments[i]
             Range('A{:d}'.format(i+2)).value = [a.WP[i],lat_f,lon_f,a.alt_kft[i],comment]
+        Range('A{:d}'.format(i+4)).value = 'One line waypoints for foreflight:'
+        Range('A{:d}'.format(i+5)).value = one_line_points(a)
     wb_pilot.save(filename)
     try:
         wb_pilot.close()
@@ -1349,6 +1351,21 @@ def format_lat_lon(lat,lon,format='DD MM SS'):
         lat_f = '{:02d} {:02.3f}'.format(latv[0],latv[1])
         lon_f = '{:02d} {:02.3f}'.format(lonv[0],lonv[1])
     return lat_f,lon_f
+    
+def one_line_points(a):
+    'Fromatting all waypoints onto one line for foreflight'
+    def deg_to_dm(deg):
+        d = int(deg)
+        md = abs(deg - d) * 60
+        return [d, md]
+    str = ''
+    for i in range(len(a.lon)):
+        latv = deg_to_dm(a.lat[i])
+        lonv = deg_to_dm(a.lon[i])
+        lat_f = '{n}{:02d}{:06.3f}'.format(abs(latv[0]),latv[1],n='N' if latv[0]>0 else 'S')
+        lon_f = '{n}{:02d}{:06.3f}'.format(abs(lonv[0]),lonv[1],n='E' if lonv[0]>0 else 'W')
+        str = str+lat_f+'/'+lon_f+' '
+    return str.rstrip()
         
 def get_curdir():
     'Program that gets the path of the script: for use in finding extra files'
