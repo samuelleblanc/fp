@@ -143,7 +143,8 @@ def read_prof_file(filename):
                 dd = line.strip()
             else:
                 dd = ''.join((dd.strip(),line.strip()))
-    profile.append(eval(dd.strip()))
+    if len(dd)>0:
+        profile.append(eval(dd.strip()))
     return profile
     
 def Get_default_profile(filename):
