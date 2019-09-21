@@ -81,3 +81,17 @@
     'vert_speed_base':4.5,'vert_speed_per_alt':7e-05,
     'rate_of_turn':None,'turn_bank_angle':25.0,
     'warning':True}
+{'Platform':'Falcon','names':['falcon','Falcon','HU25','HU-25'],
+    'max_alt':4500.0,'base_speed':115,'speed_per_alt':0.005,
+    'max_speed':121,'max_speed_alt':4000.0,'descent_speed_decrease':5.0,
+    'climb_vert_speed':5.0,'descent_vert_speed':-5.0,'alt_for_variable_vert_speed':8000.0,
+    'vert_speed_base':4.5,'vert_speed_per_alt':7e-05,
+    'rate_of_turn':None,'turn_bank_angle':25.0,
+    'warning':True}	
+{'Platform':'KingAir','names':['KingAir','B200','UC12'],
+    'max_alt':8000.0,'base_speed':95,'speed_per_alt':0.00325,
+    'max_speed':145,'max_speed_alt':8000.0,'descent_speed_decrease':5.0,
+    'climb_vert_speed':5.0,'descent_vert_speed':-5.0,'alt_for_variable_vert_speed':8000.0,
+    'vert_speed_base':4.5,'vert_speed_per_alt':7e-05,
+    'rate_of_turn':None,'turn_bank_angle':25.0,
+    'warning':True}
