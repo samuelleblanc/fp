@@ -965,7 +965,7 @@ class gui:
         popup = Popup_list(arr)
         i = popup.var.get()
         self.line.tb.set_message('Selected WMS server: {}'.format(out[i]['name']))
-        r = self.add_WMS(website=out[i]['website'],name=out[i]['name'],printurl=True)
+        r = self.add_WMS(website=out[i]['website'],name=out[i]['name'],printurl=True,notime=out[i]['notime'])
         if r:
             self.wmsname = out[i]['name']
             self.baddwms.config(text='Remove WMS: {}'.format(out[i]['name']))

@@ -1,6 +1,6 @@
 # Name:
 
-Moving Lines, version 1.21
+Moving Lines, version 1.23
 
 [![DOI](https://zenodo.org/badge/61611242.svg)](https://zenodo.org/badge/latestdoi/61611242)
 

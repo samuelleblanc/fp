@@ -883,6 +883,8 @@ def load_WMS_file(filename,skip_lines=0):
     # denotes a comment line
     
     """
+    def str2bool(v):
+        return v.strip().lower() in ("yes", "true", "t", "1", "on")
     out = []
     with open(filename,'r') as f:
         for i in range(skip_lines):
@@ -891,7 +893,10 @@ def load_WMS_file(filename,skip_lines=0):
             sp = line.split(',')
             if sp[0].startswith('#'):
                 continue
-            out.append({'name':sp[0].strip(),'website':sp[1].rstrip('\n')})
+            if len(sp)>2:
+                out.append({'name':sp[0].strip(),'website':sp[1].strip(),'notime':str2bool(sp[2].rstrip('\n'))})
+            else:
+                out.append({'name':sp[0].strip(),'website':sp[1].rstrip('\n'),'notime':True})
     return out
     
 def load_sat_from_net():
