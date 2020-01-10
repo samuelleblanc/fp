@@ -1065,6 +1065,7 @@ def get_flt_modules():
     'Program to create a list of *.flt files found returns dict of file path, file name, and linked png (is it exists)'
     import os
     fnames_all = os.listdir(os.path.join('.','flt_module'))
+    fnames_all.sort()
     fnames = [g for g in fnames_all if g.endswith('flt')] #check correct file ending
     dict = {}
     for f in fnames:
