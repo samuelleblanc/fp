@@ -1,0 +1,24 @@
+%leg_length,spacing,angle,top_alt,bot_alt
+angle, leg_length,top_alt
+angle+90,spacing,top_alt
+angle+180,leg_length,top_alt
+angle+90,spacing,top_alt
+angle,leg_length,top_alt
+angle+90,spacing,top_alt
+angle+180,leg_length,top_alt
+angle+90,spacing,top_alt
+angle,leg_length,top_alt
+angle+90,spacing,top_alt
+angle+180,leg_length,top_alt
+angle+180,20,bot_alt
+angle,leg_length+20,bot_alt
+angle-90,spacing,bot_alt
+angle-180,leg_length,bot_alt
+angle-90,spacing,bot_alt
+angle,leg_length,bot_alt
+angle-90,spacing,bot_alt
+angle-180,leg_length,bot_alt
+angle-90,spacing,bot_alt
+angle,leg_length,bot_alt
+angle-90,spacing,bot_alt
+angle-180,leg_length,bot_alt
