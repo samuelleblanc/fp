@@ -64,6 +64,9 @@ class gui:
                   - added plot alt vs lat
                   - added waypoints on sza and alt plots
                   - made refresh also refresh the speeds
+        Modified: Samuel LeBlanc, 2020-01-13, Santa Cruz, CA
+                  - added screen geometry calculator
+                  - reformat of flt_module list to have mutiple columns
                   
     """
     def __init__(self,line=None,root=None,noplt=False):
@@ -77,10 +80,12 @@ class gui:
         self.iactive.set(0)
         self.colors = ['red']
         self.colorcycle = ['red','blue','green','cyan','magenta','yellow','black','lightcoral','teal','darkviolet','orange']
+        self.get_geometry()
         if not root:
             self.root = tk.Tk()
         else:
             self.root = root
+
         self.noplt = noplt
         self.newflight_off = True
         self.line.line.figure.canvas.mpl_connect('home_event', self.refresh)
@@ -88,6 +93,29 @@ class gui:
         self.line.line.figure.canvas.mpl_connect('zoom_event', self.refresh)
         self.line.line.figure.canvas.mpl_connect('back_event', self.refresh)
         self.line.line.figure.canvas.mpl_connect('forward_event', self.refresh)
+    
+    def get_geometry(self):
+        """
+        Workaround to get the size of the current screen in a multi-screen setup.
+
+        Returns:
+            geometry (str): The standard Tk geometry string.
+                [width]x[height]+[left]+[top]
+        """
+        import Tkinter as tk
+        
+        root_nul = tk.Tk()
+        root_nul.update_idletasks()
+        root_nul.attributes('-fullscreen', True)
+        root_nul.state('iconic')
+        geometry = root_nul.winfo_geometry()
+        root_nul.destroy()
+        w,h,l,t = map(int,geometry.replace('+','x').split('x'))
+        self.width = w
+        self.height = h
+        self.left = l
+        self.top = t
+        return w,h,l,t
     
     def gui_file_select(self,ext='*',
                         ftype=[('Excel 1997-2003','*.xls'),('Excel','*.xlsx'),
@@ -139,6 +167,8 @@ class gui:
         
     def make_pressed(self):
         self.bpressed.config(relief='sunken')
+    
+    
         
     def gui_saveas2kml(self):
         'Calls the save2kml excel_interface method with new filename'
@@ -1165,12 +1195,12 @@ class gui:
         from map_interactive import get_flt_modules
         from gui import Select_flt_mod
         flt_mods = get_flt_modules()
-        select = Select_flt_mod(flt_mods)
+        select = Select_flt_mod(flt_mods,height=self.height)
         try:
             print 'Applying the flt_module {}'.format(select.selected_flt)
             self.line.parse_flt_module_file(select.mod_path)
         except Exception as ie:
-            print ie
+            #if not 'selected_flt' in ie: print ie
             print 'flt_module selection cancelled'
             return
     
@@ -1213,11 +1243,12 @@ class Select_flt_mod(tkSimpleDialog.Dialog):
        If possible it will show a small png of the flt_module (not done yet)
     """
     import Tkinter as tk
-    def __init__(self,flt_mods,title='Choose flt module',text='Select flt module:'):
+    def __init__(self,flt_mods,title='Choose flt module',text='Select flt module:',height=1080):
         import Tkinter as tk
         parent = tk._default_root
         self.flt_mods = flt_mods
         self.text = text
+        self.height=height
         tkSimpleDialog.Dialog.__init__(self,parent,title)
         pass
     def body(self,master):
@@ -1227,7 +1258,9 @@ class Select_flt_mod(tkSimpleDialog.Dialog):
         self.flt = tk.StringVar()
         self.flt.set(self.flt_mods.keys()[0])
         tk.Label(master, text=self.text).grid(row=0)
-        for i,l in enumerate(self.flt_mods.keys()):
+        keys = self.flt_mods.keys()
+        keys.sort()
+        for i,l in enumerate(keys):
             try:
                 im = Image.open(self.flt_mods[l]['png'])
                 resized = im.resize((60, 60),Image.ANTIALIAS)
@@ -1240,7 +1273,9 @@ class Select_flt_mod(tkSimpleDialog.Dialog):
                     print io
             except:
                 self.rbuttons.append(tk.Radiobutton(master,text=l, variable=self.flt,value=l))
-            self.rbuttons[i].grid(row=i+1,sticky=tk.W)
+            j = int(i*80/self.height)
+            imax = int(self.height/80)
+            self.rbuttons[i].grid(row=(i+1)%imax,column=j,sticky=tk.W)
         return
     def apply(self):
         self.mod_path = self.flt_mods[self.flt.get()]['path']

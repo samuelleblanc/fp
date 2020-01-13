@@ -1067,6 +1067,7 @@ def get_flt_modules():
     fnames_all = os.listdir(os.path.join('.','flt_module'))
     fnames_all.sort()
     fnames = [g for g in fnames_all if g.endswith('flt')] #check correct file ending
+    fnames.sort()
     dict = {}
     for f in fnames:
         png = os.path.abspath(os.path.join('.','flt_module',f.split('.')[0]+'.png'))
