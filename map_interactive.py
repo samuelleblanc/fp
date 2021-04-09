@@ -63,8 +63,10 @@ class LineBuilder:
                  - made the legend draggable
         Modified: Samuel LeBlanc, 2017-09-15, St-John's, NL, Canada
                  - fixed issue with map pickles not having the dp variable.
-        Modified: Samuel LeBlanc, 209-06-03, Santa Cruz, CA
+        Modified: Samuel LeBlanc, 2019-06-03, Santa Cruz, CA
                  - fix linepicker issue with newer matplotlib. 
+        Modified: Samuel LeBlanc, 2021-04-09, Santa Cruz, CA
+                 - added continuity of meridians and parallels for problematic issues - bug fix in zooming out.        
                  
     """
     def __init__(self, line,m=None,ex=None,verbose=False,tb=None, blit=True):
@@ -88,6 +90,8 @@ class LineBuilder:
         if self.m:
             self.lons,self.lats = self.m(self.xs,self.ys,inverse=True)
             self.large = self.m.large
+            self.par = self.m.par
+            self.mer = self.m.mer
         self.connect()
         self.line.axes.format_coord = self.format_position_simple
         self.press = None
@@ -507,10 +511,19 @@ class LineBuilder:
             self.large = False
         else:
             par = np.arange(round_to_5(ylim[0]),round_to_5(ylim[1])+5,5)
+        if len(mer)<2:
+            mer = self.mer
+            self.line.axes.set_xlim(mer[2],mer[-2])
+        if len(par)<2:
+            par = self.par
+            self.line.axes.set_ylim(par[2],par[-2])
         try:
             mi.update_pars_mers(self.m,mer,par,lower_left=(xlim[0],ylim[0]))
         except:
+            import traceback
             print '... Problem updating the parallels and meridians'
+            traceback.print_exc()
+            import pdb; pdb.set_trace()
         self.line.figure.canvas.draw()
 
     def newpoint(self,Bearing,distance,alt=None,last=True,feet=False,km=True,insert=False,insert_i=-1):
@@ -738,6 +751,8 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,proj='cyl',pr
         ax.set_ylim(lower_left[1],upper_right[1])
     m.artists.append(m.drawmeridians(mer,labels=[0,0,0,1]))
     m.artists.append(m.drawparallels(par,labels=[1,0,0,0]))
+    m.par = par
+    m.mer = mer
     # move the meridian labels to a proper position
     for aa in m.artists[0].keys():
         try:

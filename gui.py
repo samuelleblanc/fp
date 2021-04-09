@@ -906,6 +906,38 @@ class gui:
         self.baddbocachica.config(command=self.gui_addbocachica,bg=self.bg)
         self.line.get_bg(redraw=True)
         
+    def gui_addtidbit(self):
+        'GUI handler for adding tropical tidbit foreacast maps to basemap plot'
+        import tkMessageBox
+        try:
+            from scipy.misc import imread
+            filename = self.gui_file_select(ext='.png',ftype=[('All files','*.*'),
+                        				  ('PNG','*.png')])
+            if not filename:
+                print 'Cancelled, no file selected'
+                return
+            print 'Opening png File:'+filename
+            img = imread(filename)
+        except:
+            tkMessageBox.showwarning('Sorry','Loading image file from Tropical tidbits not working...')
+            return
+        ll_lat,ll_lon,ur_lat,ur_lon = 21.22,-106.64,51.70,-57.46
+        self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon)
+        #self.line.addfigure_under(img[710:795,35:535,:],ll_lat-7.0,ll_lon,ll_lat-5.0,ur_lon-10.0,outside=True)
+        self.baddtidbit.config(text='Remove Tropical tidbit')
+        self.baddtidbit.config(command=self.gui_rmtidbit,bg='dark grey')
+        
+    def gui_rmtidbit(self):
+        'GUI handler for removing the tropical tidbit forecast image'
+        self.line.tb.set_message('Removing Tropical tidbit figure under')
+        try:
+            self.line.m.figure_under.remove()
+        except:
+            for f in self.line.m.figure_under:
+                f.remove()
+        self.baddtidbit.config(text='Add Tropical tidbit')
+        self.baddtidbit.config(command=self.gui_addtidbit,bg=self.bg)
+        self.line.get_bg(redraw=True)
         
     def gui_addtrajectory(self):
         'GUI handler for adding bocachica foreacast maps to basemap plot'

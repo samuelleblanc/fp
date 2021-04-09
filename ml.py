@@ -76,6 +76,8 @@
                 - Bug fixes for line picking and climb time calculations.
         MOdified: Samuel LeBlanc, v1.23, 2019-08-05, Bathurst, NB, Canada
                 - added one line saving for pilots.
+        Modified: Samuel LeBlanc, v1.25, 2021-04-08, Santa Cruz, CA
+                - added buttons for quick adding the IMPACTS "tropicaltidbits.com" imagery
                 
 """
 import Tkinter as tk
@@ -108,7 +110,7 @@ import tkSimpleDialog, tkFileDialog, tkMessageBox
 #import six, six.moves
 import warnings
 
-__version__ = 'v1.24'
+__version__ = 'v1.25'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'
@@ -183,7 +185,7 @@ def Create_gui(vertical=True):
         pass
     ui = ui
     ui.root = tk.Tk()
-    ui.root.wm_title('Flight planning by Samuel LeBlanc, NASA Ames, '+__version__)
+    ui.root.wm_title('Moving Lines: Flight planning '+__version__)
     ui.root.geometry('900x950')
     ui.w = 900
     try:
@@ -214,6 +216,7 @@ def build_buttons(ui,lines,vertical=True):
     import gui
     import Tkinter as tk
     from matplotlib.colors import cnames
+
     if vertical:
         side = tk.TOP
         h = 2
@@ -342,6 +345,9 @@ def build_buttons(ui,lines,vertical=True):
     g.baddfigure = tk.Button(g.root,text='Add Forecast\nfrom image',
                          command = g.gui_addfigure)
     g.baddfigure.pack(in_=ui.top)
+    g.baddtidbit = tk.Button(g.root,text='Add Tropical tidbit',
+                         command = g.gui_addtidbit)
+    g.baddtidbit.pack(in_=ui.top)
     g.baddgeos = tk.Button(g.root,text='Add GEOS Forecast',
                          command = g.gui_addgeos)
     g.baddgeos.pack(in_=ui.top)
@@ -351,10 +357,17 @@ def build_buttons(ui,lines,vertical=True):
     g.baddwms = tk.Button(g.root,text='Add WMS layer',
                          command = g.gui_add_any_WMS)
     g.baddwms.pack(in_=ui.top)
+    
+    #g.bipython = tk.Button(g.root,text='open iPython',
+    #                     command = IPython.start_ipython([],user_ns=locals()))
+    #g.bipython.pack(in_=ui.top)
 
     #g.bpythoncmd = tk.Button(g.root,text='Python command line',
     #                     command = g.gui_python)
     #g.bpythoncmd.pack(in_=ui.top)
+    
+    g.label = tk.Label(g.root,text='by Samuel LeBlanc\n NASA Ames')
+    g.label.pack(in_=ui.top)
     
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
              ).pack(in_=ui.top,side=side,padx=8,pady=5)
