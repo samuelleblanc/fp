@@ -494,6 +494,7 @@ class LineBuilder:
         'redraws the parallels and meridians based on the current geometry'
         ylim = self.line.axes.get_ylim()
         xlim = self.line.axes.get_xlim()
+
         #self.m.llcrnrlon = xlim[0]
         #self.m.llcrnrlat = ylim[0]
         #self.m.urcrnrlon = xlim[1]
@@ -513,10 +514,10 @@ class LineBuilder:
             par = np.arange(round_to_5(ylim[0]),round_to_5(ylim[1])+5,5)
         if len(mer)<2:
             mer = self.mer
-            self.line.axes.set_xlim(mer[2],mer[-2])
+            self.line.axes.set_xlim(self.m.orig_xlim)
         if len(par)<2:
             par = self.par
-            self.line.axes.set_ylim(par[2],par[-2])
+            self.line.axes.set_ylim(self.m.orig_ylim)
         try:
             mi.update_pars_mers(self.m,mer,par,lower_left=(xlim[0],ylim[0]))
         except:
@@ -753,6 +754,9 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,proj='cyl',pr
     m.artists.append(m.drawparallels(par,labels=[1,0,0,0]))
     m.par = par
     m.mer = mer
+    m.orig_xlim = m.ax.get_xlim()
+    m.orig_ylim = m.ax.get_ylim()
+
     # move the meridian labels to a proper position
     for aa in m.artists[0].keys():
         try:
