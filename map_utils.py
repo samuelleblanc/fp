@@ -3,6 +3,8 @@
 
 # In[ ]:
 
+__version__ = 1.21
+
 def __init__():
     """
        Collection of codes to run some typical map utilities

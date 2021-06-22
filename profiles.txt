@@ -1,9 +1,4 @@
 
-{'Profile':'CAMP2Ex','Plane_name':'P3',
-                 'Start_lon':'120.5597','Start_lat':'15.18583',
-                 'Lon_range':[110,135],'Lat_range':[0,30],
-                 'UTC_start':22.25,'UTC_conversion':+8.0,
-                 'start_alt':0.0}
 {'Profile':'IMPACTS-WFF','Plane_name':'P3',
                  'Start_lon':'75.466389W','Start_lat':'37.940194N',
                  'Lon_range':[-92,-65],'Lat_range':[30,50],
@@ -14,6 +9,11 @@
                  'Lon_range':[-92,-65],'Lat_range':[30,50],
                  'UTC_start':13.5,'UTC_conversion':-5.0,
                  'start_alt':12.8}
+{'Profile':'CAMP2Ex','Plane_name':'P3',
+                 'Start_lon':'120.5597','Start_lat':'15.18583',
+                 'Lon_range':[110,135],'Lat_range':[0,30],
+                 'UTC_start':22.25,'UTC_conversion':+8.0,
+                 'start_alt':0.0}
 {'Profile':'ACEPOL','Plane_name':'ER2',
                  'Start_lon':'118 05 04W','Start_lat':'34 37 46N',
                  'Lon_range':[-135,-100],'Lat_range':[27,50],

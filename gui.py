@@ -1232,8 +1232,9 @@ class gui:
             print 'Applying the flt_module {}'.format(select.selected_flt)
             self.line.parse_flt_module_file(select.mod_path)
         except Exception as ie:
-            #if not 'selected_flt' in ie: print ie
+            if not 'selected_flt' in ie: print ie
             print 'flt_module selection cancelled'
+            #import pdb; pdb.set_trace()
             return
     
    # def gui_python(self):
@@ -1447,9 +1448,10 @@ class ask(tkSimpleDialog.Dialog):
     """
     Simple class to ask to enter values for each item in names
     """
-    def __init__(self,names,choice=[],choice_title=None,choice2=[],choice2_title=None,title='Enter numbers'):
+    def __init__(self,names,choice=[],choice_title=None,choice2=[],choice2_title=None,title='Enter numbers',defaults=[]):
         import Tkinter as tk
         self.names = names
+        self.defaults = defaults
         self.choice = choice
         self.choice_title = choice_title
         self.choice2 = choice2
@@ -1482,6 +1484,11 @@ class ask(tkSimpleDialog.Dialog):
         for i,n in enumerate(self.names):
             tk.Label(master,text=n).grid(row=i+1+ii)
             self.fields[i] = tk.Entry(master)
+            if self.defaults:
+                try:
+                    self.fields[i].insert(0,'{}'.format(self.defaults[i]))
+                except: 
+                    pass
             self.fields[i].grid(row=i+1+ii,column=1)
     def apply(self):
         self.names_val = range(len(self.names))

@@ -143,7 +143,16 @@ class LineBuilder:
         if self.tb.mode!='': return
         if self.moving: return
         self.set_alt0 = False
+        self.contains_point = False
         self.contains, attrd = self.line.contains(event)
+        if self.line.labels_points:
+            for lp in self.line.labels_points:
+                try:
+                    self.contains_point, attrd_point = lp.contains(event)
+                except:
+                    import pdb; pdb.set_trace()
+                if self.contains_point:
+                    xs,ys = lp.get_xdata(),lp.get_ydata()
         if self.contains:
             if self.verbose:
                 print 'click is near point:',self.contains,attrd
@@ -173,10 +182,27 @@ class LineBuilder:
                 self.set_alt0 = True
                 self.contains = False
             ilola = self.contains_index
+        elif self.contains_point:
+            point_contains_index = attrd_point['ind']
+            self.xy = self.xs[-1],self.ys[-1]
+            #print(self.xy)
+            self.line.axes.format_coord = self.format_position_distance
+            self.line.axes.autoscale(enable=False)
+            self.highlight_linepoint, = self.line.axes.plot(xs[point_contains_index],
+                                                        ys[point_contains_index],'bo',zorder=40)
+            self.draw_canvas(extra_points=[self.highlight_linepoint])
+            if self.m:
+                lo,la = self.m(xs[point_contains_index],ys[point_contains_index],inverse=True)
+                self.lons.append(lo)
+                self.lats.append(la)
+            self.xs.append(xs[point_contains_index])
+            self.ys.append(ys[point_contains_index])
+            ilola = -2
         else:
             self.xy = self.xs[-1],self.ys[-1]
             self.xs.append(event.xdata)
             self.ys.append(event.ydata)
+            #print(self.xy,event.xdata,event.ydata)
             if self.m:
                 lo,la = self.m(event.xdata,event.ydata,inverse=True)
                 self.lons.append(lo)
@@ -227,6 +253,16 @@ class LineBuilder:
                              self.lons[self.contains_index])
                 self.ex.calculate()
                 self.ex.write_to_excel()
+        elif self.contains_point:
+            hlight = self.highlight_linepoint.findobj()[0]
+            while hlight in self.line.axes.lines:
+                self.line.axes.lines.remove(hlight)
+            self.contains_point = False
+            if self.ex:
+                self.ex.appends(self.lats[-1],self.lons[-1])    
+                self.ex.calculate()
+                self.ex.write_to_excel()           
+            self.xy = self.lats[-1],self.lons[-1]
         else:
             if self.ex:
                 if self.set_alt0:
@@ -324,7 +360,7 @@ class LineBuilder:
             x0,y0 = self.xy
             lon0,lat0 = self.m(x0,y0,inverse=True)
             lon,lat = self.m(x,y,inverse=True)
-            r = spherical_dist([lat0,lon0],[lat,lon])
+            r = spherical_dist([float(lat0),float(lon0)],[float(lat),float(lon)])
             return 'Lon=%.7f, Lat=%.7f, d=%.2f km'%(lon,lat,r)
         else:
             x0,y0 = self.xy
@@ -613,6 +649,18 @@ class LineBuilder:
         for l in s:
             if l.startswith('%'):
                 names = [u.strip() for u in l.strip().strip('%').split(',')]
+                defaults = []
+                if any([True for n in names if '=' in n]):
+                    defaults = [0.0]*len(names)
+                    for j,n in enumerate(names):
+                        if n.find('=')>=0:
+                            try:
+                                n,d = n.split('=')
+                                defaults[j] = float(d)
+                                names[j] = n
+                            except:
+                                pass
+                            
         choice = ['feet','meters']
         choice2 = ['km','nm']
         # remove values predefined
@@ -623,7 +671,8 @@ class LineBuilder:
                 pass
                 
         # ask the user supply the variables
-        vals = ask(names,choice=choice,choice_title='Altitude:',choice2=choice2,choice2_title='Distance:',title='Enter values for {}'.format(name))
+        vals = ask(names,choice=choice,choice_title='Altitude:',choice2=choice2,choice2_title='Distance:',
+                   title='Enter values for {}'.format(name),defaults=defaults)
         v = vals.names_val
         if vals.choice_val == 'feet': 
             use_feet = True 
@@ -631,9 +680,11 @@ class LineBuilder:
             use_feet = False
         
         if vals.choice2_val == 'km': 
-            use_km = True 
+            use_km = True  #km
+            factor = 1000.0
         else: 
-            use_km = False
+            use_km = False #nm
+            factor = 1000.0*2.02
             
         # make the values variables
         for i,n in enumerate(names):
@@ -643,7 +694,22 @@ class LineBuilder:
                 print 'problem for {}={}'.format(n,vals.names_val[i])
         for l in s[1:-1]:
             if not (l.startswith('#') or l.startswith('%')):
+                if l.lower().find('time')>=0: #check if there is a time slot instead of distance
+                    try:
+                        if len(l.split(','))>2:
+                            bear,tim,alt = eval(l)
+                        else:
+                            bear,tim = eval(l)
+                            alt = self.ex.alt[-1]
+                    except Exception as ie:
+                        print('error splitting lines in flt_module: {}'.format(name))
+                    try:
+                        dist = (tim*self.ex.calcspeed(self.ex.alt[-1],alt)*60.0)/factor # in distance units
+                    except:
+                        print 'problem with distance calculation for {}'.format(l)
+                    l = ','.join([l.split(',')[0],'{}'.format(dist),'{}'.format(alt)])
                 try:
+                    print(eval(l),use_feet,use_km)
                     self.newpoint(*eval(l),last=False,feet=use_feet,km=use_km)
                 except:
                     print 'problem with {}'.format(l)
@@ -856,12 +922,13 @@ def pll(string):
             deg_m = deg_m + float(str_ls[i])/60.0
     return deg+(deg_m*sign)
 
-def plot_map_labels(m,filename,marker=None,skip_lines=0,color='k'):
+def plot_map_labels(m,filename,marker=None,skip_lines=0,color='k',textcolor='k'):
     """
     program to plot the map labels on the basemap plot defined by m
     if marker is set, then it will be the default for all points in file
     """
     labels = mi.load_map_labels(filename,skip_lines=skip_lines) 
+    labels_points = []
     for l in labels:
         try:
             x,y = m(l['lon'],l['lat'])
@@ -873,8 +940,11 @@ def plot_map_labels(m,filename,marker=None,skip_lines=0,color='k'):
             ma = marker
         else:
             ma = l['marker'] 
-        m.plot(x,y,color=color,marker=ma)
-        m.ax.annotate(l['label'],(xtxt,ytxt))
+        point = m.plot(x,y,color=color,marker=ma)
+        m.ax.annotate(l['label'],(xtxt,ytxt),color=textcolor)
+        point[0].set_pickradius(10)
+        labels_points.append(point[0])
+    return labels_points
 
 def load_map_labels(filename,skip_lines=0):
     """
@@ -887,10 +957,17 @@ def load_map_labels(filename,skip_lines=0):
         for i in range(skip_lines):
             next(f)
         for line in f:
-            sp = line.split(',')
+            try:
+                sp = line.split(',')
+            except Exception as e:
+                continue
+            if len(sp)<2: continue
             if sp[0].startswith('#'):
                 continue
-            out.append({'label':sp[0],'lon':mi.pll(sp[1]),'lat':mi.pll(sp[2]),'marker':sp[3].rstrip('\n')})
+            try:
+                out.append({'label':sp[0],'lon':mi.pll(sp[1]),'lat':mi.pll(sp[2]),'marker':sp[3].rstrip('\n')})
+            except IndexError:
+                continue
     return out
     
 def load_WMS_file(filename,skip_lines=0):
