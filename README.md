@@ -1,11 +1,11 @@
 # Name:
 
-Moving Lines, version 1.23
+Moving Lines, version 1.25
 
-[![DOI](https://zenodo.org/badge/61611242.svg)](https://zenodo.org/badge/latestdoi/61611242)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1478125.svg)](https://doi.org/10.5281/zenodo.1478125)
 
 Get the compiled versions for MAC OS and Windows at:
-[http://engineering.arm.gov/~sleblanc/flight_planning/]
+[https://github.com/samuelleblanc/fp/releases/tag/v1.25]
     
 # Purpose:
     
@@ -234,18 +234,24 @@ Takes advantage of clickable map for creating a flight plan, and already existin
                         saveall button on mac now has error control
     Modified (v1.21): Samuel LeBlanc, Sao Tomé, 2017-08-16         
                         map plotting bug fixes, and Special Use Airspace (SUA) error mitigation. Bug fix when using 'save all' button
+    Modified (v1.22): Samuel LeBlanc, 2019-06-03, Santa Cruz, CA
+                        - Bug fixes for line picking and climb time calculations.
+    Modified (v1.23): Samuel LeBlanc, 2019-08-05, Bathurst, NB, Canada
+                        - added one line saving for pilots.
+    Modified (v1.25): Samuel LeBlanc, 2021-04-08, Santa Cruz, CA
+                        - added buttons for quick adding the IMPACTS "tropicaltidbits.com" imagery
 # To cite:
 
 Cite as:
 
-Samuel LeBlanc. (2018, November 5). samuelleblanc/fp: Moving Lines: NASA airborne research flight planning tool release (Version v1.21). Zenodo. http://doi.org/10.5281/zenodo.1478126
+Samuel LeBlanc, samuelleblanc/fp: Moving Lines updates for IMPACTS, v1.25, Zenodo, doi:10.5281/zenodo.4769315, 2021.
 
 BibTex:
-@misc{samuel_leblanc_2018_1478126,
+@misc{samuel_leblanc_2021_4769315,
 author = {LeBlanc, Samuel},
-doi = {10.5281/zenodo.1478126},
+doi = {10.5281/zenodo.4769315},
 publisher = {Zenodo},
-title = {{samuelleblanc/fp: Moving Lines: NASA airborne research flight planning tool release (Version v1.21)}},
-url = {https://doi.org/10.5281/zenodo.1478126},
-year = {2018}
+title = {{samuelleblanc/fp: Moving Lines updates for IMPACTS, v1.25}},
+url = {https://doi.org/10.5281/zenodo.4769315},
+year = {2021}
 }
