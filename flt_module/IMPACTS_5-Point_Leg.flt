@@ -1,0 +1,6 @@
+#IMPACTS 5-Point Leg based on ER-2 leg length
+%leg_length,angle
+angle,leg_length*0.0833
+angle,leg_length*0.4167
+angle,leg_length*0.4167
+angle,leg_length*0.0833
