@@ -773,7 +773,13 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,proj='cyl',pr
     if profile:
         upper_right = [pll(profile['Lon_range'][1]),pll(profile['Lat_range'][1])]
         lower_left = [pll(profile['Lon_range'][0]),pll(profile['Lat_range'][0])]
-
+    if profile:
+        lat0 = pll(profile['Start_lat'])
+        lon0 = pll(profile['Start_lon'])
+    else:
+        lat0 = (upper_right[1]+lower_left[1])/2.0
+        lon0 = (upper_right[0]+lower_left[0])/2.0
+    print proj,lat0,lon0
     if larger:
         dp = 30
     else:
@@ -788,9 +794,19 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,proj='cyl',pr
             dp = 30
         else:
             dp = 0
-        m = Basemap(projection=proj,lon_0=(upper_right[0]+lower_left[0])/2.0,lat_0=(upper_right[1]+lower_left[1])/2.0,
+        if proj is 'cyl':
+            m = Basemap(projection=proj,lon_0=lon0,lat_0=lat0,
+                llcrnrlon=lower_left[0]-dp, llcrnrlat=(lower_left[1]-dp if lower_left[1]-dp>-90 else -90),
+                urcrnrlon=upper_right[0]+dp, urcrnrlat=(upper_right[1]+dp if upper_right[1]+dp<90 else 90),resolution='i',ax=ax)
+        else:
+            dp = 0
+            m = Basemap(projection=proj,lon_0=lon0,lat_0=lat0,
                 llcrnrlon=lower_left[0]-dp, llcrnrlat=lower_left[1]-dp,
-                urcrnrlon=upper_right[0]+dp, urcrnrlat=upper_right[1]+dp,resolution='i',ax=ax)
+                urcrnrlon=upper_right[0]+dp, urcrnrlat=upper_right[1]+dp,
+                resolution='l',ax=ax)
+            #m = Basemap(projection='npstere',lat_0=76.5,lon_0=-68.75,
+            #    boundinglat=55,resolution='l',ax=ax)
+                
     m.artists = []
     m.drawcoastlines()
     #m.fillcontinents(color='#AAAAAA')
