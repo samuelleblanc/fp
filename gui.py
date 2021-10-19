@@ -1,8 +1,12 @@
 # gui codes to use in coordination with moving_lines software
 # Copyright 2015 Samuel LeBlanc
-import tkSimpleDialog
-import Tkinter as Tk
-from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg, ToolTip
+import tkinter.simpledialog as tkSimpleDialog
+import tkinter as Tk
+try:
+    from matplotlib.backends.backend_tkagg import ToolTip
+except:
+    from matplotlib.backends._backend_tk import ToolTip
+from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk as NavigationToolbar2TkAgg
 from matplotlib.backend_bases import Event
 
 class gui:
@@ -72,7 +76,7 @@ class gui:
     def __init__(self,line=None,root=None,noplt=False):
         import Tkinter as tk
         if not line:
-            print 'No line_builder object defined'
+            print('No line_builder object defined')
             return
         self.line = line
         self.flight_num = 0
@@ -173,7 +177,7 @@ class gui:
     def gui_saveas2kml(self):
         'Calls the save2kml excel_interface method with new filename'
         if not self.line:
-            print 'No line object'
+            print('No line object')
             return
         filename = self.gui_file_save(ext='.kml',ftype=[('All files','*,*'),('KML','*.kml')])
         if not filename: return
@@ -183,37 +187,37 @@ class gui:
     def gui_save2kml(self):
         'Calls the save2kml excel_interface method'
         if not self.line:
-            print 'No line object'
+            print('No line object')
             return
         if not self.kmlfilename:
             self.stopandquit()
-            print 'Problem with kmlfilename'
+            print('Problem with kmlfilename')
             return
         self.line.ex.save2kml(filename=self.kmlfilename)
 
     def gui_save_txt(self):
         'Calls the save2txt excel_interface method'
         if not self.line:
-            print 'No line object'
+            print('No line object')
             return
-	import tkMessageBox
+        import tkMessageBox
         tkMessageBox.showwarning('Saving one flight','Saving flight path of:%s' %self.line.ex.name)
-	filename = self.gui_file_save(ext='.txt',ftype=[('All files','*.*'),
+        filename = self.gui_file_save(ext='.txt',ftype=[('All files','*.*'),
                                                          ('Plain text','*.txt')])
         if not filename: return
-        print 'Saving Text file to :'+filename
+        print('Saving Text file to :'+filename)
         self.line.ex.save2txt(filename)
 
     def gui_save_xl(self):
         'Calls the save2xl excel_interface method'
         if not self.line:
-            print 'No line object'
+            print('No line object')
             return
         filename = self.gui_file_save(ext='.xlsx',ftype=[('All files','*.*'),
                                                          ('Excel 1997-2003','*.xls'),
                                                          ('Excel','*.xlsx')])
         if not filename: return
-        print 'Saving Excel file to :'+filename
+        print('Saving Excel file to :'+filename)
         self.line.ex.save2xl(filename)
         
     def gui_save_xl_pilot(self):
@@ -223,13 +227,13 @@ class gui:
                                                          ('Excel 1997-2003','*.xls'),
                                                          ('Excel','*.xlsx')])
         if not filename: return
-        print 'Saving Pilot Excel file to :'+filename
+        print('Saving Pilot Excel file to :'+filename)
         save2xl_for_pilots(filename,self.line.ex_arr)
         self.line.ex.wb.set_current()
 
     def gui_open_xl(self):
         if not self.line:
-            print 'No line object'
+            print('No line object')
             return
         filename = self.gui_file_select(ext='.xls',ftype=[('All files','*.*'),
                                                          ('Excel 1997-2003','*.xls'),
@@ -260,8 +264,8 @@ class gui:
             pass
         self.colors = []
         for i in range(len(self.line.ex_arr)):
-	    self.line.ex = self.line.ex_arr[i]
-	    self.line.onfigureenter([1]) # to force redraw and update from the newly opened excel
+            self.line.ex = self.line.ex_arr[i]
+            self.line.onfigureenter([1]) # to force redraw and update from the newly opened excel
             self.load_flight(self.line.ex)
         self.line.line.figure.canvas.draw()
         self.line.connect()
@@ -270,24 +274,24 @@ class gui:
     def gui_save2gpx(self):
         'Calls the save2gpx excel_interface method'
         if not self.line:
-            print 'No line object'
+            print('No line object')
             return
         filename = self.gui_file_save(ext='.gpx',ftype=[('All files','*.*'),
                                                          ('GPX','*.gpx')])
         if not filename: return
-        print 'Saving GPX file to :'+filename
+        print('Saving GPX file to :'+filename)
         self.line.ex.save2gpx(filename)
 		
     def gui_save2ict(self):
         'Calls the save2ict excel_interface method'
         if not self.line:
-            print 'No line object'
+            print('No line object')
             return
         import tkMessageBox
         tkMessageBox.showwarning('Saving one flight','Saving flight path in form of ict for:%s' %self.line.ex.name)
         filepath = self.gui_file_path(title='Select directory to save ict file')
         if not filepath: return
-        print 'Saving ICT file to :'+filepath
+        print('Saving ICT file to :'+filepath)
         self.line.ex.save2ict(filepath)
         
     def gui_plotalttime(self):
@@ -309,7 +313,7 @@ class gui:
             canvas._tkcanvas.pack(side=tk.TOP,fill=tk.BOTH,expand=1)
             ax1 = fig.add_subplot(111)
         else:
-            print 'Problem with loading a new figure handler'
+            print('Problem with loading a new figure handler')
             return
         ax1.plot(self.line.ex.cumlegt,self.line.ex.alt,'x-')
         for i,w in enumerate(self.line.ex.WP):
@@ -358,7 +362,7 @@ class gui:
             canvas._tkcanvas.pack(side=tk.TOP,fill=tk.BOTH,expand=1)
             ax1 = fig.add_subplot(111)
         else:
-            print 'Problem with loading a new figure handler'
+            print('Problem with loading a new figure handler')
             return
         ax1.plot(self.line.ex.lat,self.line.ex.alt,'x-')
         for i,w in enumerate(self.line.ex.WP):
@@ -387,7 +391,7 @@ class gui:
         #tkMessageBox.showwarning('Sorry','Feature not yet implemented') 
         #return 
         if not self.noplt:
-             print 'No figure handler, sorry will not work'
+             print('No figure handler, sorry will not work')
              return
         from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
         from gui import custom_toolbar
@@ -442,9 +446,9 @@ class gui:
 
     def load_flight(self,ex):
         'Program to populate the arrays of multiple flights with the info of one array'
-	import Tkinter as tk
-	self.colors.append(ex.color)
-	self.line.tb.set_message('load_flight values for:%s' %ex.name)
+        import Tkinter as tk
+        self.colors.append(ex.color)
+        self.line.tb.set_message('load_flight values for:%s' %ex.name)
 
         self.flightselect_arr.append(tk.Radiobutton(self.root,text=ex.name,
                                                     fg=ex.color,
@@ -465,13 +469,13 @@ class gui:
         import excel_interface as ex
         import Tkinter as tk
         if self.newflight_off:
-	     tkMessageBox.showwarning('Sorry','Feature not yet implemented')
-             return
+            tkMessageBox.showwarning('Sorry','Feature not yet implemented')
+            return
         
         newname = tkSimpleDialog.askstring('New flight path',
                                            'New flight path name:')
         if not newname:
-            print 'Cancelled'
+            print('Cancelled')
             return
         self.flight_num = self.flight_num+1
         self.colors.append(self.colorcycle[self.flight_num])
@@ -483,7 +487,7 @@ class gui:
                                                     command=self.gui_changeflight,bg='white'))
         self.flightselect_arr[self.flight_num].pack(in_=self.frame_select,side=tk.TOP,
                                                     padx=4,pady=2,fill=tk.BOTH)
-        print 'adding flight path to date: %s' %self.line.ex.datestr
+        print('adding flight path to date: %s' %self.line.ex.datestr)
         self.line.ex_arr.append(ex.dict_position(datestr=self.line.ex.datestr,
                                                  name=newname,
                                                  newsheetonly=True,
@@ -538,7 +542,7 @@ class gui:
     def gui_savefig(self):
         'gui program to save the current figure as png'
         if not self.line:
-            print 'No line object'
+            print('No line object')
             return
         filename = self.gui_file_save(ext='.png')
         if not filename: return
@@ -589,15 +593,15 @@ class gui:
             tkMessageBox.showwarning('Cancelled','Saving all files cancelled')
             return
         f_name,_ = path.splitext(filename)
-        print 'Saving Excel file to :'+f_name+'.xlsx'
+        print('Saving Excel file to :'+f_name+'.xlsx')
         self.line.ex.save2xl(f_name+'.xlsx')
-        print 'Saving Excel file for pilots to :'+f_name+'_for_pilots.xlsx'
+        print('Saving Excel file for pilots to :'+f_name+'_for_pilots.xlsx')
         save2xl_for_pilots(f_name+'_for_pilots.xlsx',self.line.ex_arr)
         try:
             self.line.ex.wb.set_current()
         except:
             tkMessageBox.showwarning('Unable to close for_pilots spreadsheet, please close manually')
-        print 'Saving figure file to :'+f_name+'_map.png'
+        print('Saving figure file to :'+f_name+'_map.png')
         if type(self.line.line) is list:
             lin = self.line.line[0]
         else:
@@ -608,21 +612,21 @@ class gui:
         for i,x in enumerate(self.line.ex_arr):
             self.iactive.set(i)
             self.gui_changeflight()
-            print 'Saving Text file to :'+f_name+'_{}.txt'.format(x.name)
+            print('Saving Text file to :'+f_name+'_{}.txt'.format(x.name))
             self.line.ex.save2txt(f_name+'_{}.txt'.format(x.name))
-            print 'Saving ICT file to :'+path.dirname(f_name)
+            print('Saving ICT file to :'+path.dirname(f_name))
             self.line.ex.save2ict(path.dirname(f_name))
-            print 'Generating the figures for {}'.format(x.name)
+            print('Generating the figures for {}'.format(x.name))
             fig = self.gui_plotalttime()
-            print 'Saving the Alt vs time plot at:'+f_name+'_alt_{}.png'.format(x.name)
+            print('Saving the Alt vs time plot at:'+f_name+'_alt_{}.png'.format(x.name))
             fig.savefig(f_name+'_alt_{}.png'.format(x.name),dpi=600,transparent=False)
             fig = self.gui_plotsza()
-            print 'Saving the SZA vs time plot at:'+f_name+'_sza_{}.png'.format(x.name)
+            print('Saving the SZA vs time plot at:'+f_name+'_sza_{}.png'.format(x.name))
             fig.savefig(f_name+'_sza_{}.png'.format(x.name),dpi=600,transparent=False)
             fig = self.gui_plotaltlat()
-            print 'Saving the Alt vs Latitude plot at:'+f_name+'_alt_lat_{}.png'.format(x.name)
+            print('Saving the Alt vs Latitude plot at:'+f_name+'_alt_lat_{}.png'.format(x.name))
             fig.savefig(f_name+'_alt_lat_{}.png'.format(x.name),dpi=600,transparent=False)
-        print 'Saving kml file to :'+f_name+'.kml'
+        print('Saving kml file to :'+f_name+'.kml')
         self.kmlfilename = f_name+'.kml'
         self.line.ex.save2kml(filename=self.kmlfilename)
         self.return_map(legend,grey_index)
@@ -650,7 +654,7 @@ class gui:
         
     def refresh_speed(self):
         ' function to force a refresh on the speed calculations'
-        print 'Recalculating the speed at each waypoint for {}'.format(self.line.ex.name)
+        print('Recalculating the speed at each waypoint for {}'.format(self.line.ex.name))
         self.line.ex.force_calcspeed()
         self.line.ex.write_to_excel()
         self.line.ex.calculate()
@@ -706,9 +710,9 @@ class gui:
             for w in self.line.ex.WP:
                 wp_arr.append('WP #%i'%w)
             p0 = Popup_list(wp_arr,title='After which point?',Text='Select the point before the one you want to add:',multi=False)
-            #print 'p0 result ',p0.result[0],p0.result[:],int(p0.result)
+            #print('p0 result ',p0.result[0],p0.result[:],int(p0.result))
             i0 = int(p0.result[:])
-            #print 'indexed point ',i0
+            #print('indexed point ',i0)
             m = Move_point(speed=self.line.ex.speed[-1],pp=self.line.ex.azi[-1])
             self.line.newpoint(m.bear,m.dist,insert=True,insert_i=i0)            
 
@@ -747,7 +751,7 @@ class gui:
         except:
             angle = float(tkSimpleDialog.askstring('Rotation angle','**Invalid number, Please try again**\nEnter angle of Rotation:'))
         if not angle:
-            print 'Cancelled rotation'
+            print('Cancelled rotation')
             return
         self.line.moving = True
         # get the rotation point
@@ -780,7 +784,7 @@ class gui:
             filename = self.gui_file_select(ext='.kml',ftype=[('All files','*.*'),
                                                          ('Google Earth','*.kml')])
             if not filename:
-                print 'Cancelled, no file selected'
+                print('Cancelled, no file selected')
                 return
             self.line.tb.set_message('Opening kml File:'+filename)
             kml = load_sat_from_file(filename)
@@ -881,9 +885,9 @@ class gui:
             filename = self.gui_file_select(ext='.png',ftype=[('All files','*.*'),
                         				  ('PNG','*.png')])
             if not filename:
-                print 'Cancelled, no file selected'
+                print('Cancelled, no file selected')
                 return
-            print 'Opening png File:'+filename
+            print('Opening png File:'+filename)
             img = imread(filename)
         except:
             tkMessageBox.showwarning('Sorry','Loading image file from Bocachica not working...')
@@ -914,9 +918,9 @@ class gui:
             filename = self.gui_file_select(ext='.png',ftype=[('All files','*.*'),
                         				  ('PNG','*.png')])
             if not filename:
-                print 'Cancelled, no file selected'
+                print('Cancelled, no file selected')
                 return
-            print 'Opening png File:'+filename
+            print('Opening png File:'+filename)
             img = imread(filename)
         except:
             tkMessageBox.showwarning('Sorry','Loading image file from Tropical tidbits not working...')
@@ -947,9 +951,9 @@ class gui:
             filename = self.gui_file_select(ext='.png',ftype=[('All files','*.*'),
                         				  ('PNG','*.png')])
             if not filename:
-                print 'Cancelled, no file selected'
+                print('Cancelled, no file selected')
                 return
-            print 'Opening png File:'+filename
+            print('Opening png File:'+filename)
             img = imread(filename)
         except:
             tkMessageBox.showwarning('Sorry','Loading image file from Bocachica not working...')
@@ -983,9 +987,9 @@ class gui:
 							  ('JPEG','*.jpg'),
 							  ('GIF','*.gif')])
             if not filename:
-                print 'Cancelled, no file selected'
+                print('Cancelled, no file selected')
                 return
-            print 'Opening png File: %s' %filename
+            print('Opening png File: %s' %filename)
             img = imread(filename)
         except:
             import tkMessageBox
@@ -1062,12 +1066,12 @@ class gui:
             from owslib.util import openURL
             from StringIO import StringIO
             from PIL import Image
-            print 'Loading WMS from :'+website.split('/')[2]
+            print('Loading WMS from :'+website.split('/')[2])
             self.line.tb.set_message('Loading WMS from :'+website.split('/')[2])
             wms = WebMapService(website)
             cont = list(wms.contents)
         except Exception as ie:
-            print ie
+            print(ie)
             self.root.config(cursor='')
             tkMessageBox.showwarning('Sorry','Loading WMS map file from '+website.split('/')[2]+' servers not working...')
             return False
@@ -1077,7 +1081,7 @@ class gui:
         popup = Popup_list(arr)
         i = popup.var.get()
         self.line.tb.set_message('Selected WMS map: '+titles[i].split(',')[-1])
-        print 'Selected WMS map: '+titles[i].split(',')[-1]
+        print('Selected WMS map: '+titles[i].split(',')[-1])
         self.root.config(cursor='exchange')
         self.root.update()
         if wms[cont[i]].timepositions:
@@ -1111,7 +1115,7 @@ class gui:
                               format='image/png',
                               CQL_filter=cql_filter)
         except Exception as ie:
-            print ie
+            print(ie)
             self.root.config(cursor='')
             self.root.update()
             tkMessageBox.showwarning('Sorry','Problem getting the image from WMS server')
@@ -1122,11 +1126,11 @@ class gui:
         except:
             self.line.tb.set_message('legend image from WMS server problem')
         if printurl:
-            print img.geturl()        
+            print(img.geturl()        )
         try:
             geos = Image.open(StringIO(img.read()))
         except Exception as ie:
-            print ie
+            print(ie)
             try:
                 r = img.read()
                 if r.lower().find('invalid date')>-1:
@@ -1144,7 +1148,7 @@ class gui:
                               CQL_filter=cql_filter)
                     geos = Image.open(StringIO(img.read()))
                 elif r.lower().find('property')>-1:
-                    print 'problem with the CQL_filter on the WMS server, retrying...'
+                    print('problem with the CQL_filter on the WMS server, retrying...')
                     img = wms.getmap(layers=[cont[i]],style=['default'],
                               bbox=(xlim[0],ylim[0],xlim[1],ylim[1]),
                               size=res,
@@ -1160,7 +1164,7 @@ class gui:
         try: 
             self.line.addfigure_under(geos.transpose(Image.FLIP_TOP_BOTTOM),ylim[0],xlim[0],ylim[1],xlim[1],text=time_sel,alpha=alpha)
         except Exception as ie:
-            #print ie
+            #print(ie)
             self.root.config(cursor='')
             self.root.update()
             tkMessageBox.showwarning('Sorry','Problem putting the image under plot')
@@ -1229,11 +1233,11 @@ class gui:
         flt_mods = get_flt_modules()
         select = Select_flt_mod(flt_mods,height=self.height)
         try:
-            print 'Applying the flt_module {}'.format(select.selected_flt)
+            print('Applying the flt_module {}'.format(select.selected_flt))
             self.line.parse_flt_module_file(select.mod_path)
         except Exception as ie:
-            if not 'selected_flt' in ie: print ie
-            print 'flt_module selection cancelled'
+            if not 'selected_flt' in ie: print(ie)
+            print('flt_module selection cancelled')
             #import pdb; pdb.set_trace()
             return
     
@@ -1265,7 +1269,7 @@ class gui:
         # import readline
         # readline.parse_and_bind("tab: complete")
         # # calling this with globals ensures we can see the environment
-        # print prompt_message
+        # print(prompt_message)
         # shell = code.InteractiveConsole(vars)
         # return shell.interact
         
@@ -1275,7 +1279,7 @@ class Select_flt_mod(tkSimpleDialog.Dialog):
        Dialog box pop up that lists the available flt_modules. 
        If possible it will show a small png of the flt_module (not done yet)
     """
-    import Tkinter as tk
+    import tkinter as tk
     def __init__(self,flt_mods,title='Choose flt module',text='Select flt module:',height=1080):
         import Tkinter as tk
         parent = tk._default_root
@@ -1303,7 +1307,7 @@ class Select_flt_mod(tkSimpleDialog.Dialog):
                     bu.photo = photo
                     self.rbuttons.append(bu)
                 except Exception as io:
-                    print io
+                    print(io)
             except:
                 self.rbuttons.append(tk.Radiobutton(master,text=l, variable=self.flt,value=l))
             j = int(i*80/self.height)
@@ -1515,15 +1519,15 @@ class Select_profile(tkSimpleDialog.Dialog):
         written: Samuel LeBlanc, 2015-09-15, NASA Ames, CA
     """
     def __init__(self,default_profiles,title='Enter map defaults'):
-        import Tkinter as tk
+        import tkinter as tk
         self.default_profiles = default_profiles
         self.profile = self.default_profiles[0]
         parent = tk._default_root
         tkSimpleDialog.Dialog.__init__(self,parent,title)
 
     def body(self,master):
-        import tkSimpleDialog
-        import Tkinter as tk
+        import tkinter.simpledialog as tkSimpleDialog
+        import tkinter as tk
         self.pname = tk.StringVar(master)
         self.pname.set(self.default_profiles[0]['Profile'])
         names = [pp['Profile'] for pp in self.default_profiles]
@@ -1588,7 +1592,7 @@ class Select_profile(tkSimpleDialog.Dialog):
 
     def set_val(self,e,val):
         'Simple program to delete the value and replace with current value'
-        import Tkinter as tk
+        import tkinter as tk
         e.delete(0,tk.END)
         e.insert(tk.END,val)
     
@@ -1621,7 +1625,7 @@ class Select_profile(tkSimpleDialog.Dialog):
             return false
 
     def validate(self):
-        import tkMessageBox
+        import tkinter.messagebox as tkMessageBox
         if not self.check_input(self.name.get(),1):
             tkMessageBox.showwarning('Bad input','Plane name error, try again')
             return False
@@ -1715,7 +1719,7 @@ class Popup_list(tkSimpleDialog.Dialog):
             value, = self.lb.curselection()
             self.var.set(value)
             self.result = value
-            print value
+            print(value)
         else:
             value = self.lb.curselection()
             self.result = map(int,value)
@@ -1820,6 +1824,8 @@ class custom_toolbar(NavigationToolbar2TkAgg):
         self.canvas.callbacks.process(s, event)
             
     def _init_toolbar(self):
+        import os
+        ressource_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),'mpl-data') 
         xmin, xmax = self.canvas.figure.bbox.intervalx
         height, width = 50, xmax-xmin
         Tk.Frame.__init__(self, master=self.window,
@@ -1832,8 +1838,12 @@ class custom_toolbar(NavigationToolbar2TkAgg):
                 # spacer, unhandled in Tk
                 pass
             else:
-                button = self._Button(text=text, file=image_file,
-                                   command=getattr(self, callback),extension='.gif') # modified extension to use gif
+                try:
+                    button = self._Button(text=text, file=image_file,
+                                       command=getattr(self, callback),extension='.gif') # modified extension to use gif
+                except:
+                    button = self._Button(text=text, image_file=os.path.join(ressource_path,image_file+'.png'),
+                                       command=getattr(self, callback),toggle=True) # modified extension to use gif
                 self.buttons[callback] = button # modified to save button instances
                 if tooltip_text is not None:
                     ToolTip.createToolTip(button, tooltip_text)

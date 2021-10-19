@@ -7,8 +7,8 @@ from datetime import datetime
 from scipy import interpolate
 import write_utils as wu
 import sys
-reload(sys)
-sys.setdefaultencoding('utf8')
+#reload(sys)
+#sys.setdefaultencoding('utf8')
 
 import map_interactive as mi
 from map_interactive import pll
@@ -92,7 +92,8 @@ class dict_position:
                  - Calc_climb_time typo in reading platform.txt file. 
     """
     import numpy as np
-    from xlwings import Range,Sheet
+    #from xlwings import Range,Sheet
+    import xlwings as xw
     from datetime import datetime
 
     import map_interactive as mi
@@ -142,9 +143,9 @@ class dict_position:
         self.platform, self.p_info,use_file = self.get_platform_info(name,platform_file)
         self.pilot_format = self.p_info.get('pilot_format','DD MM SS')
         if use_file:
-            print 'Using platform data for: {} from platform file: {}'.format(self.platform,platform_file)
+            print('Using platform data for: {} from platform file: {}'.format(self.platform,platform_file))
         else:
-            print 'Using platform data for: {} from internal defaults'.format(self.platform)
+            print('Using platform data for: {} from internal defaults'.format(self.platform))
 
         if datestr:
             self.datestr = datestr
@@ -157,13 +158,13 @@ class dict_position:
             try:
                 self.write_to_excel()
             except:
-                print 'writing to excel failed'
+                print('writing to excel failed')
         else:
             self.wb = self.Open_excel(filename=filename,sheet_num=sheet_num,campaign=campaign,platform_file=platform_file)
             self.check_xl()
             self.calculate()
             self.write_to_excel()
-	    self.sheet_num = sheet_num
+        self.sheet_num = sheet_num
         
     def get_platform_info(self,name,filename):
         """
@@ -172,7 +173,7 @@ class dict_position:
         
         """
         from ml import read_prof_file
-        import tkMessageBox
+        import tkinter.messagebox as tkMessageBox
         platform = None
         p_info = None
         use_file = False
@@ -189,7 +190,7 @@ class dict_position:
                 platform = self.check_platform(name)
                 p_info = self.default_p_info(platform)
         except IOError:
-            print '** Error reading platform information file: {} **'.format(filename)
+            print('** Error reading platform information file: {} **'.format(filename))
             try:
                 from gui import gui_file_select_fx
                 filename_new = gui_file_select_fx(ext='platform.txt',ftype=[('All files','*.*'),('Platform file','*.txt')])
@@ -201,8 +202,8 @@ class dict_position:
                         use_file = True
                         break
             except IOError:
-                print '** Error reading platform information file: {} **'.format(filename)
-                print '** Using default platform profiles **'
+                print('** Error reading platform information file: {} **'.format(filename))
+                print('** Using default platform profiles **')
                 platform = self.check_platform(name)
                 p_info = self.default_p_info(platform)
         if p_info['warning']:
@@ -267,7 +268,7 @@ class dict_position:
                       'vert_speed_base':4.5,'vert_speed_per_alt':7e-05,
                       'rate_of_turn':None,'turn_bank_angle':15.0,
                       'warning':True}
-	    return p_info
+        return p_info
         
     def check_platform(self,name):
         'Simple program that check the name of the flight path to platforms names'
@@ -308,7 +309,7 @@ class dict_position:
             self.rate_of_turn = 2.4
         self.n = len(self.lon)
         self.WP = range(1,self.n+1)
-        for i in xrange(self.n-1):
+        for i in range(self.n-1):
             self.dist[i+1] = mu.spherical_dist([self.lat[i],self.lon[i]],[self.lat[i+1],self.lon[i+1]])
             if np.isfinite(self.alt.astype(float)[i+1]):
                 self.alt_kft[i+1] = self.alt[i+1]*3.28084/1000.0
@@ -346,7 +347,7 @@ class dict_position:
             self.legt[i+1] += self.delayt[i+1]/60.0
             self.utc[i+1] = self.utc[i]+self.legt[i+1]
             if not np.isfinite(self.utc[i+1]):
-                print self.utc
+                print(self.utc)
                 import pdb; pdb.set_trace()
             
         self.local = self.utc+self.UTC_conversion
@@ -468,41 +469,41 @@ class dict_position:
         climb_time = (alt1-alt0)/speed/60.0
         if not np.isfinite(climb_time):
             climb_time = 5.0
-            print 'climb time not finite for platform: %s, alt0:%f, alt1:%f' % (self.platform,alt0,alt1)
+            print('climb time not finite for platform: %s, alt0:%f, alt1:%f' % (self.platform,alt0,alt1))
         return climb_time
 
     def calcdatetime(self):
         """
-	Program to convert a utc time and datestr to datetime object
-	"""
-	from datetime import datetime
-	dt = []
-	for i,u in enumerate(self.utc):
+        Program to convert a utc time and datestr to datetime object
+        """
+        from datetime import datetime
+        dt = []
+        for i,u in enumerate(self.utc):
             Y,M,D = [int(s) for s in self.datestr.split('-')]
             try:    
                 hh = int(u)
             except ValueError:
-                print 'Problem on line :%i with value %f'%(i,u)
+                print('Problem on line :%i with value %f'%(i,u))
                 continue
-	    mm = int((u-hh)*60.0)
-	    ss = int(((u-hh)*60.0-mm)*60.0)
-	    ms = int((((u-hh)*60.0-mm)*60.0-ss)*1000.0)
-	    while hh > 23:
-	    	hh = hh-24
-		D = D+1
-	    try:
+            mm = int((u-hh)*60.0)
+            ss = int(((u-hh)*60.0-mm)*60.0)
+            ms = int((((u-hh)*60.0-mm)*60.0-ss)*1000.0)
+            while hh > 23:
+                hh = hh-24
+                D = D+1
+            try:
                 dt.append(datetime(Y,M,D,hh,mm,ss,ms))
             except ValueError:
-                print 'Problem on line: %i with datetime for datestr: %s' %(i,self.datestr)
-                print Y,M,D
+                print('Problem on line: %i with datetime for datestr: %s' %(i,self.datestr))
+                print(Y,M,D)
                 self.get_datestr_from_xl()
                 Y,M,D = [int(s) for s in self.datestr.split('-')]
                 try:
                     dt.append(datetime(Y,M,D,hh,mm,ss,ms))
                 except ValueError:
-                    print 'Big problem on 2nd try of calcdatetime with datestr, line: %i'%i
+                    print('Big problem on 2nd try of calcdatetime with datestr, line: %i'%i)
                     continue
-	return dt
+        return dt
 
     def time2xl(self):
         """
@@ -555,7 +556,7 @@ class dict_position:
         """
         while self.check_updates_excel():
             if self.verbose:
-                print 'line removed, cutting it out'
+                print('line removed, cutting it out')
 
     def check_updates_excel(self):
         """
@@ -589,9 +590,9 @@ class dict_position:
             else:
                 tmp = tmp2
             if self.verbose:
-                print 'updated to the longer points on lines:%i' %n2
+                print('updated to the longer points on lines:%i' %n2)
         if self.verbose:
-            print 'vertical num: %i, range num: %i' %(n0,n1)
+            print('vertical num: %i, range num: %i' %(n0,n1))
         num = 0
         num_del = 0
         for i,t in enumerate(tmp):
@@ -622,17 +623,17 @@ class dict_position:
                         changed = True
                 if changed: num = num+1
                 if self.verbose:
-                    print 'Modifying line #%i' %i
+                    print('Modifying line #%i' %i)
         if self.n>(i+1):
             if self.verbose:
-                print 'deleting points'
+                print('deleting points')
             for j in range(i+1,self.n-1):
                 self.dels(j)
                 self.n = self.n-1
                 num = num+1
         if num>0:
             if self.verbose:
-                print 'Updated %i lines from Excel, recalculating and printing' % num
+                print('Updated %i lines from Excel, recalculating and printing' % num)
             self.calculate()
             self.write_to_excel()
         self.num_changed = num
@@ -668,7 +669,7 @@ class dict_position:
         """
         import numpy as np
         if i+1>len(self.lat):
-            print '** Problem: index out of range **'
+            print('** Problem: index out of range **')
             return
         self.lat = np.delete(self.lat,i)
         self.lon = np.delete(self.lon,i)
@@ -783,7 +784,7 @@ class dict_position:
         """
         import numpy as np
         if i+1>len(self.lat):
-            print '** Problem with index too large in mods **'
+            print('** Problem with index too large in mods **')
             return
         changed = False
         compare_altk = True
@@ -865,21 +866,22 @@ class dict_position:
             Modified: Samuel LeBlanc, 2016-07-28, NASA Ames, CA
                       - updated to handle the platform file definitions and check on utc_conversion factor
         """
-        from xlwings import Workbook, Sheet, Range
+        #from xlwings import Workbook, Sheet, Range
+        import xlwings as xw
         import numpy as np
         if not filename:
-            print 'No filename found'
+            print('No filename found')
             return
         try:
-            wb = Workbook(filename)
-        except Exception,ie:
-            print 'Exception found:',ie
+            wb = xw.Book(filename)
+        except Exception as ie:
+            print('Exception found:',ie)
             return
         self.name = Sheet(sheet_num).name
         Sheet(sheet_num).activate()
-        print 'Activating sheet:%i, name:%s'%(sheet_num,Sheet(sheet_num).name)
+        print('Activating sheet:%i, name:%s'%(sheet_num,Sheet(sheet_num).name))
         self.platform, self.p_info,use_file = self.get_platform_info(self.name,platform_file)
-        print 'Using platform data for: %s' %self.platform
+        print('Using platform data for: %s' %self.platform)
         self.datestr = str(Range('W1').value).split(' ')[0]
         self.verify_datestr()
         if campaign is not 'None':
@@ -899,7 +901,7 @@ class dict_position:
         if not re.match('[0-9]{4}-[0-9]{2}-[0-9]{2}',self.datestr):
             self.datestr = tkSimpleDialog.askstring('Flight Date','No datestring found!\nPlease input Flight Date (yyyy-mm-dd):')
         if not self.datestr:
-            print 'No datestring found! Using todays date'
+            print('No datestring found! Using todays date')
             from datetime import datetime
             self.datestr = datetime.utcnow().strftime('%Y-%m-%d')
             
@@ -996,15 +998,15 @@ class dict_position:
         
     def save2txt(self,filename=None):
         """ 
-	Simple method to save the points to a text file.
-	For input with idl and matlab
-	"""
-	f = open(filename,'w+')
-	f.write('#WP  Lon[+-180]  Lat[+-90]  Speed[m/s]  delayT[min]  Altitude[m]'+
-            '  CumLegT[H]  UTC[H]  LocalT[H]'+
-            '  LegT[H]  Dist[km]  CumDist[km]'+
-            '  Dist[nm]  CumDist[nm]  Speed[kt]'+
-            '  Altitude[kft]  SZA[deg]  AZI[deg]  Bearing[deg]  Climbt[min]  Comments\n')
+        Simple method to save the points to a text file.
+        For input with idl and matlab
+        """
+        f = open(filename,'w+')
+        f.write('#WP  Lon[+-180]  Lat[+-90]  Speed[m/s]  delayT[min]  Altitude[m]'+
+                '  CumLegT[H]  UTC[H]  LocalT[H]'+
+                '  LegT[H]  Dist[km]  CumDist[km]'+
+                '  Dist[nm]  CumDist[nm]  Speed[kt]'+
+                '  Altitude[kft]  SZA[deg]  AZI[deg]  Bearing[deg]  Climbt[min]  Comments\n')
         for i in xrange(self.n):
             f.write("""%-2i  %+2.8f  %+2.8f  %-4.2f  %-3i  %-5.1f  %-2.2f  %-2.2f  %-2.2f  %-2.2f  %-5.1f  %-5.1f  %-5.1f  %-5.1f  %-3.1f %-3.2f  %-3.1f  %-3.1f  %-3.1f  %-3i  %s  \n""" %(
                     i+1,self.lon[i],self.lat[i],self.speed[i],
@@ -1049,7 +1051,7 @@ class dict_position:
         try: 
             self.kml.savekmz(filename.replace('kml','kmz'))
         except:
-            print 'saving kmz didnt work'
+            print('saving kmz didnt work')
             
         if not self.googleearthopened:
             #self.openGoogleEarth(filenamenet)
@@ -1057,7 +1059,7 @@ class dict_position:
                 self.openGoogleEarth(filename.replace('kml','kmz'))
                 self.googleearthopened = True
             except:
-                print 'Not able to open google earth'
+                print('Not able to open google earth')
                 self.googleearthopened = True
 
     def print_points_kml(self,folder):
@@ -1107,7 +1109,7 @@ class dict_position:
         to load the new Google Earth kml file
         """
         if not filename:
-            print 'no filename defined, returning'
+            print('no filename defined, returning')
             return
         from sys import platform
         from os import startfile
@@ -1124,7 +1126,7 @@ class dict_position:
     def save2gpx(self,filename=None):
         'Program to save the waypoints and track in gpx format'
         if not filename:
-            print '** no filename selected, returning without saving **'
+            print('** no filename selected, returning without saving **')
             return
         import gpxpy as g
         import gpxpy.gpx as gg
@@ -1142,7 +1144,7 @@ class dict_position:
         fp = open(filename,'w')
         fp.write(f.to_xml())
         fp.close()
-        print 'GPX file saved to:'+filename      
+        print('GPX file saved to:'+filename)      
 		
     def save2ict(self,filepath=None):
         'Program to save the flight track as simulated ict file. Similar to what is returned from flights'
@@ -1150,7 +1152,7 @@ class dict_position:
         import getpass
         import re
         if not filepath:
-            print '** no filepath selected, returning without saving **'
+            print('** no filepath selected, returning without saving **')
             return
         dt = 60 #seconds
         # setup data dict
@@ -1222,7 +1224,7 @@ class dict_position:
 
     def exremove(self):
         'Program to remove the current Sheet'
-        print 'Not yet'
+        print('Not yet')
         pass
         
 def get_next_revision(fname):
@@ -1326,7 +1328,7 @@ def save2xl_for_pilots(filename,ex_arr):
     try:
         wb_pilot.close()
     except:
-        print '** unable to close for_pilots spreadsheet, may need to close manually **'
+        print('** unable to close for_pilots spreadsheet, may need to close manually **')
         
 def format_lat_lon(lat,lon,format='DD MM SS'):
     'Lat and lon formatter'

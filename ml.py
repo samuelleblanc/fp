@@ -80,19 +80,33 @@
                 - added buttons for quick adding the IMPACTS "tropicaltidbits.com" imagery
                 
 """
-import Tkinter as tk
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+try:
+    import Tkinter as tk
+except:
+    import tkinter as tk
+    import tkinter as Tkinter
+try:
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+except:
+    from matplotlib.backends.backend_tkagg import FigureCanvasTk as FigureCanvasTkAgg
+    from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk as NavigationToolbar2TkAgg
 from matplotlib.figure import Figure
 #import numpy as np
 #from mpl_toolkits.basemap import Basemap
 import datetime
 import dateutil
 #import scipy, scipy.misc, scipy.special, scipy.integrate
-import Tkinter, FixTk, PIL
+try:
+    import Tkinter, FixTk, PIL
+except: 
+    import PIL
 import re #, copy
 #import ephem
 
-import urllib2, socket, _socket, _ssl, _elementtree
+try:
+    import urllib2, socket, _socket, _ssl, _elementtree
+except:
+    import urllib, socket, _socket, _ssl, _elementtree
 import pykml, simplekml, pyexpat
 import gpxpy, gpxpy.gpx
 
@@ -102,7 +116,12 @@ import map_interactive as mi
 import gui
 import aeronet
 
-import tkSimpleDialog, tkFileDialog, tkMessageBox
+try:
+    import tkSimpleDialog, tkFileDialog, tkMessageBox
+except:
+    import tkinter.simpledialog as tkSimpleDialog
+    import tkinter.filedialog as tkFileDialog
+    import tkinter.messagebox as tkMessageBox
 #import owslib, owslib.wms, owslib.util
 #from xlwings import Range, Sheet, Workbook
 #import win32com, win32com.client
@@ -203,7 +222,10 @@ def Create_gui(vertical=True):
     ui.fig = Figure()
     ui.ax1 = ui.fig.add_subplot(111)
     ui.canvas = FigureCanvasTkAgg(ui.fig,master=ui.root)
-    ui.canvas.show()
+    try:
+        ui.canvas.show()
+    except:
+        ui.canvas.draw()
     ui.canvas.get_tk_widget().pack(in_=ui.bot,side=tk.BOTTOM,fill=tk.BOTH,expand=1)
     ui.tb = gui.custom_toolbar(ui.canvas,ui.root)
     ui.tb.pack(in_=ui.bot,side=tk.BOTTOM)
@@ -377,7 +399,7 @@ def build_buttons(ui,lines,vertical=True):
     ui.g = g
 
 def get_datestr(ui):
-    import tkSimpleDialog
+    import tkinter.simpledialog as tkSimpleDialog
     from datetime import datetime
     import re
     ui.datestr = tkSimpleDialog.askstring('Flight Date','Flight Date (yyyy-mm-dd):')
@@ -397,12 +419,12 @@ def savetmp(ui,wb):
     try:
         wb.save2xl(tmpfilename)
     except:
-        print 'unable to save excel to temp file:'+tmpfilename
-        print 'continuing ...'
+        print('unable to save excel to temp file:'+tmpfilename)
+        print('continuing ...')
 
 def init_plot(m,start_lon='14 38.717E',start_lat='22 58.783S',color='red'):
     lat0,lon0 = mi.pll(start_lat), mi.pll(start_lon)
-    x0,y0 = m(lon0,lat0)
+    x0,y0 = lon0,lat0 #m(lon0,lat0)
     line, = m.plot([x0],[y0],'o-',color=color,linewidth=3)
     text = ('Press s to stop interaction\\n'
             'Press i to restart interaction\\n')

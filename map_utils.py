@@ -32,7 +32,7 @@ def spherical_dist(pos1, pos2, r=6378.1,use_mi=False):
     """
     if use_mi:
         r = 3958.75
-        print 'using miles'
+        print('using miles')
     import numpy as np
     pos1 = np.array(pos1)
     pos2 = np.array(pos2)
@@ -82,12 +82,12 @@ def map_ind(mod_lon,mod_lat,meas_lon,meas_lat,meas_good=None):
                             np.logical_and(mod_lat>min(meas_lat[meas_good])-0.02 , mod_lat<max(meas_lat[meas_good])+0.02))
     wimodis = np.where(imodis)
     if not wimodis[0].any():
-        print '** No points found within range +/- 0.02 in lat and lon, Extending range to +/- 0.2 **'
+        print('** No points found within range +/- 0.02 in lat and lon, Extending range to +/- 0.2 **')
         imodis = np.logical_and(np.logical_and(mod_lon>min(meas_lon[meas_good])-0.2 , mod_lon<max(meas_lon[meas_good])+0.2),
                                 np.logical_and(mod_lat>min(meas_lat[meas_good])-0.2 , mod_lat<max(meas_lat[meas_good])+0.2))
         wimodis = np.where(imodis)
         if not wimodis[0].any():
-            print '** No points found in extended range, returning null **'
+            print('** No points found in extended range, returning null **')
             return []
     N1 = mod_lon[imodis].size
     modis_grid = np.hstack([mod_lon[imodis].reshape((N1,1)),mod_lat[imodis].reshape((N1,1))])
@@ -154,7 +154,7 @@ def stats_within_radius(lat1,lon1,lat2,lon2,x2,radius,subset=True):
     from scipy.spatial import cKDTree
     from map_utils import radius_m2deg
     import numpy as np
-    print 'Setting up the lat, lon, localization'
+    print('Setting up the lat, lon, localization')
     max_distance = radius_m2deg(lon1[0],lat1[0],radius) #transform to degrees
     if (len(lat1) > 100) & subset:
         points_ref = np.column_stack((lat1[::10],lon1[::10]))
@@ -169,13 +169,13 @@ def stats_within_radius(lat1,lon1,lat2,lon2,x2,radius,subset=True):
     tree = cKDTree(points)
     tree_ref = cKDTree(points_ref)
     out = dict()
-    print '... Getting the index points'
+    print('... Getting the index points')
     out['index'] = tree_ref.query_ball_tree(tree,max_distance)
     out['std'] = []
     out['range'] = []
     out['mean'] = []
     out['median'] = []
-    print '... Running through index points'
+    print('... Running through index points')
     for i in out['index']:
         if not i:
             out['std'].append(np.NaN)
@@ -191,7 +191,7 @@ def stats_within_radius(lat1,lon1,lat2,lon2,x2,radius,subset=True):
     out['range'] = np.array(out['range'])
     out['mean'] = np.array(out['mean'])
     out['median'] = np.array(out['median'])
-    print out.keys()
+    print(out.keys())
     return out
 
 

@@ -1,7 +1,16 @@
 # map_interactive software
 # to use in combination with moving_lines
 # Copyright 2015, Samuel LeBlanc
-from mpl_toolkits.basemap import Basemap
+try:
+    from mpl_toolkits.basemap import Basemap
+except:
+    pass
+try:
+    import cartopy.crs as ccrs
+    import cartopy.feature as cfeature
+    import matplotlib.pyplot as plt
+except:
+    pass
 import numpy as np
 import sys
 import re
@@ -88,7 +97,7 @@ class LineBuilder:
         self.xs = list(line.get_xdata())
         self.ys = list(line.get_ydata())
         if self.m:
-            self.lons,self.lats = self.m(self.xs,self.ys,inverse=True)
+            self.lons,self.lats = self.xs,self.ys #self.lons,self.lats = self.m(self.xs,self.ys,inverse=True)
             self.large = self.m.large
             self.par = self.m.par
             self.mer = self.m.mer
@@ -106,7 +115,7 @@ class LineBuilder:
         if not tb:
          #   import matplotlib.pyplot as plt
          #   self.tb = plt.get_current_fig_manager().toolbar
-            print 'No tb set, will not work'
+            print('No tb set, will not work')
         else:
             self.tb = tb
 
@@ -138,7 +147,7 @@ class LineBuilder:
 
     def onpress(self,event):
         'Function that enables either selecting a point, or creating a new point when clicked'
-        #print 'click', event
+        #print('click', event)
         if event.inaxes!=self.line.axes: return
         if self.tb.mode!='': return
         if self.moving: return
@@ -155,14 +164,14 @@ class LineBuilder:
                     xs,ys = lp.get_xdata(),lp.get_ydata()
         if self.contains:
             if self.verbose:
-                print 'click is near point:',self.contains,attrd
+                print('click is near point:',self.contains,attrd)
             self.contains_index = attrd['ind']
             if len(self.contains_index)>1:
                 self.contains_index = int(self.contains_index[-1])
             else:
                 self.contains_index = int(self.contains_index)
             if self.verbose:
-                print 'index:%i'%self.contains_index
+                print('index:%i'%self.contains_index)
             if self.contains_index != 0:
                 self.xy = self.xs[self.contains_index-1],self.ys[self.contains_index-1]
                 self.line.axes.format_coord = self.format_position_distance
@@ -176,7 +185,7 @@ class LineBuilder:
                 self.xs.append(self.xs[self.contains_index])
                 self.ys.append(self.ys[self.contains_index])
                 if self.m:
-                    lo,la = self.m(self.xs[self.contains_index],self.ys[self.contains_index],inverse=True)
+                    lo,la = self.xs[self.contains_index],self.ys[self.contains_index] #self.m(self.xs[self.contains_index],self.ys[self.contains_index],inverse=True)
                     self.lons.append(lo)
                     self.lats.append(la)
                 self.set_alt0 = True
@@ -192,7 +201,7 @@ class LineBuilder:
                                                         ys[point_contains_index],'bo',zorder=40)
             self.draw_canvas(extra_points=[self.highlight_linepoint])
             if self.m:
-                lo,la = self.m(xs[point_contains_index],ys[point_contains_index],inverse=True)
+                lo,la = xs[point_contains_index],ys[point_contains_index] #self.m(xs[point_contains_index],ys[point_contains_index],inverse=True)
                 self.lons.append(lo)
                 self.lats.append(la)
             self.xs.append(xs[point_contains_index])
@@ -204,7 +213,7 @@ class LineBuilder:
             self.ys.append(event.ydata)
             #print(self.xy,event.xdata,event.ydata)
             if self.m:
-                lo,la = self.m(event.xdata,event.ydata,inverse=True)
+                lo,la = event.xdata,event.ydata #self.m(event.xdata,event.ydata,inverse=True)
                 self.lons.append(lo)
                 self.lats.append(la)
             self.line.axes.format_coord = self.format_position_distance
@@ -228,7 +237,7 @@ class LineBuilder:
         'Function to set the point location'
         
         if self.verbose:
-            print 'release'#,event
+            print('release')#,event
         if self.moving: return
 
         if (self.tb.mode == 'zoom rect') | (self.tb.mode == 'pan/zoom') | (self.tb.mode!=''):
@@ -299,7 +308,7 @@ class LineBuilder:
         self.xs[i] = event.xdata
         self.ys[i] = event.ydata
         if self.m:
-            self.lons[i],self.lats[i] = self.m(event.xdata,event.ydata,inverse=True)
+            self.lons[i],self.lats[i] = event.xdata,event.ydata# self.m(event.xdata,event.ydata,inverse=True)
         self.line.set_data(list(self.xs),list(self.ys))
         if self.contains:
             self.draw_canvas(extra_points=[self.highlight_linepoint,self.line.range_circles,self.line.range_cir_anno])
@@ -309,13 +318,13 @@ class LineBuilder:
     def onkeypress(self,event):
         'function to handle keyboard events'
         if self.verbose:
-            print 'pressed key',event.key,event.xdata,event.ydata
+            print('pressed key',event.key,event.xdata,event.ydata)
         if event.inaxes!=self.line.axes: return
         if (event.key=='s') | (event.key=='alt+s'):
-            print 'Stopping interactive point selection'
+            print('Stopping interactive point selection')
             self.disconnect()
         if (event.key=='i') | (event.key=='alt+i'):
-            print 'Starting interactive point selection'
+            print('Starting interactive point selection')
             self.connect()
             self.line.axes.format_coord = self.format_position_simple
             self.press = None
@@ -323,7 +332,7 @@ class LineBuilder:
 
     def onkeyrelease(self,event):
         'function to handle keyboard releases'
-        #print 'released key',event.key
+        #print('released key',event.key)
         if event.inaxes!=self.line.axes: return
 
     def onfigureenter(self,event):
@@ -331,14 +340,14 @@ class LineBuilder:
         if self.moving: return
         self.tb.set_message('Recalculating ...')
         if self.verbose:
-            print 'entered figure'#, event
+            print('entered figure')#, event
         if self.ex:
             #self.ex.switchsheet(self.iactive)
             self.ex.check_xl()
             self.lats = list(self.ex.lat)
             self.lons = list(self.ex.lon)
             if self.m:
-                x,y = self.m(self.ex.lon,self.ex.lat)
+                x,y = self.ex.lon,self.ex.lat #self.m(self.ex.lon,self.ex.lat)
                 self.xs = list(x)
                 self.ys = list(y)
                 self.line.set_data(self.xs,self.ys)
@@ -350,7 +359,7 @@ class LineBuilder:
     def format_position_simple(self,x,y):
         'format the position indicator with only position'
         if self.m:
-            return 'Lon=%.7f, Lat=%.7f'%(self.m(x, y, inverse = True))
+            return 'Lon=%.7f, Lat=%.7f'%(x,y) #self.m(x, y, inverse = True))
         else:   
             return 'x=%2.5f, y=%2.5f' % (x,y)
 
@@ -358,8 +367,8 @@ class LineBuilder:
         'format the position indicator with distance from previous point'
         if self.m:
             x0,y0 = self.xy
-            lon0,lat0 = self.m(x0,y0,inverse=True)
-            lon,lat = self.m(x,y,inverse=True)
+            lon0,lat0 = x0,y0 #self.m(x0,y0,inverse=True)
+            lon,lat = x,y #self.m(x,y,inverse=True)
             r = spherical_dist([float(lat0),float(lon0)],[float(lat),float(lon)])
             return 'Lon=%.7f, Lat=%.7f, d=%.2f km'%(lon,lat,r)
         else:
@@ -417,7 +426,7 @@ class LineBuilder:
             ll, = equi(self.m,lon,lat,d,color=colors[i])
             line.append(ll)
             slon,slat,az = shoot(lon,lat,0.0,d)
-            x,y = self.m(slon,slat)
+            x,y = slon,slat #self.m(slon,slat)
             ano = self.line.axes.annotate('%i km' %(d),(x,y),color='silver')
             an.append(ano)
         if azi:
@@ -455,8 +464,8 @@ class LineBuilder:
     def newline(self):
         'Program to do a deep copy of the line object in the LineBuilder class'
         x,y = self.line.get_data()
-	line_new, = self.m.plot(x[0],y[0],'o-',linewidth=self.line.get_linewidth()) 
-	self.line_arr.append(line_new)
+        line_new, = self.m.plot(x[0],y[0],'o-',linewidth=self.line.get_linewidth()) 
+        self.line_arr.append(line_new)
 
     def removeline(self,i):
         'Program to remove one line object from the LineBuilder class'
@@ -464,14 +473,14 @@ class LineBuilder:
         self.line_arr[i].remove()
 
     def addfigure_under(self,img,ll_lat,ll_lon,ur_lat,ur_lon,outside=False,text=None,alpha=0.5,**kwargs):
-    	'Program to add a figure under the basemap plot'
-     
-        left,bottom = self.m(ll_lon,ll_lat)
-        right,top = self.m(ur_lon,ur_lat)
+        'Program to add a figure under the basemap plot'
+
+        left,bottom = ll_lon,ll_lat #self.m(ll_lon,ll_lat)
+        right,top = ur_lon,ur_lat #self.m(ur_lon,ur_lat)
         try:
             lons = np.linspace(ll_lon,ur_lon,num=img.shape[1])
             lats = np.linspace(ll_lat,ur_lat,num=img.shape[0])
-            print 'in first try addfigure under'
+            print('in first try addfigure under')
         except AttributeError:
             lons = np.linspace(ll_lon,ur_lon,num=img.size[1])
             lats = np.linspace(ll_lat,ur_lat,num=img.size[0])
@@ -494,8 +503,8 @@ class LineBuilder:
             try:
                 if too_big_extent:
                     try:
-                        x0,y0 = self.m(ll_lon,ll_lat)
-                        x1,y1 = self.m(ur_lon,ur_lat)
+                        x0,y0 = ll_lon,ll_lat #self.m(ll_lon,ll_lat)
+                        x1,y1 = ur_lon,ur_lat #self.m(ur_lon,ur_lat)
                         self.m.figure_under = self.m.ax.imshow(np.flipud(img[ix,:,:][:,iy,:]),zorder=0,alpha=alpha,extent=[x0,x1,y0,y1],**kwargs)
                     except:
                         import pdb
@@ -503,8 +512,8 @@ class LineBuilder:
                 else:
                     self.m.figure_under = self.m.imshow(img[ix,:,:][:,iy,:],zorder=0,alpha=alpha,**kwargs)
             except Exception as ie:
-                print 'problem occurred when placing under figure, trying anyway'
-                print ie
+                print('problem occurred when placing under figure, trying anyway')
+                print(ie)
                 self.m.figure_under = self.m.imshow(img,zorder=0,alpha=alpha,**kwargs)
         else:
             u = self.m.imshow(img,clip_on=False,**kwargs)
@@ -512,12 +521,12 @@ class LineBuilder:
             try:
                 self.m.figure_under_text = self.m.ax.text(0.0,0.0,text,transform=self.m.ax.transAxes)
             except:
-                print 'Problem adding text on figure, continuning...'
+                print('Problem adding text on figure, continuning...')
         self.line.figure.canvas.draw()
         self.get_bg()
         
     def addlegend_image_below(self,img):
-    	'Program to add a image legend to a new axis below the current axis'
+        'Program to add a image legend to a new axis below the current axis'
         try: 
             self.m.legend_axis = self.line.figure.add_axes([0.1,0.0,0.5,0.1],anchor='NW',zorder=-1)
             self.m.legend_axis.imshow(img)
@@ -558,7 +567,7 @@ class LineBuilder:
             mi.update_pars_mers(self.m,mer,par,lower_left=(xlim[0],ylim[0]))
         except:
             import traceback
-            print '... Problem updating the parallels and meridians'
+            print('... Problem updating the parallels and meridians')
             traceback.print_exc()
             import pdb; pdb.set_trace()
         self.line.figure.canvas.draw()
@@ -576,9 +585,9 @@ class LineBuilder:
             dist = distance
         newlon,newlat,baz = shoot(self.lons[insert_i],self.lats[insert_i],Bearing,maxdist=distance)
         if self.verbose:
-            print 'New points at lon: %f, lat: %f' %(newlon,newlat)
+            print('New points at lon: %f, lat: %f' %(newlon,newlat))
         if self.m:
-            x,y = self.m(newlon,newlat)
+            x,y = newlon,newlat #self.m(newlon,newlat)
             if not insert:
                 self.lons.append(newlon)
                 self.lats.append(newlat)
@@ -612,7 +621,7 @@ class LineBuilder:
         'Program to move a point a certain distance and bearing'
         newlon,newlat,baz = shoot(self.lons[i],self.lats[i],Bearing,maxdist=distance)
         if self.m:
-            x,y = self.m(newlon,newlat)
+            x,y = newlon,newlat #self.m(newlon,newlat)
             self.lons[i] = newlon
             self.lats[i] = newlat
         else:
@@ -691,7 +700,7 @@ class LineBuilder:
             try:
                 exec('{}={}'.format(n,vals.names_val[i]))
             except:
-                print 'problem for {}={}'.format(n,vals.names_val[i])
+                print('problem for {}={}'.format(n,vals.names_val[i]))
         for l in s[1:-1]:
             if not (l.startswith('#') or l.startswith('%')):
                 if l.lower().find('time')>=0: #check if there is a time slot instead of distance
@@ -706,18 +715,18 @@ class LineBuilder:
                     try:
                         dist = (tim*self.ex.calcspeed(self.ex.alt[-1],alt)*60.0)/factor # in distance units
                     except:
-                        print 'problem with distance calculation for {}'.format(l)
+                        print('problem with distance calculation for {}'.format(l))
                     l = ','.join([l.split(',')[0],'{}'.format(dist),'{}'.format(alt)])
                 try:
                     print(eval(l),use_feet,use_km)
                     self.newpoint(*eval(l),last=False,feet=use_feet,km=use_km)
                 except:
-                    print 'problem with {}'.format(l)
+                    print('problem with {}'.format(l))
         if not s[-1].startswith('#') or not s[-1].startswith('%'):
                 try:
                     self.newpoint(*eval(s[-1]),feet=use_feet,km=use_km)
                 except:
-                    print 'problem with last {}'.format(s[-1])
+                    print('problem with last {}'.format(s[-1]))
         f.close()
 
     def get_bg(self,redraw=False):
@@ -739,7 +748,7 @@ class LineBuilder:
                     else:
                         self.line.axes.draw_artist(p)
             except Exception as ie:
-                print 'exception occurred: %s' %ie
+                print('exception occurred: %s' %ie)
             self.line.figure.canvas.blit(self.line.axes.bbox)
         else:
             self.line.figure.canvas.draw()
@@ -756,7 +765,7 @@ class LineBuilder:
         bearing_end = bearing([self.lats[i],self.lons[i]],[newlat,newlon])
         return bearing_end,dist_end        
         
-def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,proj='cyl',profile=None,larger=True):
+def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,proj='cyl',profile=None,larger=True, use_cartopy=True):
     """
     First try at a building of the basemap with a 'stere' projection
     Must put in the values of the lower left corner and upper right corner (lon and lat)
@@ -779,78 +788,99 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,proj='cyl',pr
     else:
         lat0 = (upper_right[1]+lower_left[1])/2.0
         lon0 = (upper_right[0]+lower_left[0])/2.0
-    print proj,lat0,lon0
+    print(proj,lat0,lon0)
     if larger:
         dp = 30
     else:
         dp = 0
     try:
-        import cPickle as pickle
+        import pickle
         m = pickle.load(open('map_{}.pkl'.format(profile['Campaign']),'rb'))
-        #print 'doing it pickle style'
+        #print('doing it pickle style')
         m.ax = ax
     except:
         if larger:
             dp = 30
         else:
             dp = 0
-        if proj is 'cyl':
-            m = Basemap(projection=proj,lon_0=lon0,lat_0=lat0,
-                llcrnrlon=lower_left[0]-dp, llcrnrlat=(lower_left[1]-dp if lower_left[1]-dp>-90 else -90),
-                urcrnrlon=upper_right[0]+dp, urcrnrlat=(upper_right[1]+dp if upper_right[1]+dp<90 else 90),resolution='i',ax=ax)
+        if use_cartopy:
+            m = plt.axes(projection=ccrs.PlateCarree())
+            m.use_cartopy = True
         else:
-            dp = 0
-            m = Basemap(projection=proj,lon_0=lon0,lat_0=lat0,
-                llcrnrlon=lower_left[0]-dp, llcrnrlat=lower_left[1]-dp,
-                urcrnrlon=upper_right[0]+dp, urcrnrlat=upper_right[1]+dp,
-                resolution='l',ax=ax)
-            #m = Basemap(projection='npstere',lat_0=76.5,lon_0=-68.75,
-            #    boundinglat=55,resolution='l',ax=ax)
+            if proj is 'cyl':
+                m = Basemap(projection=proj,lon_0=lon0,lat_0=lat0,
+                    llcrnrlon=lower_left[0]-dp, llcrnrlat=(lower_left[1]-dp if lower_left[1]-dp>-90 else -90),
+                    urcrnrlon=upper_right[0]+dp, urcrnrlat=(upper_right[1]+dp if upper_right[1]+dp<90 else 90),resolution='i',ax=ax)
+            else:
+                dp = 0
+                m = Basemap(projection=proj,lon_0=lon0,lat_0=lat0,
+                    llcrnrlon=lower_left[0]-dp, llcrnrlat=lower_left[1]-dp,
+                    urcrnrlon=upper_right[0]+dp, urcrnrlat=upper_right[1]+dp,
+                    resolution='l',ax=ax)
+                #m = Basemap(projection='npstere',lat_0=76.5,lon_0=-68.75,
+                #    boundinglat=55,resolution='l',ax=ax)
+            m.use_cartopy = False
                 
     m.artists = []
-    m.drawcoastlines()
-    #m.fillcontinents(color='#AAAAAA')
-    m.drawstates()
-    m.drawcountries()
-    m.large = True
-    round_to_5 = lambda x:(int(x/5)+1)*5 
-    round_to_2 = lambda x:(int(x/2)+1)*2
-    if (upper_right[0]-lower_left[0])<20.0:
-        mer = np.arange(round_to_2(lower_left[0]-dp),round_to_2(upper_right[0]+dp)+2,2)
-        difx = 0.2
-        m.large = False
+    if m.use_cartopy:
+        m.coastlines()
+        land_50m = cfeature.NaturalEarthFeature('physical', 'land', '50m',edgecolor='k',
+                                                facecolor=cfeature.COLORS['land']+0.0625)
+        provinces_50m = cfeature.NaturalEarthFeature('cultural','admin_1_states_provinces_lines','50m',facecolor='none')
+        m.gridlines(draw_labels=True)
+        m.add_feature(land_50m)
+        m.add_feature(cfeature.LAKES, facecolor=[0.69375   , 0.81484375, 0.9828125 ])
+        m.add_feature(cfeature.RIVERS, facecolor=[0.69375   , 0.81484375, 0.9828125 ])
+        m.add_feature(provinces_50m)
+        m.add_feature(cfeature.BORDERS)
+        
+        m.orig_xlim = m.get_xlim()
+        m.orig_ylim = m.get_ylim()
+        
     else:
-        mer = np.arange(round_to_5(lower_left[0]-dp),round_to_5(upper_right[0]+dp)+5,5)
-        difx = 1.0
-    if (upper_right[1]-lower_left[1])<20.0:
-        par = np.arange(round_to_2(lower_left[1]-dp),round_to_2(upper_right[1]+dp)+2,2)
-        dify = 0.2
-        m.large = False
-    else:
-        par = np.arange(round_to_5(lower_left[1]-dp),round_to_5(upper_right[1]+dp)+5,5)
-        dify = 1.0
-    if ax:
-        ax.set_xlim(lower_left[0],upper_right[0])
-        ax.set_ylim(lower_left[1],upper_right[1])
-    m.artists.append(m.drawmeridians(mer,labels=[0,0,0,1]))
-    m.artists.append(m.drawparallels(par,labels=[1,0,0,0]))
-    m.par = par
-    m.mer = mer
-    m.orig_xlim = m.ax.get_xlim()
-    m.orig_ylim = m.ax.get_ylim()
+        m.drawcoastlines()
+        #m.fillcontinents(color='#AAAAAA')
+        m.drawstates()
+        m.drawcountries()
+        m.large = True
+        round_to_5 = lambda x:(int(x/5)+1)*5 
+        round_to_2 = lambda x:(int(x/2)+1)*2
+        if (upper_right[0]-lower_left[0])<20.0:
+            mer = np.arange(round_to_2(lower_left[0]-dp),round_to_2(upper_right[0]+dp)+2,2)
+            difx = 0.2
+            m.large = False
+        else:
+            mer = np.arange(round_to_5(lower_left[0]-dp),round_to_5(upper_right[0]+dp)+5,5)
+            difx = 1.0
+        if (upper_right[1]-lower_left[1])<20.0:
+            par = np.arange(round_to_2(lower_left[1]-dp),round_to_2(upper_right[1]+dp)+2,2)
+            dify = 0.2
+            m.large = False
+        else:
+            par = np.arange(round_to_5(lower_left[1]-dp),round_to_5(upper_right[1]+dp)+5,5)
+            dify = 1.0
+        if ax:
+            ax.set_xlim(lower_left[0],upper_right[0])
+            ax.set_ylim(lower_left[1],upper_right[1])
+        m.artists.append(m.drawmeridians(mer,labels=[0,0,0,1]))
+        m.artists.append(m.drawparallels(par,labels=[1,0,0,0]))
+        m.par = par
+        m.mer = mer
+        m.orig_xlim = m.ax.get_xlim()
+        m.orig_ylim = m.ax.get_ylim()
 
-    # move the meridian labels to a proper position
-    for aa in m.artists[0].keys():
-        try:
-            m.artists[0][aa][1][0].set_position((m.artists[0][aa][1][0].get_position()[0],lower_left[1]-difx))
-        except:
-            pass
-    # move the parallels labels to a proper position
-    for aa in m.artists[1].keys():
-        try:
-            m.artists[1][aa][1][0].set_position((lower_left[0]-dify,m.artists[1][aa][1][0].get_position()[1]))
-        except:
-            pass
+        # move the meridian labels to a proper position
+        for aa in m.artists[0].keys():
+            try:
+                m.artists[0][aa][1][0].set_position((m.artists[0][aa][1][0].get_position()[0],lower_left[1]-difx))
+            except:
+                pass
+        # move the parallels labels to a proper position
+        for aa in m.artists[1].keys():
+            try:
+                m.artists[1][aa][1][0].set_position((lower_left[0]-dify,m.artists[1][aa][1][0].get_position()[1]))
+            except:
+                pass
     #import pdb; pdb.set_trace()
     if ax:
         try:
@@ -914,7 +944,7 @@ def pll(string):
         try:
             return float(string)
         except TypeError:
-            print 'Error with pll input, trying to return first value'
+            print('Error with pll input, trying to return first value')
             return float(string[0])
     n = len(string.split())
     str_ls = string.split()
@@ -1021,26 +1051,26 @@ def load_sat_from_net():
     from pykml import parser
     today = datetime.now().strftime('%Y%m%d')
     site = 'http://avdc.gsfc.nasa.gov/download_2.php?site=98675770&id=25&go=download&path=%2FSubsatellite%2Fkml&file=A-Train_subsatellite_prediction_'+today+'T000000Z.kml'
-    print 'Satellite tracks url: %s' %site
+    print('Satellite tracks url: %s' %site)
     try:
         response = urlopen(site)
-        print 'Getting the kml prediction file from avdc.gsfc.nasa.gov'
+        print('Getting the kml prediction file from avdc.gsfc.nasa.gov')
         r = response.read()
         kml = parser.fromstring(r)
     except:
-        print 'Problem with day, trying previous day...'
+        print('Problem with day, trying previous day...')
         try:
             yesterday = (datetime.now()-timedelta(days=1)).strftime('%Y%m%d')
             site = 'http://avdc.gsfc.nasa.gov/download_2.php?site=98675770&id=25&go=download&path=%2FSubsatellite%2Fkml&file=A-Train_subsatellite_prediction_'+yesterday+'T000000Z.kml'
             response = urlopen(site)
-            print 'Getting the kml prediction file from avdc.gsfc.nasa.gov'
+            print('Getting the kml prediction file from avdc.gsfc.nasa.gov')
             r = response.read()
             kml = parser.fromstring(r)
         except:
             import tkMessageBox
             tkMessageBox.showerror('No sat','There was an error communicating with avdc.gsfc.nasa.gov')
             return None
-    print 'Kml file read...'
+    print('Kml file read...')
     return kml
 
 def load_sat_from_file(filename):
@@ -1080,7 +1110,7 @@ def get_sat_tracks(datestr,kml):
         try:
             sat[name] = (lon,lat)
         except UnboundLocalError:
-            print 'Skipping %s; no points downloaded' %name
+            print('Skipping %s; no points downloaded' %name)
     return sat
 
 def plot_sat_tracks(m,sat,label_every=20): 
@@ -1095,7 +1125,7 @@ def plot_sat_tracks(m,sat,label_every=20):
             lat = sat[k]['lat']
         else:
             (lon,lat) = sat[k]
-        x,y = m(lon,lat)
+        x,y = lon,lat # x,y = m(lon,lat)
         sat_obj.append(m.plot(x,y,marker='.',label=k,linestyle='-',linewidth=0.2))
         co = sat_obj[-1][-1].get_color()
         #sat_obj.append(mu.mplot_spec(m,lon,lat,'-',linewidth=0.2))
