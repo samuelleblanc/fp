@@ -520,7 +520,9 @@ class dict_position:
         """
         import numpy as np
         from xlwings import Range
-        self.wb.set_current()
+        import xlwings as xw
+        #self.wb.set_current()
+        self.wb.sh.activate()
         Range('A2').value = np.array([self.WP,
                                       self.lat,
                                       self.lon,
@@ -546,8 +548,11 @@ class dict_position:
             Range('U%i'%(i+2)).value = c
         Range('G2:J%i'% (self.n+1)).number_format = 'hh:mm'
         Range('E2:E%i'% (self.n+1)).number_format = '0'
-        Range('B:B').autofit('c')
-        Range('C:C').autofit('c')
+        Range('B:B').autofit()
+        Range('C:C').autofit()
+        Range('B:B').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
+        Range('C:C').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
+
 
     def check_xl(self):
         """
@@ -566,7 +571,7 @@ class dict_position:
         """
         from xlwings import Range
         import numpy as np
-        self.wb.set_current()
+        self.wb.sh.activate() #self.wb.set_current()
         tmp = Range('A2:U%i'%(self.n+1)).value
         tmp0 = Range('A2:U2').vertical.value
         tmp2 = Range('B2:U2').vertical.value
@@ -877,17 +882,18 @@ class dict_position:
         except Exception as ie:
             print('Exception found:',ie)
             return
-        self.name = Sheet(sheet_num).name
-        Sheet(sheet_num).activate()
-        print('Activating sheet:%i, name:%s'%(sheet_num,Sheet(sheet_num).name))
+        self.name = wb.sheets(sheet_num).name
+        wb.sheets(sheet_num).activate()
+        wb.sh = wb.sheets(sheet_num)
+        print('Activating sheet:%i, name:%s'%(sheet_num,wb.sheets(sheet_num).name))
         self.platform, self.p_info,use_file = self.get_platform_info(self.name,platform_file)
         print('Using platform data for: %s' %self.platform)
-        self.datestr = str(Range('W1').value).split(' ')[0]
+        self.datestr = str(self.sheet.range('W1').value).split(' ')[0]
         self.verify_datestr()
-        if campaign is not 'None':
+        if campaign != 'None':
             self.campaign
         else:
-            self.campaign = str(Range('X1').value).split(' ')[0]
+            self.campaign = str(self.sheet.range('X1').value).split(' ')[0]
             self.verify_campaign()
         self.UTC_conversion = self.verify_UTC_conversion()
         return wb
@@ -895,7 +901,7 @@ class dict_position:
     def verify_datestr(self):
         'Verify the input datestr is correct'
         import re
-        import tkSimpleDialog
+        import tkinter.simpledialog as tkSimpleDialog
         if not self.datestr:
             self.datestr = tkSimpleDialog.askstring('Flight Date','No datestring found!\nPlease input Flight Date (yyyy-mm-dd):')
         if not re.match('[0-9]{4}-[0-9]{2}-[0-9]{2}',self.datestr):
@@ -907,12 +913,13 @@ class dict_position:
             
     def verify_campaign(self):
         'verify the input campaign value'
-        import tkSimpleDialog
+        import tkinter.simpledialog as tkSimpleDialog
         self.campaign = tkSimpleDialog.askstring('Campaign name','Please verify campaign name:',initialvalue=self.campaign)
         
     def verify_UTC_conversion(self):
         'verify the input UTC conversion when reading a excel file'
         from xlwings import Range
+        tmp0 = Range('A2:U2').value
         tmp0 = Range('A2:U2').value
         _,_,_,_,_,_,_,utc,loc,_,_,_,_,_,_,_ = tmp0[0:16]
         return loc*24-utc*24
@@ -941,49 +948,48 @@ class dict_position:
                     - modify to permit creation of a new sheet within the current workbook
             
         """
-        from xlwings import Workbook, Sheet, Range, Chart
+        import xlwings as xw #from xlwings import Workbook, Sheet, Range, Chart
+        from excel_interface import freeze_top_pane
         import numpy as np
         if newsheetonly:
-            Sheet(1).add(name=name)
+            wb = xw.books.active
+            sh = wb.sheets.add(name=name,after=wb.sheets[wb.sheets.count-1])   
             self.sheet_num = self.sheet_num+1
-            wb = Workbook.current()
         else:
-            wb = Workbook()
+            wb = xw.Book()
             self.name = name
-            Sheet(1).name = self.name
-        Range('A1').value = ['WP','Lat\n[+-90]','Lon\n[+-180]',
+            wb.sheets.active.name = self.name
+            sh = wb.sheets.active
+        xw.Range('A1').value = ['WP','Lat\n[+-90]','Lon\n[+-180]',
                              'Speed\n[m/s]','delayT\n[min]','Altitude\n[m]',
                              'CumLegT\n[hh:mm]','UTC\n[hh:mm]','LocalT\n[hh:mm]',
                              'LegT\n[hh:mm]','Dist\n[km]','CumDist\n[km]',
                              'Dist\n[nm]','CumDist\n[nm]','Speed\n[kt]',
                              'Altitude\n[kft]','SZA\n[deg]','AZI\n[deg]',
                              'Bearing\n[deg]','ClimbT\n[min]','Comments']
-        top_line = Range('A1').horizontal
-        address = top_line.get_address(False,False)
-        from sys import platform
-        if platform.startswith('win'):
-            from win32com.client import Dispatch
-            xl = Dispatch("Excel.Application")
-         #   xl.ActiveWorkbook.Windows(1).SplitColumn = 0.4
-            xl.ActiveWorkbook.Windows(1).SplitRow = 1.0
-            xl.Range(address).Font.Bold = True
-        top_line.autofit()
-        Range('G2:J2').number_format = 'hh:mm'
-        Range('W1').value = self.datestr
-        Range('X1').value = self.campaign
-        Range('Z1').value = 'Created with'
-        Range('Z2').value = 'moving_lines'
-        Range('Z3').value = self.__version__
-        Range('W:W').autofit('c')
-        Range('X:X').autofit('c')
-        Range('Z:Z').autofit('c')
+        freeze_top_pane(wb)
+        
+        xw.Range('G2:J2').number_format = 'hh:mm'
+        xw.Range('W1').value = self.datestr
+        xw.Range('X1').value = self.campaign
+        xw.Range('Z1').value = 'Created with'
+        xw.Range('Z2').value = 'moving_lines'
+        xw.Range('Z3').value = self.__version__
+        xw.Range('W:W').autofit()
+        xw.Range('W:W').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
+        xw.Range('X:X').autofit()
+        xw.Range('X:X').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
+        xw.Range('Z:Z').autofit()
+        xw.Range('Z:Z').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
         #Range('A2').value = np.arange(50).reshape((50,1))+1
+        wb.sh = sh
         return wb
 
     def switchsheet(self,i):
         'Switch the active sheet with name supplied'
-        from xlwings import Sheet
-        Sheet(i+1).activate()
+        #from xlwings import Sheet
+        wb.sheets(i+1).activate()
+        wb.sh = wb.sheets(i+1)
 
     def save2xl(self,filename=None):
         """
@@ -1021,7 +1027,7 @@ class dict_position:
         Program to save the points contained in the spreadsheet to a kml file
         """
         import simplekml
-        from xlwings import Sheet
+        #from xlwings import Sheet
         if not filename:
             raise NameError('filename not defined')
             return
@@ -1036,9 +1042,9 @@ class dict_position:
             filenamenet = filename+'_net.kml'
             #self.netkml.save(filenamenet)
         self.kml = simplekml.Kml()
-        for j in xrange(Sheet.count()):
+        for j in xrange(self.wb.sheets.count()):
             self.switchsheet(j)
-            self.name = Sheet(j+1).name
+            self.name = self.wb.sheets(j+1).name
             self.check_xl()
             self.calculate()
             self.kmlfolder = self.kml.newfolder(name=self.name)
@@ -1257,11 +1263,11 @@ def populate_ex_arr(filename=None,colorcycle=['red','blue','green']):
     History:
         written: Samuel LeBlanc, NASA Ames, Santa Cruz, CA 2015-09-10
     """
-    from xlwings import Workbook,Sheet
+    import xlwings as xw #from xlwings import Workbook,Sheet
     import excel_interface as ex
     arr = []
-    wb = Workbook(filename)
-    num = Sheet.count()
+    wb = xw.Book(filename)
+    num = wb.sheets.count()
     for i in range(num):
         if i==0:
             campaign = 'None'
@@ -1285,45 +1291,40 @@ def save2xl_for_pilots(filename,ex_arr):
     History:
         written: Samuel LeBlanc, NASA Ames, CA 2016-07-28
     """
-    from xlwings import Workbook,Sheet,Range
-    from excel_interface import format_lat_lon
-    wb_pilot = Workbook()
+    import xlwings as xw #from xlwings import Workbook,Sheet,Range
+    from excel_interface import format_lat_lon, freeze_top_pane
+    wb_pilot = xw.Book()
     sheet_one = True
     for a in ex_arr:
         if sheet_one:
-            Sheet(1).name = a.name
+            wb_pilot.sheets(1).name = a.name
             sheet_one = False
         else:
-            Sheet(1).add(name=a.name)
-        Range('A1').value = ['WP','Lat\n[+-90]','Lon\n[+-180]',
+            wb_pilot.sheets(1).add(name=a.name)
+        xw.Range('A1').value = ['WP','Lat\n[+-90]','Lon\n[+-180]',
                              'Altitude\n[kft]','Comments']
-        top_line = Range('A1').horizontal
-        address = top_line.get_address(False,False)
-        from sys import platform
-        if platform.startswith('win'):
-            from win32com.client import Dispatch
-            xl = Dispatch("Excel.Application")
-            xl.ActiveWorkbook.Windows(1).SplitRow = 1.0
-            xl.Range(address).Font.Bold = True
-        top_line.autofit()
-        Range('G2:J2').number_format = 'hh:mm'
-        Range('W1').value = a.datestr
-        Range('X1').value = a.campaign
-        Range('Z1').value = 'Created with'
-        Range('Z2').value = 'moving_lines'
-        Range('Z3').value = a.__version__
-        Range('W:W').autofit('c')
-        Range('X:X').autofit('c')
-        Range('Z:Z').autofit('c')
+        freeze_top_pane(wb_pilot)
+        xw.Range('G2:J2').number_format = 'hh:mm'
+        xw.Range('W1').value = a.datestr
+        xw.Range('X1').value = a.campaign
+        xw.Range('Z1').value = 'Created with'
+        xw.Range('Z2').value = 'moving_lines'
+        xw.Range('Z3').value = a.__version__
+        xw.Range('W:W').autofit()
+        xw.Range('W:W').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
+        xw.Range('X:X').autofit()
+        xw.Range('X:X').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
+        xw.Range('Z:Z').autofit()
+        xw.Range('Z:Z').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCent
         for i in range(len(a.lon)):
             lat_f,lon_f = format_lat_lon(a.lat[i],a.lon[i],format=a.pilot_format)
             if a.delayt[i]>3.0:
                 comment = 'delay: {} min, {}'.format(a.delayt[i],a.comments[i])
             else:
                 comment = a.comments[i]
-            Range('A{:d}'.format(i+2)).value = [a.WP[i],lat_f,lon_f,a.alt_kft[i],comment]
-        Range('A{:d}'.format(i+4)).value = 'One line waypoints for foreflight:'
-        Range('A{:d}'.format(i+5)).value = one_line_points(a)
+            xw.Range('A{:d}'.format(i+2)).value = [a.WP[i],lat_f,lon_f,a.alt_kft[i],comment]
+        xw.Range('A{:d}'.format(i+4)).value = 'One line waypoints for foreflight:'
+        xw.Range('A{:d}'.format(i+5)).value = one_line_points(a)
     wb_pilot.save(filename)
     try:
         wb_pilot.close()
@@ -1378,3 +1379,25 @@ def get_curdir():
     else:
         path = dirname(realpath(argv[0]))
     return path
+    
+def freeze_top_pane(wb):
+    'Freezes and formats the top pane window in the current excel workbook (wb)'
+    import xlwings as xw
+    active_window = wb.app.api.ActiveWindow
+    active_window.FreezePanes = False
+    active_window.SplitColumn = 0
+    active_window.SplitRow = 6
+    active_window.FreezePanes = True
+    
+    wb.sheets.active.range('1:1').font.bold = True
+    wb.sheets.active.range('1:1').autofit()
+    
+    ## old way
+    #from sys import platform
+    #if platform.startswith('win'):
+    #    from win32com.client import Dispatch
+    #    xl = Dispatch("Excel.Application")
+    #    xl.ActiveWorkbook.Windows(1).SplitRow = 1.0
+    #    xl.Range(address).Font.Bold = True
+    
+    return
