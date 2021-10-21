@@ -366,7 +366,7 @@ class dict_position:
         Program to override the current speed written in and calculate a new one
         """
         self.n = len(self.lon)
-        for i in xrange(self.n-1):
+        for i in range(self.n-1):
             self.speed[i+1] = self.calcspeed(self.alt[i],self.alt[i+1])
             self.speed_kts[i+1] = self.speed[i+1]*1.94384449246
 
@@ -570,79 +570,54 @@ class dict_position:
         Priority is always given to metric
         """
         from xlwings import Range
+        import xlwings as xw
         import numpy as np
         self.wb.sh.activate() #self.wb.set_current()
-        tmp = Range('A2:U%i'%(self.n+1)).value
-        tmp0 = Range('A2:U2').table.value
-        tmp2 = Range('B2:U2').table.value
-        dim = np.shape(tmp)
-        if len(dim)==1:
-            tmp = [tmp]
-            dim = np.shape(tmp)
-        dim0 = np.shape(tmp0)
-        if len(dim0)==1: dim0 = np.shape([tmp0])
-        n0,_ = dim0
-        n1,_ = dim
-        dim2 = np.shape(tmp2)
-        if len(dim2)==1: dim2 = np.shape([tmp2])
-        n2,_ = dim2
-        if n0>n1:
-            tmp = tmp0
-        if n2>n0:
-            tmp2 = Range('A2:U%i'%(n2+1)).value
-            if len(np.shape(tmp2))==1:
-                tmp = [tmp2]
-            else:
-                tmp = tmp2
-            if self.verbose:
-                print('updated to the longer points on lines:%i' %n2)
-        if self.verbose:
-            print('vertical num: %i, range num: %i' %(n0,n1))
+        row_start = 2
+        last_row = xw.Range((self.wb.sheets.active.cells.last_cell.row,2)).end('up').row
+        tmp = Range((row_start,1),(last_row,26)).value 
+        
+        if len(np.shape(tmp))==1: tmp = [tmp]
+        # run through each line to check for updates
+        deleted = False
+        for i,t in reversed(list(enumerate(tmp))):
+            if t[1] is None or t[2] is None:#lat or lon is deleted
+                self.dels(i)
+                self.n = self.n-1
+                Range((i+row_start,1),(i+row_start,26)).delete() 
+                deleted = True
+        
+        # check updated sheets (after deletions)
+        last_row = xw.Range((self.wb.sheets.active.cells.last_cell.row,2)).end('up').row
+        tmp = Range((row_start,1),(last_row,26)).value
+        if len(np.shape(tmp))==1: tmp = [tmp]
         num = 0
-        num_del = 0
         for i,t in enumerate(tmp):
-            if len(t)<16: continue
-            wp,lat,lon,sp,dt,alt,clt,utc,loc,lt,d,cd,dnm,cdnm,spkt,altk = t[0:16]
-            try:
-                sza,azi,bear,clbt,comm = t[16:21]
-            except:
-                sza,azi,comm = t[16:19]
-            if wp > self.n:
-                num = num+1
-                self.appends(lat,lon,sp,dt,alt,clt,utc,loc,lt,d,cd,dnm,cdnm,spkt,altk,comm=comm)
-            elif not wp: # check if empty
-                if not lat:
-                    num = num+1
-                    self.dels(i)
-                    self.move_xl(i)
-                    self.n = self.n-1
-                    return True
-                else:
-                    num = num+1
-                    self.appends(lat,lon,sp,dt,alt,clt,utc,loc,lt,d,cd,dnm,cdnm,spkt,altk,comm=comm)
-            else:
-                changed = self.mods(i,lat,lon,sp,spkt,dt,alt,altk,comm)
+            if i>self.n-1: #new points
+                self.appends(*t[1:16],comm=t[21])
+                num = num + 1
+            else: # check if modifications
+                changed = self.mods(i,t[1],t[2],t[3],t[14],t[4],t[5],t[15],t[20])
                 if i == 0:
-                    if self.utc[i] != utc*24.0:
-                        self.utc[i] = utc*24.0
+                    if self.utc[i] != t[7]*24.0:
+                        self.utc[i] = t[7]*24.0
                         changed = True
                 if changed: num = num+1
-                if self.verbose:
-                    print('Modifying line #%i' %i)
-        if self.n>(i+1):
-            if self.verbose:
-                print('deleting points')
-            for j in range(i+1,self.n-1):
-                self.dels(j)
-                self.n = self.n-1
-                num = num+1
-        if num>0:
+        
+        # closeout and updates if needed
+        if num>0 or deleted:
             if self.verbose:
                 print('Updated %i lines from Excel, recalculating and printing' % num)
             self.calculate()
             self.write_to_excel()
         self.num_changed = num
-        return False
+        
+        # wp,lat,lon,sp,dt,alt,clt,utc,loc,lt,d,cd,dnm,cdnm,spkt,altk = t[0:16]
+        # try:
+            # sza,azi,bear,clbt,comm = t[16:21]
+        # except:
+            # sza,azi,comm = t[16:19]
+        return deleted
 
     def move_xl(self,i):
         """
@@ -1013,7 +988,7 @@ class dict_position:
                 '  LegT[H]  Dist[km]  CumDist[km]'+
                 '  Dist[nm]  CumDist[nm]  Speed[kt]'+
                 '  Altitude[kft]  SZA[deg]  AZI[deg]  Bearing[deg]  Climbt[min]  Comments\n')
-        for i in xrange(self.n):
+        for i in range(self.n):
             f.write("""%-2i  %+2.8f  %+2.8f  %-4.2f  %-3i  %-5.1f  %-2.2f  %-2.2f  %-2.2f  %-2.2f  %-5.1f  %-5.1f  %-5.1f  %-5.1f  %-3.1f %-3.2f  %-3.1f  %-3.1f  %-3.1f  %-3i  %s  \n""" %(
                     i+1,self.lon[i],self.lat[i],self.speed[i],
                     self.delayt[i],self.alt[i],self.cumlegt[i],
@@ -1042,7 +1017,7 @@ class dict_position:
             filenamenet = filename+'_net.kml'
             #self.netkml.save(filenamenet)
         self.kml = simplekml.Kml()
-        for j in xrange(self.wb.sheets.count()):
+        for j in range(self.wb.sheets.count()):
             self.switchsheet(j)
             self.name = self.wb.sheets(j+1).name
             self.check_xl()
@@ -1077,7 +1052,7 @@ class dict_position:
         if not self.kml:
             raise NameError('kml not initilaized')
             return
-        for i in xrange(self.n):
+        for i in range(self.n):
             pnt = folder.newpoint()
             pnt.name = 'WP # {}'.format(self.WP[i])
             pnt.coords = [(self.lon[i],self.lat[i],self.alt[i]*10.0)]
