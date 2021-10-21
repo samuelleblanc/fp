@@ -8,7 +8,7 @@ except:
 try:
     import cartopy.crs as ccrs
     import cartopy.feature as cfeature
-    import matplotlib.pyplot as plt
+    #import matplotlib.pyplot as plt
 except:
     pass
 import numpy as np
@@ -98,9 +98,10 @@ class LineBuilder:
         self.ys = list(line.get_ydata())
         if self.m:
             self.lons,self.lats = self.xs,self.ys #self.lons,self.lats = self.m(self.xs,self.ys,inverse=True)
-            self.large = self.m.large
-            self.par = self.m.par
-            self.mer = self.m.mer
+            if not self.m.use_cartopy:
+                self.large = self.m.large
+                self.par = self.m.par
+                self.mer = self.m.mer
         self.connect()
         self.line.axes.format_coord = self.format_position_simple
         self.press = None
@@ -109,15 +110,15 @@ class LineBuilder:
         self.circlesoff = False
         self.moving = False
         self.lbl = None
+        self.tb = tb
         self.verbose = verbose
         self.blit = blit
-        self.get_bg()
-        if not tb:
-         #   import matplotlib.pyplot as plt
-         #   self.tb = plt.get_current_fig_manager().toolbar
-            print('No tb set, will not work')
-        else:
-            self.tb = tb
+        try:
+            self.get_bg()
+        except:
+            import pdb; pdb.set_trace()
+
+            
 
     def connect(self):
         'Function to connect all events'
@@ -765,7 +766,7 @@ class LineBuilder:
         bearing_end = bearing([self.lats[i],self.lons[i]],[newlat,newlon])
         return bearing_end,dist_end        
         
-def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,proj='cyl',profile=None,larger=True, use_cartopy=True):
+def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj='cyl',profile=None,larger=True, use_cartopy=True):
     """
     First try at a building of the basemap with a 'stere' projection
     Must put in the values of the lower left corner and upper right corner (lon and lat)
@@ -804,7 +805,7 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,proj='cyl',pr
         else:
             dp = 0
         if use_cartopy:
-            m = plt.axes(projection=ccrs.PlateCarree())
+            m = fig.add_subplot(111,projection=ccrs.PlateCarree())          
             m.use_cartopy = True
         else:
             if proj is 'cyl':
@@ -836,6 +837,8 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,proj='cyl',pr
         
         m.orig_xlim = m.get_xlim()
         m.orig_ylim = m.get_ylim()
+        m.large = True
+        m.figure.canvas.draw()
         
     else:
         m.drawcoastlines()
@@ -1170,7 +1173,7 @@ def get_sat_tracks_from_tle(datestr):
         sat[k]['ephem'].compute(sat[k]['d'][0])
         sat[k]['lat'] = [np.rad2deg(sat[k]['ephem'].sublat)]
         sat[k]['lon'] = [np.rad2deg(sat[k]['ephem'].sublong)]
-        for t in xrange(24*60*2):
+        for t in range(24*60*2):
             d = ephem.Date(sat[k]['d'][t]+ephem.minute/2.0)
             sat[k]['d'].append(d)
             sat[k]['ephem'].compute(d)

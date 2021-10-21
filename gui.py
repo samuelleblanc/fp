@@ -19,9 +19,9 @@ class gui:
         line object from linebuilder, with connected excel_interface
     outputs:
         none, only gui and its object
-        Modifies the Tkinter Basemap window via calls to plotting
+        Modifies the tkinter Basemap window via calls to plotting
     Dependencies:
-        Tkinter
+        tkinter
         excel_interface
         os.path
         matplotlib
@@ -39,7 +39,7 @@ class gui:
         Modified: Samuel LeBlanc, 2015-09-10, Santa Cruz, CA
 	          - adding new flight path for another plane capabilities
         Modified: Samuel LeBlanc, 2015-09-15, NASA Ames
-                  - added Tkinter dialog classes fopr special gui interactions
+                  - added tkinter dialog classes fopr special gui interactions
                       -initial profile setting of Basemap
                       -select flights/points
                       -move points
@@ -74,7 +74,7 @@ class gui:
                   
     """
     def __init__(self,line=None,root=None,noplt=False):
-        import Tkinter as tk
+        import tkinter as tk
         if not line:
             print('No line_builder object defined')
             return
@@ -106,7 +106,7 @@ class gui:
             geometry (str): The standard Tk geometry string.
                 [width]x[height]+[left]+[top]
         """
-        import Tkinter as tk
+        import tkinter as tk
         
         root_nul = tk.Tk()
         root_nul.update_idletasks()
@@ -127,7 +127,7 @@ class gui:
         """
         Simple gui file select program. Uses TKinter for interface, returns full path
         """
-        from Tkinter import Tk
+        from tkinter import Tk
         from tkFileDialog import askopenfilename
         from os.path import abspath
         Tk().withdraw() # we don't want a full GUI, so keep the root window from appearing
@@ -143,7 +143,7 @@ class gui:
         Simple gui file save select program.
         Uses TKinter for interface, returns full path
         """
-        from Tkinter import Tk
+        from tkinter import Tk
         from tkFileDialog import asksaveasfilename
         from os.path import abspath
         Tk().withdraw() # we don't want a full GUI, so keep the root window from appearing
@@ -156,7 +156,7 @@ class gui:
         Simple gui file path select program.
         Uses TKinter for interface, returns full path to directory
         """
-        from Tkinter import Tk
+        from tkinter import Tk
         from tkFileDialog import askdirectory
         from os.path import abspath, curdir
         Tk().withdraw() # we don't want a full GUI, so keep the root window from appearing
@@ -200,7 +200,7 @@ class gui:
         if not self.line:
             print('No line object')
             return
-        import tkMessageBox
+        import tkinter.messagebox as tkMessageBox
         tkMessageBox.showwarning('Saving one flight','Saving flight path of:%s' %self.line.ex.name)
         filename = self.gui_file_save(ext='.txt',ftype=[('All files','*.*'),
                                                          ('Plain text','*.txt')])
@@ -287,7 +287,7 @@ class gui:
         if not self.line:
             print('No line object')
             return
-        import tkMessageBox
+        import tkinter.messagebox as tkMessageBox
         tkMessageBox.showwarning('Saving one flight','Saving flight path in form of ict for:%s' %self.line.ex.name)
         filepath = self.gui_file_path(title='Select directory to save ict file')
         if not filepath: return
@@ -300,12 +300,12 @@ class gui:
             from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
             from gui import custom_toolbar
             from matplotlib.figure import Figure
-            import Tkinter as tk
+            import tkinter as tk
             root = tk.Toplevel()
             root.wm_title('Alt vs. Time: {}'.format(self.line.ex.name))
             fig = Figure()
             canvas = FigureCanvasTkAgg(fig, master=root)
-            canvas.show()
+            canvas.draw()
             canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
             tb = custom_toolbar(canvas,root)
             tb.pack(side=tk.BOTTOM)
@@ -349,12 +349,12 @@ class gui:
             from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
             from gui import custom_toolbar
             from matplotlib.figure import Figure
-            import Tkinter as tk
+            import tkinter as tk
             root = tk.Toplevel()
             root.wm_title('Alt vs. Latitude: {}'.format(self.line.ex.name))
             fig = Figure()
             canvas = FigureCanvasTkAgg(fig, master=root)
-            canvas.show()
+            canvas.draw()
             canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
             tb = custom_toolbar(canvas,root)
             tb.pack(side=tk.BOTTOM)
@@ -387,7 +387,7 @@ class gui:
 
     def gui_plotsza(self):
         'gui function to plot the solar zenith angle of the flight path'
-        #import tkMessageBox
+        #import tkinter.messagebox as tkMessageBox
         #tkMessageBox.showwarning('Sorry','Feature not yet implemented') 
         #return 
         if not self.noplt:
@@ -396,13 +396,13 @@ class gui:
         from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
         from gui import custom_toolbar
         from matplotlib.figure import Figure
-        import Tkinter as tk
+        import tkinter as tk
         root = tk.Toplevel()
         root.wm_title('Solar position vs. Time: {}'.format(self.line.ex.name))
         root.geometry('800x550')
         fig = Figure()
         canvas = FigureCanvasTkAgg(fig, master=root)
-        canvas.show()
+        canvas.draw()
         canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         tb = custom_toolbar(canvas,root)
         tb.pack(side=tk.BOTTOM)
@@ -446,7 +446,7 @@ class gui:
 
     def load_flight(self,ex):
         'Program to populate the arrays of multiple flights with the info of one array'
-        import Tkinter as tk
+        import tkinter as tk
         self.colors.append(ex.color)
         self.line.tb.set_message('load_flight values for:%s' %ex.name)
 
@@ -465,9 +465,10 @@ class gui:
 
     def gui_newflight(self):
         'Program to call and create a new excel spreadsheet'
-        import tkSimpleDialog,tkMessageBox
+        import tkinter.simpledialog as tkSimpleDialog
+        import tkinter.messagebox as tkMessageBox
         import excel_interface as ex
-        import Tkinter as tk
+        import tkinter as tk
         if self.newflight_off:
             tkMessageBox.showwarning('Sorry','Feature not yet implemented')
             return
@@ -503,11 +504,12 @@ class gui:
 
     def gui_removeflight(self):
         'Program to call and remove a flight path from the plotting'
-        import tkSimpleDialog,tkMessageBox
+        import tkinter.simpledialog as tkSimpleDialog
+        import tkinter.messagebox as tkMessageBox
         tkMessageBox.showwarning('Sorry','Feature not yet implemented')
         return
         import excel_interface as ex
-        import Tkinter as tk
+        import tkinter as tk
         from gui import Select_flights
         self.name_arr = []
         for x in self.line.ex_arr:
@@ -527,7 +529,7 @@ class gui:
     def gui_changeflight(self):
         'method to switch out the active flight path that is used'
         if self.newflight_off:
-            import tkMessageBox
+            import tkinter.messagebox as tkMessageBox
             tkMessageBox.showwarning('Sorry','Feature not yet implemented')
             return
         self.flightselect_arr[self.iactive.get()].select()
@@ -587,7 +589,7 @@ class gui:
         'gui program to run through and save all the file formats, without verbosity, for use in distribution'
         from os import path
         from excel_interface import save2xl_for_pilots
-        import tkMessageBox
+        import tkinter.messagebox as tkMessageBox
         filename = self.gui_file_save(ext='*',ftype=[('Excel','*.xlsx')])
         if not filename:
             tkMessageBox.showwarning('Cancelled','Saving all files cancelled')
@@ -664,7 +666,7 @@ class gui:
         """
         make the gui with buttons
         """
-        import Tkinter as tk
+        import tkinter as tk
         self.bopenfile = tk.Button(self.root,text='Open Excel file',
                                    command=self.gui_open_xl)
         self.bsavexl = tk.Button(self.root,text='Save Excel file',
@@ -733,13 +735,13 @@ class gui:
             self.line.movepoint(0,0,0,last=True)
             self.line.moving = False
         except:
-            import tkMessageBox
+            import tkinter.messagebox as tkMessageBox
             tkMessageBox.showwarning('Sorry','Error occurred unable to move points')
         return
         
     def gui_rotatepoints(self):
         'GUI button to rotate many points at once'
-        import tkSimpleDialog
+        import tkinter.simpledialog as tkSimpleDialog
         from gui import Select_flights
         wp_arr = []
         for w in self.line.ex.WP:
@@ -768,7 +770,7 @@ class gui:
         
     def gui_addsat(self,label_sep=20):
         'Gui button to add the satellite tracks'
-        from tkMessageBox import askquestion
+        from tkinter.messagebox import askquestion
         answer = askquestion('Verify import satellite tracks','Do you want to get the satellite tracks from the internet?')
         if answer == 'yes':
             from map_interactive import load_sat_from_net, get_sat_tracks, plot_sat_tracks
@@ -831,7 +833,7 @@ class gui:
     def gui_addaeronet(self):
         'Gui function to add the aeronet points on the map, with a colorbar'
         import aeronet
-        import tkMessageBox
+        import tkinter.messagebox as tkMessageBox
         from datetime import datetime
         from dateutil.relativedelta import relativedelta
         self.line.tb.set_message('Getting the aeronet files from http://aeronet.gsfc.nasa.gov/')
@@ -879,7 +881,7 @@ class gui:
         
     def gui_addbocachica(self):
         'GUI handler for adding bocachica foreacast maps to basemap plot'
-        import tkMessageBox
+        import tkinter.messagebox as tkMessageBox
         try:
             from scipy.misc import imread
             filename = self.gui_file_select(ext='.png',ftype=[('All files','*.*'),
@@ -912,7 +914,7 @@ class gui:
         
     def gui_addtidbit(self):
         'GUI handler for adding tropical tidbit foreacast maps to basemap plot'
-        import tkMessageBox
+        import tkinter.messagebox as tkMessageBox
         try:
             from scipy.misc import imread
             filename = self.gui_file_select(ext='.png',ftype=[('All files','*.*'),
@@ -945,7 +947,7 @@ class gui:
         
     def gui_addtrajectory(self):
         'GUI handler for adding bocachica foreacast maps to basemap plot'
-        import tkMessageBox
+        import tkinter.messagebox as tkMessageBox
         try:
             from scipy.misc import imread
             filename = self.gui_file_select(ext='.png',ftype=[('All files','*.*'),
@@ -978,7 +980,7 @@ class gui:
 
     def gui_addfigure(self,ll_lat=None,ll_lon=None,ur_lat=None,ur_lon=None):
         'GUI handler for adding figures forecast maps to basemap plot'
-        import tkSimpleDialog
+        import tkinter.simpledialog as tkSimpleDialog
         try:
             from scipy.misc import imread
             import PIL
@@ -992,7 +994,7 @@ class gui:
             print('Opening png File: %s' %filename)
             img = imread(filename)
         except:
-            import tkMessageBox
+            import tkinter.messagebox as tkMessageBox
             tkMessageBox.showwarning('Sorry','Error occurred unable to load file')
             return
 	# get the corners
@@ -1039,7 +1041,7 @@ class gui:
             
     def gui_add_SUA_WMS(self):
         'Button to add Special Use Airspace WMS layer'
-        import tkMessageBox
+        import tkinter.messagebox as tkMessageBox
         tkMessageBox.showwarning('SUA for US only','Special Use Airspace for US only')
         r = self.add_WMS(website='https://sua.faa.gov/geoserver/wms?LAYERS=SUA',name='SUA',
                          printurl=True,notime=True,alpha=0.5,popup=False,
@@ -1052,7 +1054,7 @@ class gui:
                 name='GEOS',printurl=False,notime=False,alpha=1.0,popup=True,cql_filter=None,hires=False): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
         'GUI handler for adding the figures from WMS support of GEOS'
         from gui import Popup_list
-        import tkMessageBox
+        import tkinter.messagebox as tkMessageBox
         if hires:
             res = (2160,1680)
         else:
@@ -1243,7 +1245,7 @@ class gui:
     
    # def gui_python(self):
    #     'Program to open a new window with a python command line'
-   #     import Tkinter as tk
+   #     import tkinter as tk
    #     from gui import prompt
    #     root = tk.Toplevel()
    #     root.wm_title('Python command line')
@@ -1281,7 +1283,7 @@ class Select_flt_mod(tkSimpleDialog.Dialog):
     """
     import tkinter as tk
     def __init__(self,flt_mods,title='Choose flt module',text='Select flt module:',height=1080):
-        import Tkinter as tk
+        import tkinter as tk
         parent = tk._default_root
         self.flt_mods = flt_mods
         self.text = text
@@ -1289,7 +1291,7 @@ class Select_flt_mod(tkSimpleDialog.Dialog):
         tkSimpleDialog.Dialog.__init__(self,parent,title)
         pass
     def body(self,master):
-        import Tkinter as tk
+        import tkinter as tk
         from PIL import Image, ImageTk
         self.rbuttons = []
         self.flt = tk.StringVar()
@@ -1336,7 +1338,7 @@ class Select_flights(tkSimpleDialog.Dialog):
         written: Samuel LeBlanc, 2015-09-14, NASA Ames, Santa Cruz, CA
     """
     def __init__(self,pt_list,title='Choose flight',Text='Select points:',parent=None):
-        import Tkinter as tk
+        import tkinter as tk
         if not parent:
             parent = tk._default_root
         self.pt_list = pt_list
@@ -1345,8 +1347,8 @@ class Select_flights(tkSimpleDialog.Dialog):
         pass
     
     def body(self,master):
-        import tkSimpleDialog
-        import Tkinter as tk
+        import tkinter.simpledialog as tkSimpleDialog
+        import tkinter as tk
         self.results = []
         tk.Label(master, text=self.Text).grid(row=0)
 
@@ -1381,7 +1383,7 @@ class Move_point(tkSimpleDialog.Dialog):
                   - added pp (principal plane) keyword for setting the bearing along the principal plane
     """
     def __init__(self,title='New point info',speed=None,pp=None):
-        import Tkinter as tk
+        import tkinter as tk
         self.speed = speed
         self.pp = pp
         parent = tk._default_root
@@ -1389,8 +1391,8 @@ class Move_point(tkSimpleDialog.Dialog):
         pass
     
     def body(self,master):
-        import tkSimpleDialog
-        import Tkinter as tk
+        import tkinter.simpledialog as tkSimpleDialog
+        import tkinter as tk
         tk.Label(master, text='Enter Distance [km]').grid(row=0)
         tk.Label(master, text='Enter Bearing, 0-360, [degrees CW from North]').grid(row=1)
         self.edist = tk.Entry(master)
@@ -1429,10 +1431,10 @@ class Move_point(tkSimpleDialog.Dialog):
                 try:
                     self.time = float(self.etime.get())
                 except ValueError:
-                    import tkMessageBox
+                    import tkinter.messagebox as tkMessageBox
                     tkMessageBox.showwarning('Bad input','Can not format distance and time values, try again')
             else:
-                import tkMessageBox
+                import tkinter.messagebox as tkMessageBox
                 tkMessageBox.showwarning('Bad input','Can not format distance and time values, try again')
         try:
             self.bear = float(self.ebear.get())
@@ -1441,10 +1443,10 @@ class Move_point(tkSimpleDialog.Dialog):
                 try:
                     self.bear = float(self.epp.get())+float(self.pp)
                 except ValueError:
-                    import tkMessageBox
+                    import tkinter.messagebox as tkMessageBox
                     tkMessageBox.showwarning('Bad input','Can not format bearing and pp values, try again')
             else:
-                import tkMessageBox
+                import tkinter.messagebox as tkMessageBox
                 tkMessageBox.showwarning('Bad input','Can not format bearing and pp values, try again')
         return True
 
@@ -1453,7 +1455,7 @@ class ask(tkSimpleDialog.Dialog):
     Simple class to ask to enter values for each item in names
     """
     def __init__(self,names,choice=[],choice_title=None,choice2=[],choice2_title=None,title='Enter numbers',defaults=[]):
-        import Tkinter as tk
+        import tkinter as tk
         self.names = names
         self.defaults = defaults
         self.choice = choice
@@ -1464,7 +1466,7 @@ class ask(tkSimpleDialog.Dialog):
         tkSimpleDialog.Dialog.__init__(self,parent,title)
         pass
     def body(self,master):
-        import Tkinter as tk
+        import tkinter as tk
         self.radb_val = tk.StringVar()
         self.radb_val.set(self.choice[0])
         self.radbutton = []
@@ -1661,7 +1663,7 @@ class Select_profile(tkSimpleDialog.Dialog):
             uc = float(self.utc_convert.get())
             sa = float(self.start_alt.get())
         except ValueError:
-            import tkMessageBox
+            import tkinter.messagebox as tkMessageBox
             tkMessageBox.showwarning('Bad input','Can not format values, try again')
             return False
         return True
@@ -1677,7 +1679,7 @@ class Popup_list(tkSimpleDialog.Dialog):
     Outputs:
         index value of selection
     Dependencies:
-        Tkinter
+        tkinter
     MOdifications:
         written: Samuel LeBlanc, 2015-09-16, NASA Ames, CA
         Modified: Samuel LeBlanc, 2016-07-13, NASA WFF, VA
@@ -1686,7 +1688,7 @@ class Popup_list(tkSimpleDialog.Dialog):
                   - added the multi keyword for selecting multiple possible values
     """
     def __init__(self,arr,title='Select graphics from server',Text=None,multi=False):
-        import Tkinter as tk
+        import tkinter as tk
         self.arr = arr
         parent = tk._default_root
         self.multi = multi
@@ -1694,7 +1696,7 @@ class Popup_list(tkSimpleDialog.Dialog):
         tkSimpleDialog.Dialog.__init__(self,parent,title)
         
     def body(self,master):
-        import Tkinter as tk
+        import tkinter as tk
         if self.Text:
             tk.Label(master, text=self.Text).pack()
         if self.multi:
@@ -1730,18 +1732,18 @@ class ask_option(tkSimpleDialog.Dialog):
     program to ask to select between two options with buttons
     """
     def __init__(self,title='Select option',Text=None,button1='At End',button2='In Between\npoints'):
-        import Tkinter as tk
+        import tkinter as tk
         self.b1 = button1
         self.b2 = button2
         parent = tk._default_root
         self.Text = Text
         tkSimpleDialog.Dialog.__init__(self,parent,title)
     def body(self,master):
-        import Tkinter as tk
+        import tkinter as tk
         if self.Text:
             tk.Label(master, text=self.Text).pack()
     def buttonbox(self):
-        import Tkinter as tk
+        import tkinter as tk
         box = tk.Frame(self)
         self.out = tk.IntVar()
         def but1():
@@ -1756,7 +1758,7 @@ class ask_option(tkSimpleDialog.Dialog):
         self.bind("<Escape>", self.cancel)
         box.pack()
     def but(self,i):
-        import Tkinter as tk
+        import tkinter as tk
         self.out.set(i)
         self.ok()        
         
@@ -1784,7 +1786,7 @@ class custom_toolbar(NavigationToolbar2TkAgg):
     def zoom(self, *args):
         'decorator for the zoom function'
         super(custom_toolbar,self).zoom(*args)
-        if self._active=='ZOOM':
+        if self.mode=='ZOOM':
             self.buttons['zoom'].config(bg='dark grey')
             self.buttons['pan'].config(bg=self.bg)
         else:
@@ -1814,7 +1816,7 @@ class custom_toolbar(NavigationToolbar2TkAgg):
     def pan(self, *args):
         'decorator for the pan function'
         super(custom_toolbar,self).pan(*args)
-        if self._active=='PAN':
+        if self.mode=='PAN':
             self.buttons['pan'].config(bg='dark grey')
             self.buttons['zoom'].config(bg=self.bg)
         else:
@@ -1866,7 +1868,7 @@ def gui_file_select_fx(ext='*',
     """
     Simple gui file select program. Uses TKinter for interface, returns full path
     """
-    from Tkinter import Tk
+    from tkinter import Tk
     from tkFileDialog import askopenfilename
     from os.path import abspath
     Tk().withdraw() # we don't want a full GUI, so keep the root window from appearing

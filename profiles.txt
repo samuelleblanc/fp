@@ -1,8 +1,3 @@
-{'Profile':'TRACER-AQ','Plane_name':'GV',
-                 'Start_lon':'95 09 32W','Start_lat':'29 36 26N',
-                 'Lon_range':[-105,-77],'Lat_range':[21,34],
-                 'UTC_start':13.5,'UTC_conversion':-5.0,
-                 'start_alt':10.0}
 {'Profile':'IMPACTS-WFF','Plane_name':'P3',
                  'Start_lon':'75.466389W','Start_lat':'37.940194N',
                  'Lon_range':[-92,-65],'Lat_range':[30,50],
@@ -13,6 +8,11 @@
                  'Lon_range':[-92,-65],'Lat_range':[30,50],
                  'UTC_start':13.5,'UTC_conversion':-5.0,
                  'start_alt':12.8}
+{'Profile':'TRACER-AQ','Plane_name':'GV',
+                 'Start_lon':'95 09 32W','Start_lat':'29 36 26N',
+                 'Lon_range':[-105,-77],'Lat_range':[21,34],
+                 'UTC_start':13.5,'UTC_conversion':-5.0,
+                 'start_alt':10.0}
 {'Profile':'ARCSIX','Plane_name':'P3',
                  'Start_lon':'68 42 11W','Start_lat':'76 31 52N', 
                  'Lon_range':[-80,-7.5],'Lat_range':[65,89],

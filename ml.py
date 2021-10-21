@@ -85,10 +85,12 @@ try:
 except:
     import tkinter as tk
     import tkinter as Tkinter
+from tkinter import ttk
 try:
     from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 except:
-    from matplotlib.backends.backend_tkagg import FigureCanvasTk as FigureCanvasTkAgg
+    #from matplotlib.backends.backend_tkagg import FigureCanvasTk as FigureCanvasTkAgg
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
     from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk as NavigationToolbar2TkAgg
 from matplotlib.figure import Figure
 #import numpy as np
@@ -197,7 +199,46 @@ def Get_default_profile(filename):
                      'UTC_start':20.0,'UTC_conversion':+7,
                      'start_alt':95.0}]
     return profile
-        
+
+
+class window:
+    def __init__(self, root):
+        self.root = root
+        self.root.wm_title('Moving Lines: Flight planning '+__version__)
+        self.root.geometry('900x950')
+        self.w = 900
+        self.fig = Figure()
+        #self.ax1 = self.fig.add_subplot(111)
+        try:
+            self.root.tk.call('wm','iconbitmap',ui.root._w,'-default',icon_filename)
+        except:
+            pass
+        self.create_left_buttons()
+        self.create_right_graph()    
+
+    def create_right_graph(self):
+        right_frame = ttk.Frame(self.root)
+        right_frame.pack(side=tk.RIGHT,fill=tk.BOTH,expand=True)
+        self.canvas = FigureCanvasTkAgg(self.fig,right_frame) 
+        self.canvas.get_tk_widget().pack(in_=right_frame,side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+        self.canvas.draw()
+        self.tb = NavigationToolbar2TkAgg(self.canvas,right_frame)
+        self.tb.pack(in_=right_frame,side=tk.BOTTOM)
+        self.tb.update()
+        self.canvas._tkcanvas.pack(in_=right_frame,side=tk.TOP,fill=tk.BOTH, expand=1)
+
+    def create_left_buttons(self):
+        left_frame = ttk.Frame(self.root)
+        left_frame.pack(side=tk.LEFT,expand=False)
+        side = tk.TOP
+        h = 2
+        w = 20
+        label = ttk.Label(self.root,text='by Samuel LeBlanc\n NASA Ames')
+        label.pack(in_=left_frame,side=tk.BOTTOM)
+        self.left_frame = left_frame
+        self.top = left_frame
+
+
 def Create_gui(vertical=True):
     'Program to set up gui interaction with figure embedded'
     class ui:
@@ -221,7 +262,7 @@ def Create_gui(vertical=True):
         ui.bot.pack(side=tk.BOTTOM,fill=tk.BOTH,expand=True)
     ui.fig = Figure()
     ui.ax1 = ui.fig.add_subplot(111)
-    ui.canvas = FigureCanvasTkAgg(ui.fig,master=ui.root)
+    ui.canvas = FigureCanvasTkAgg(ui.fig,master=ui.bot)
     try:
         ui.canvas.show()
     except:
@@ -236,7 +277,7 @@ def Create_gui(vertical=True):
 def build_buttons(ui,lines,vertical=True):
     'Program to set up the buttons'
     import gui
-    import Tkinter as tk
+    import tkinter as tk
     from matplotlib.colors import cnames
 
     if vertical:
@@ -388,8 +429,8 @@ def build_buttons(ui,lines,vertical=True):
     #                     command = g.gui_python)
     #g.bpythoncmd.pack(in_=ui.top)
     
-    g.label = tk.Label(g.root,text='by Samuel LeBlanc\n NASA Ames')
-    g.label.pack(in_=ui.top)
+    #g.label = tk.Label(g.root,text='by Samuel LeBlanc\n NASA Ames')
+    #g.label.pack(in_=ui.top)
     
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
              ).pack(in_=ui.top,side=side,padx=8,pady=5)
@@ -464,10 +505,11 @@ def Create_interaction(test=False,profile=None,**kwargs):
     warnings.simplefilter(action = "ignore", category = FutureWarning)
     
     goto_cwd()
-    ui = Create_gui()
+    ui = window(tk.Tk()) #Create_gui()
     ui.tb.set_message('Creating basemap')
     profile = Get_basemap_profile()
-    m = mi.build_basemap(ax=ui.ax1,profile=profile)
+    m = mi.build_basemap(fig=ui.fig,profile=profile)
+    ui.ax1 = m
     if profile:
         sla,slo = profile['Start_lat'],profile['Start_lon']
     else:
@@ -487,7 +529,7 @@ def Create_interaction(test=False,profile=None,**kwargs):
     wb = ex.dict_position(datestr=ui.datestr,color=line.get_color(),profile=profile,
          version=__version__,platform_file=platform_filename,**kwargs)
     ui.tb.set_message('Building the interactivity on the map')
-    lines = mi.LineBuilder(line,m=m,ex=wb,tb=ui.tb,blit=True)
+    lines = mi.LineBuilder(line,m=m,ex=wb,tb=ui.tb,blit=False)
     ui.tb.set_message('Saving temporary excel file')
     savetmp(ui,wb)
     

@@ -573,8 +573,8 @@ class dict_position:
         import numpy as np
         self.wb.sh.activate() #self.wb.set_current()
         tmp = Range('A2:U%i'%(self.n+1)).value
-        tmp0 = Range('A2:U2').vertical.value
-        tmp2 = Range('B2:U2').vertical.value
+        tmp0 = Range('A2:U2').table.value
+        tmp2 = Range('B2:U2').table.value
         dim = np.shape(tmp)
         if len(dim)==1:
             tmp = [tmp]
@@ -988,8 +988,8 @@ class dict_position:
     def switchsheet(self,i):
         'Switch the active sheet with name supplied'
         #from xlwings import Sheet
-        wb.sheets(i+1).activate()
-        wb.sh = wb.sheets(i+1)
+        self.wb.sheets(i+1).activate()
+        self.wb.sh = wb.sheets(i+1)
 
     def save2xl(self,filename=None):
         """
@@ -1386,7 +1386,7 @@ def freeze_top_pane(wb):
     active_window = wb.app.api.ActiveWindow
     active_window.FreezePanes = False
     active_window.SplitColumn = 0
-    active_window.SplitRow = 6
+    active_window.SplitRow = 1
     active_window.FreezePanes = True
     
     wb.sheets.active.range('1:1').font.bold = True
