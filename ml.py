@@ -131,7 +131,7 @@ except:
 #import six, six.moves
 import warnings
 
-__version__ = 'v1.26'
+__version__ = 'v1.27'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'
@@ -399,9 +399,9 @@ def build_buttons(ui,lines,vertical=True):
                          command = g.dummy_func)
     g.baddaeronet.pack(in_=ui.top)
     g.baddaeronet.config(command=g.gui_addaeronet)
-    g.baddgeos = tk.Button(g.root,text='Add GEOS Forecast',
-                         command = g.gui_addgeos)
-    g.baddgeos.pack(in_=ui.top)
+    #g.baddgeos = tk.Button(g.root,text='Add GEOS Forecast',
+    #                     command = g.gui_addgeos)
+    #g.baddgeos.pack(in_=ui.top)
     g.baddsua = tk.Button(g.root,text='Add Special Use Airspace',
                          command = g.gui_add_SUA_WMS)
     g.baddsua.pack(in_=ui.top)

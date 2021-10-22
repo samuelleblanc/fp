@@ -924,7 +924,13 @@ class gui:
         except Exception as e:
             tkMessageBox.showwarning('Sorry','Loading image file from Tropical tidbits not working...'+e)
             return
-        ll_lat,ll_lon,ur_lat,ur_lon = 21.22,-106.64,51.70,-57.46
+        regions = {'CONUS':[18.94,-130.38,57.54,-59.35],'Eastern US':[21.25,-106.64,51.73,-57.46],
+                    'North-Central US':[35.61,-105.95,51.94,-76.48],'South-Central US':[24.53,-111.95,43.06,-83.53],
+                    'Northeast US':[34.65,-87.84,48.83,-62.72],'Southeast US':[21.51,-99.08,41.20,-67.36]}
+        reg_list = list(regions.keys())
+        p0 = Popup_list(reg_list,title='Which Region?',Text='Select the region of the figure:',multi=False)
+        ll_lat,ll_lon,ur_lat,ur_lon = regions[reg_list[p0.result]]
+        #ll_lat,ll_lon,ur_lat,ur_lon = 21.22,-106.64,51.70,-57.46
         self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon,name=filename)
         #self.line.addfigure_under(img[710:795,35:535,:],ll_lat-7.0,ll_lon,ll_lat-5.0,ur_lon-10.0,outside=True)
         self.baddtidbit.config(text='Remove Tropical tidbit')
@@ -1229,7 +1235,6 @@ class gui:
         from gui import Select_flt_mod
         flt_mods = get_flt_modules()
         select = Select_flt_mod(flt_mods,height=self.height)
-        self.line.parse_flt_module_file(select.mod_path)
         try:
             print('Applying the flt_module {}'.format(select.selected_flt))
             self.line.parse_flt_module_file(select.mod_path)
@@ -1595,16 +1600,18 @@ class Select_profile(tkSimpleDialog.Dialog):
         e.insert(tk.END,val)
     
     def apply(self):
-        self.profile = {'Plane_name':self.name.get(),
-                        'Start_lon':self.start_lon.get(),
-                        'Start_lat':self.start_lat.get(),
-                        'Lon_range':[self.lon0.get(),self.lon1.get()],
-                        'Lat_range':[self.lat0.get(),self.lat1.get()],
-                        'UTC_start':float(self.start_utc.get()),
-                        'UTC_conversion':float(self.utc_convert.get()),
-                        'start_alt':float(self.start_alt.get()),
-                        'Campaign':self.pname.get()
-                        }
+        for p in self.default_profiles:
+            if p['Profile']==self.pname.get():
+                self.profile = p
+        self.profile['Plane_name'] = self.name.get()
+        self.profile['Start_lon'] = self.start_lon.get()
+        self.profile['Start_lat'] = self.start_lat.get()
+        self.profile['Lon_range'] = [self.lon0.get(),self.lon1.get()]
+        self.profile['Lat_range'] = [self.lat0.get(),self.lat1.get()]
+        self.profile['UTC_start'] = float(self.start_utc.get())
+        self.profile['UTC_conversion'] = float(self.utc_convert.get())
+        self.profile['start_alt'] = float(self.start_alt.get())
+        self.profile['Campaign'] = self.pname.get()
         return self.profile
 
     def check_input(self,s,isletter=False):
