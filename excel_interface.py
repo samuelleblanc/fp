@@ -964,7 +964,7 @@ class dict_position:
         'Switch the active sheet with name supplied'
         #from xlwings import Sheet
         self.wb.sheets(i+1).activate()
-        self.wb.sh = wb.sheets(i+1)
+        self.wb.sh = self.wb.sheets(i+1)
 
     def save2xl(self,filename=None):
         """
@@ -1017,7 +1017,7 @@ class dict_position:
             filenamenet = filename+'_net.kml'
             #self.netkml.save(filenamenet)
         self.kml = simplekml.Kml()
-        for j in range(self.wb.sheets.count()):
+        for j in range(self.wb.sheets.count):
             self.switchsheet(j)
             self.name = self.wb.sheets(j+1).name
             self.check_xl()
@@ -1118,7 +1118,7 @@ class dict_position:
                                   longitude=self.lon[i],
                                   elevation = self.alt[i],
                                   time = self.utc2datetime(self.utc[i]),
-                                  comments = self.comments[i]
+                                  comment = self.comments[i]
                                   )
             route.points.append(rp)
         f.routes.append(route)
@@ -1242,7 +1242,7 @@ def populate_ex_arr(filename=None,colorcycle=['red','blue','green']):
     import excel_interface as ex
     arr = []
     wb = xw.Book(filename)
-    num = wb.sheets.count()
+    num = wb.sheets.count
     for i in range(num):
         if i==0:
             campaign = 'None'
@@ -1290,7 +1290,7 @@ def save2xl_for_pilots(filename,ex_arr):
         xw.Range('X:X').autofit()
         xw.Range('X:X').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
         xw.Range('Z:Z').autofit()
-        xw.Range('Z:Z').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCent
+        xw.Range('Z:Z').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
         for i in range(len(a.lon)):
             lat_f,lon_f = format_lat_lon(a.lat[i],a.lon[i],format=a.pilot_format)
             if a.delayt[i]>3.0:

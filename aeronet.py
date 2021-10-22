@@ -32,10 +32,20 @@ def get_aeronet(daystr=None,lat_range=[],lon_range=[],lev='LEV10',avg=True,dayst
                  - added keywords for choosing which aeronet level to read (lev) and if to return the averages or not.
     """
     import numpy as np
-    from BeautifulSoup import BeautifulSoup
-    from StringIO import StringIO
-    from urllib import urlopen
-    from datetime import datetime
+    try:
+        from BeautifulSoup import BeautifulSoup
+    except:
+        from bs4 import BeautifulSoup 
+    try:
+        from StringIO import StringIO
+    except:
+        from io import StringIO, BytesIO
+    try:
+        from urllib import urlopen
+    except:
+        from urllib.request import urlopen
+        import ssl    
+    from datetime import datetime, timedelta
     from load_utils import recarray_to_dict
     
     # validate input
@@ -67,6 +77,10 @@ def get_aeronet(daystr=None,lat_range=[],lon_range=[],lev='LEV10',avg=True,dayst
             warnings.warn("Date set to future, using today's date")
     if not daystr2: 
         daystr2 = daystr
+        # get previous day
+        yesterday = dd_now-timedelta(days=1)
+        daystr = yesterday.strftime('%Y-%m-%d')
+        
   
     url = 'http://aeronet.gsfc.nasa.gov/cgi-bin/{urlnm}?year={yyyy}&month={mm:02.0f}&day={dd:02.0f}&year2={yyyy2}'+\
           '&month2={mm2:02.0f}&day2={dd2:02.0f}&{lev}=1&AVG={avg}'
@@ -80,11 +94,11 @@ def get_aeronet(daystr=None,lat_range=[],lon_range=[],lev='LEV10',avg=True,dayst
     print( 'Getting file from internet: at aeronet.gsfc.nasa.gov')
     print( url)
     try:
-        htm = urlopen(url)
+        htm = urlopen(url,context=ssl.SSLContext())
         html = htm.read()
-        soup = BeautifulSoup(html)
-    except:
-        print( 'failed to communicate with AERONET internet site - returning nothing')
+        soup = BeautifulSoup(html,"html.parser")
+    except Exception as e:
+        print( 'failed to communicate with AERONET internet site - returning nothing',e)
         return False
     lines = []
     for ibr,br in enumerate(soup.findAll('br')):
@@ -96,13 +110,16 @@ def get_aeronet(daystr=None,lat_range=[],lon_range=[],lev='LEV10',avg=True,dayst
             if 'Number_of_Wavelengths' in nt:
                 nt = nt.strip()+',exact_wvl2,exact_wvl3,exact_wvl4,exact_wvl5'
         lines.append(nt.strip()+'\n')
+    if len(lines)<1: 
+        print('AERONET site returned no valid data for the dates: {} to {}'.format(daystr,daystr2))
+        return False
     s = StringIO(''.join(lines))
     s.seek(0)
     
     try:
         dat = np.genfromtxt(s,delimiter=',',names=True,dtype=None)
     except IndexError:
-        print( 'Failed to read the returned html file')
+        print( 'Failed to read the returned html file',s.readlines(),lines)
         #return s
         return False
     fields_to_ignore = ['AERONET_Site_Name','Principal_Investigator','PI_Email','Dateddmmyy']

@@ -75,7 +75,9 @@ class LineBuilder:
         Modified: Samuel LeBlanc, 2019-06-03, Santa Cruz, CA
                  - fix linepicker issue with newer matplotlib. 
         Modified: Samuel LeBlanc, 2021-04-09, Santa Cruz, CA
-                 - added continuity of meridians and parallels for problematic issues - bug fix in zooming out.        
+                 - added continuity of meridians and parallels for problematic issues - bug fix in zooming out. 
+        Modified: Samuel LeBlanc, 2021-10-21, Santa Cruza, CA
+                - Migrated from python 2 to python 3.9, with cartopy and new version of xlwings.
                  
     """
     def __init__(self, line,m=None,ex=None,verbose=False,tb=None, blit=True):
@@ -98,8 +100,8 @@ class LineBuilder:
         self.ys = list(line.get_ydata())
         if self.m:
             self.lons,self.lats = self.xs,self.ys #self.lons,self.lats = self.m(self.xs,self.ys,inverse=True)
+            self.large = self.m.large
             if not self.m.use_cartopy:
-                self.large = self.m.large
                 self.par = self.m.par
                 self.mer = self.m.mer
         self.connect()
@@ -242,7 +244,10 @@ class LineBuilder:
         if self.moving: return
 
         if (self.tb.mode == 'zoom rect') | (self.tb.mode == 'pan/zoom') | (self.tb.mode!=''):
-            self.redraw_pars_mers()
+            #self.redraw_pars_mers()
+            
+            self.m.llcrnrlat,self.m.urcrnrlat = self.m.get_ylim() 
+            self.m.llcrnrlon,self.m.urcrnrlon = self.m.get_xlim()
             self.get_bg()
             return
         elif self.tb.mode!='':
@@ -290,6 +295,7 @@ class LineBuilder:
                 continue
         self.update_labels()
         self.line.figure.canvas.draw()
+        self.get_bg()
             
 
     def onmotion(self,event):
@@ -466,6 +472,7 @@ class LineBuilder:
         'Program to do a deep copy of the line object in the LineBuilder class'
         x,y = self.line.get_data()
         line_new, = self.m.plot(x[0],y[0],'o-',linewidth=self.line.get_linewidth()) 
+        line_new.labels_points = self.line_arr[-1].labels_points
         self.line_arr.append(line_new)
 
     def removeline(self,i):
@@ -473,54 +480,21 @@ class LineBuilder:
         self.line_arr[i].set_data([],[])
         self.line_arr[i].remove()
 
-    def addfigure_under(self,img,ll_lat,ll_lon,ur_lat,ur_lon,outside=False,text=None,alpha=0.5,**kwargs):
+    def addfigure_under(self,img,ll_lat,ll_lon,ur_lat,ur_lon,outside=False,text=None,alpha=0.5,name='None',**kwargs):
         'Program to add a figure under the basemap plot'
+        try: 
+            self.m.figure_under
+        except AttributeError:
+            self.m.figure_under = {}
+        self.m.figure_under[name] = self.m.imshow(img,origin='upper',transform=self.m.proj,extent=[ll_lon,ur_lon,ll_lat,ur_lat])
 
-        left,bottom = ll_lon,ll_lat #self.m(ll_lon,ll_lat)
-        right,top = ur_lon,ur_lat #self.m(ur_lon,ur_lat)
-        try:
-            lons = np.linspace(ll_lon,ur_lon,num=img.shape[1])
-            lats = np.linspace(ll_lat,ur_lat,num=img.shape[0])
-            print('in first try addfigure under')
-        except AttributeError:
-            lons = np.linspace(ll_lon,ur_lon,num=img.size[1])
-            lats = np.linspace(ll_lat,ur_lat,num=img.size[0])
-        if (ur_lon-ll_lon) < (self.m.urcrnrlon-self.m.llcrnrlon):
-            too_big_extent = True
-        else:
-            too_big_extent = False
-        ix = np.where((lats>self.m.llcrnrlat)&(lats<self.m.urcrnrlat))[0]
-        iy = np.where((lons>self.m.llcrnrlon)&(lons<self.m.urcrnrlon))[0]
-        try:
-            si = img.shape[0]
-            ix = img.shape[0]-ix
-        except AttributeError:
-            si = img.size[0]
-            ix = img.size[0]-ix
-        ix[ix==si] = si-1
-        if not outside:
-            self.m.figure_under = None
-            #self.m.imshow(img,zorder=0,extent=[left,right,top,bottom],**kwargs)
-            try:
-                if too_big_extent:
-                    try:
-                        x0,y0 = ll_lon,ll_lat #self.m(ll_lon,ll_lat)
-                        x1,y1 = ur_lon,ur_lat #self.m(ur_lon,ur_lat)
-                        self.m.figure_under = self.m.ax.imshow(np.flipud(img[ix,:,:][:,iy,:]),zorder=0,alpha=alpha,extent=[x0,x1,y0,y1],**kwargs)
-                    except:
-                        import pdb
-                        pdb.set_trace()
-                else:
-                    self.m.figure_under = self.m.imshow(img[ix,:,:][:,iy,:],zorder=0,alpha=alpha,**kwargs)
-            except Exception as ie:
-                print('problem occurred when placing under figure, trying anyway')
-                print(ie)
-                self.m.figure_under = self.m.imshow(img,zorder=0,alpha=alpha,**kwargs)
-        else:
-            u = self.m.imshow(img,clip_on=False,**kwargs)
         if text:
+            try: 
+                self.m.figure_under_text
+            except AttributeError:
+                self.m.figure_under_text = {}
             try:
-                self.m.figure_under_text = self.m.ax.text(0.0,0.0,text,transform=self.m.ax.transAxes)
+                self.m.figure_under_text[name] = self.m.ax.text(0.0,0.0,text,transform=self.m.ax.transAxes)
             except:
                 print('Problem adding text on figure, continuning...')
         self.line.figure.canvas.draw()
@@ -734,6 +708,8 @@ class LineBuilder:
         'program to store the canvas background. Used for blit technique'
         if redraw:
             self.line.figure.canvas.draw()
+        self.m.llcrnrlat,self.m.urcrnrlat = self.m.get_ylim() 
+        self.m.llcrnrlon,self.m.urcrnrlon = self.m.get_xlim()
         self.bg = self.line.figure.canvas.copy_from_bbox(self.line.axes.bbox)
 
     def draw_canvas(self,extra_points=[]):
@@ -789,7 +765,7 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj
     else:
         lat0 = (upper_right[1]+lower_left[1])/2.0
         lon0 = (upper_right[0]+lower_left[0])/2.0
-    print(proj,lat0,lon0)
+    #print(proj,lat0,lon0)
     if larger:
         dp = 30
     else:
@@ -805,10 +781,12 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj
         else:
             dp = 0
         if use_cartopy:
-            m = fig.add_subplot(111,projection=ccrs.PlateCarree())          
+            proj = ccrs.PlateCarree()
+            m = fig.add_subplot(111,projection=proj)
+            m.proj = proj
             m.use_cartopy = True
         else:
-            if proj is 'cyl':
+            if proj == 'cyl':
                 m = Basemap(projection=proj,lon_0=lon0,lat_0=lat0,
                     llcrnrlon=lower_left[0]-dp, llcrnrlat=(lower_left[1]-dp if lower_left[1]-dp>-90 else -90),
                     urcrnrlon=upper_right[0]+dp, urcrnrlat=(upper_right[1]+dp if upper_right[1]+dp<90 else 90),resolution='i',ax=ax)
@@ -828,17 +806,22 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj
         land_50m = cfeature.NaturalEarthFeature('physical', 'land', '50m',edgecolor='k',
                                                 facecolor=cfeature.COLORS['land']+0.0625)
         provinces_50m = cfeature.NaturalEarthFeature('cultural','admin_1_states_provinces_lines','50m',facecolor='none')
-        m.gridlines(draw_labels=True)
-        m.add_feature(land_50m)
-        m.add_feature(cfeature.LAKES, facecolor=[0.69375   , 0.81484375, 0.9828125 ])
-        m.add_feature(cfeature.RIVERS, facecolor=[0.69375   , 0.81484375, 0.9828125 ])
+        m.gridlines(draw_labels=True,auto_update=True)
+        m.add_feature(land_50m,alpha=0.1)
+        m.add_feature(cfeature.LAKES, facecolor=[0.69375   , 0.81484375, 0.9828125 ],alpha=0.3)
+        m.add_feature(cfeature.RIVERS,alpha=0.2)
         m.add_feature(provinces_50m)
         m.add_feature(cfeature.BORDERS)
         
+        m.set_extent([lower_left[0], upper_right[0],lower_left[1],upper_right[1]])
+        
         m.orig_xlim = m.get_xlim()
         m.orig_ylim = m.get_ylim()
-        m.large = True
+        m.llcrnrlat,m.urcrnrlat = m.get_ylim() 
+        m.llcrnrlon,m.urcrnrlon = m.get_xlim()
+        m.large = False
         m.figure.canvas.draw()
+        m.ax = m.axes
         
     else:
         m.drawcoastlines()
@@ -990,7 +973,7 @@ def plot_map_labels(m,filename,marker=None,skip_lines=0,color='k',textcolor='k')
         else:
             ma = l['marker'] 
         point = m.plot(x,y,color=color,marker=ma)
-        m.ax.annotate(l['label'],(xtxt,ytxt),color=textcolor)
+        m.annotate(l['label'],(xtxt,ytxt),color=textcolor)
         point[0].set_pickradius(10)
         labels_points.append(point[0])
     return labels_points
@@ -1122,6 +1105,9 @@ def plot_sat_tracks(m,sat,label_every=20):
     """
     import map_utils as mu
     sat_obj = []
+    sat_lines = {}
+    sat_text = {}
+    sat_keys = []
     for k in sat.keys():
         if type(sat[k]) is dict:
             lon = sat[k]['lon']
@@ -1129,24 +1115,67 @@ def plot_sat_tracks(m,sat,label_every=20):
         else:
             (lon,lat) = sat[k]
         x,y = lon,lat # x,y = m(lon,lat)
-        sat_obj.append(m.plot(x,y,marker='.',label=k,linestyle='-',linewidth=0.2))
+        tmp_l = m.plot(x,y,marker='.',label=k,linestyle='-',linewidth=0.2)
+        sat_obj.append(tmp_l)
+        sat_lines[k] = tmp_l
+        sat_keys.append(k)
         co = sat_obj[-1][-1].get_color()
         #sat_obj.append(mu.mplot_spec(m,lon,lat,'-',linewidth=0.2))
         if type(sat[k]) is dict:
-            latrange = [m.llcrnrlat,m.urcrnrlat]
-            lonrange = [m.llcrnrlon,m.urcrnrlon]
+            try:
+                latrange = [m.llcrnrlat,m.urcrnrlat]
+                lonrange = [m.llcrnrlon,m.urcrnrlon]
+            except:
+                latrange = m.get_ylim()
+                lonrange = m.get_xlim()
+            sat_text[k] = []
             for i,d in enumerate(sat[k]['d']):
                 if not i%label_every:
                     if ((lat[i]>=latrange[0])&(lat[i]<=latrange[1])&(lon[i]>=lonrange[0])&(lon[i]<=lonrange[1])):
                         sat_obj.append(m.ax.text(x[i],y[i],'%02i:%02i' % (d.tuple()[3],d.tuple()[4]),color=co))
+                        sat_text[k].append(sat_obj[-1])
     if len(sat.keys())>4:
         ncol = 2
     else:
         ncol = 1
     sat_legend = m.ax.legend(loc='lower right',bbox_to_anchor=(1.05,1.04),ncol=ncol)
-    sat_legend.draggable()
+    #try:    
+    #    sat_legend.draggable()
+    #except:
+    #    sat_legend.set_draggable(True)
+    #handle the toggle visibility
+    sat_leg_lines = sat_legend.get_lines()
+    graphs = {}
+    texts = {}
+    for i,k in enumerate(sat_keys):
+        graphs[sat_leg_lines[i]] = sat_lines[k]
+        texts[sat_leg_lines[i]] = sat_text[k]
+        sat_leg_lines[i].set_picker(5)
+        sat_leg_lines[i].set_lw(0.8)
+        #sat_leg_lines[i].set_pickradius(5)
+    graphs['lastserial'] = 0
+    
+    def on_pick_legend(event):
+        legend0 = event.artist
+#        global lastserial
+        if event.guiEvent.serial == graphs['lastserial']: return
+        graphs['lastserial'] = event.guiEvent.serial
+        isVisible = True if graphs[legend0][0].get_alpha() is None else (True if graphs[legend0][0].get_alpha() else False)
+        [g.set_visible(not isVisible) for g in graphs[legend0]]
+        [g.set_alpha(1.0 if not isVisible else 0) for g in graphs[legend0]]
+
+        for te in texts[legend0]: 
+            te.set_visible(not isVisible)
+            te.set_alpha(1.0 if not isVisible else 0)
+        legend0.set_alpha(1.0 if not isVisible else 0.2) #set_visible(not isVisible)
+        #print(legend0,'toggled, for line:',graphs[legend0],isVisible,legend0.get_alpha)
+        #import pdb; pdb.set_trace()
+        m.figure.canvas.draw()
+    
+    leg_onpick = m.figure.canvas.mpl_connect('pick_event',on_pick_legend)
     m.ax.add_artist(sat_legend)
     sat_obj.append(sat_legend)
+    #sat_obj.append(leg_onpick)
     return sat_obj
 
 def get_sat_tracks_from_tle(datestr):

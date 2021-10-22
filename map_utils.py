@@ -217,8 +217,11 @@ def equi(m, centerlon, centerlat, radius, *args, **kwargs):
     Y.append(Y[0])
 
     #m.plot(X,Y,**kwargs) #Should work, but doesn't...
-    X,Y = m(X,Y)
-    line = m.ax.plot(X,Y,**kwargs)
+    try:
+        X,Y = m(X,Y)
+        line = m.ax.plot(X,Y,**kwargs)
+    except:
+        line = m.plot(X,Y,**kwargs)
     return line
 
 

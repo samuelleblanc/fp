@@ -8,6 +8,8 @@ except:
     from matplotlib.backends._backend_tk import ToolTip
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk as NavigationToolbar2TkAgg
 from matplotlib.backend_bases import Event
+from matplotlib.image import imread
+import numpy as np
 
 class gui:
     """
@@ -128,7 +130,7 @@ class gui:
         Simple gui file select program. Uses TKinter for interface, returns full path
         """
         from tkinter import Tk
-        from tkFileDialog import askopenfilename
+        from tkinter.filedialog import askopenfilename
         from os.path import abspath
         Tk().withdraw() # we don't want a full GUI, so keep the root window from appearing
         filename = askopenfilename(defaultextension=ext,filetypes=ftype) # show an "Open" dialog box and return the path to the selected file
@@ -144,7 +146,7 @@ class gui:
         Uses TKinter for interface, returns full path
         """
         from tkinter import Tk
-        from tkFileDialog import asksaveasfilename
+        from tkinter.filedialog import asksaveasfilename
         from os.path import abspath
         Tk().withdraw() # we don't want a full GUI, so keep the root window from appearing
         filename = asksaveasfilename(defaultextension=ext,filetypes=ftype) # show an "Open" dialog box and return the path to the selected file
@@ -157,7 +159,7 @@ class gui:
         Uses TKinter for interface, returns full path to directory
         """
         from tkinter import Tk
-        from tkFileDialog import askdirectory
+        from tkinter.filedialog import askdirectory
         from os.path import abspath, curdir
         Tk().withdraw() # we don't want a full GUI, so keep the root window from appearing
         if not initial_dir:
@@ -229,7 +231,7 @@ class gui:
         if not filename: return
         print('Saving Pilot Excel file to :'+filename)
         save2xl_for_pilots(filename,self.line.ex_arr)
-        self.line.ex.wb.set_current()
+        self.line.ex.wb.sh.activate()
 
     def gui_open_xl(self):
         if not self.line:
@@ -254,7 +256,8 @@ class gui:
             b.destroy()
         self.flightselect_arr = []
         try:
-            self.line.m.figure_under.remove()
+            for k in list(self.line.m.figure_under.keys()):
+                k.remove()
         except:
             pass
         try:
@@ -307,7 +310,7 @@ class gui:
             canvas = FigureCanvasTkAgg(fig, master=root)
             canvas.draw()
             canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-            tb = custom_toolbar(canvas,root)
+            tb = NavigationToolbar2TkAgg(canvas,root)
             tb.pack(side=tk.BOTTOM)
             tb.update()
             canvas._tkcanvas.pack(side=tk.TOP,fill=tk.BOTH,expand=1)
@@ -356,7 +359,7 @@ class gui:
             canvas = FigureCanvasTkAgg(fig, master=root)
             canvas.draw()
             canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-            tb = custom_toolbar(canvas,root)
+            tb = NavigationToolbar2TkAgg(canvas,root)
             tb.pack(side=tk.BOTTOM)
             tb.update()
             canvas._tkcanvas.pack(side=tk.TOP,fill=tk.BOTH,expand=1)
@@ -404,7 +407,7 @@ class gui:
         canvas = FigureCanvasTkAgg(fig, master=root)
         canvas.draw()
         canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        tb = custom_toolbar(canvas,root)
+        tb = NavigationToolbar2TkAgg(canvas,root)
         tb.pack(side=tk.BOTTOM)
         tb.update()
         canvas._tkcanvas.pack(side=tk.TOP,fill=tk.BOTH,expand=1)
@@ -546,7 +549,7 @@ class gui:
         if not self.line:
             print('No line object')
             return
-        filename = self.gui_file_save(ext='.png')
+        filename = self.gui_file_save(ext='.png',ftype=[('PNG','*.png')])
         if not filename: return
         legend,grey_index = self.prep_mapsave()
         if type(self.line.line) is list:
@@ -645,13 +648,13 @@ class gui:
         'function to force a refresh of the plotting window'
         self.line.onfigureenter([1])
         self.refresh_speed()
-        self.line.redraw_pars_mers()
+        #self.line.redraw_pars_mers()
         self.line.get_bg()
         
     def refresh_nospeed(self,*arg,**karg):
         'function to force a refresh of the plotting window'
         self.line.onfigureenter([1])
-        self.line.redraw_pars_mers()
+        #self.line.redraw_pars_mers()
         self.line.get_bg()
         
     def refresh_speed(self):
@@ -713,8 +716,7 @@ class gui:
                 wp_arr.append('WP #%i'%w)
             p0 = Popup_list(wp_arr,title='After which point?',Text='Select the point before the one you want to add:',multi=False)
             #print('p0 result ',p0.result[0],p0.result[:],int(p0.result))
-            i0 = int(p0.result[:])
-            #print('indexed point ',i0)
+            i0 = p0.result
             m = Move_point(speed=self.line.ex.speed[-1],pp=self.line.ex.azi[-1])
             self.line.newpoint(m.bear,m.dist,insert=True,insert_i=i0)            
 
@@ -729,8 +731,6 @@ class gui:
             m = Move_point()
             self.line.moving = True
             for i in p.result:
-            #for i,val in enumerate(p.result):
-            #    if val:
                 self.line.movepoint(i,m.bear,m.dist,last=False)
             self.line.movepoint(0,0,0,last=True)
             self.line.moving = False
@@ -757,8 +757,7 @@ class gui:
             return
         self.line.moving = True
         # get the rotation point
-        for i,val in enumerate(p0.result):
-            lat0,lon0 = self.line.lats[int(val)],self.line.lons[int(val)]
+        lat0,lon0 = self.line.lats[int(p0.result)],self.line.lons[int(p0.result)]
         # rotate agains that center point
         for i in p.result:
         #for i,val in enumerate(p.result):
@@ -883,7 +882,6 @@ class gui:
         'GUI handler for adding bocachica foreacast maps to basemap plot'
         import tkinter.messagebox as tkMessageBox
         try:
-            from scipy.misc import imread
             filename = self.gui_file_select(ext='.png',ftype=[('All files','*.*'),
                         				  ('PNG','*.png')])
             if not filename:
@@ -895,18 +893,18 @@ class gui:
             tkMessageBox.showwarning('Sorry','Loading image file from Bocachica not working...')
             return
         ll_lat,ll_lon,ur_lat,ur_lon = -40.0,-30.0,10.0,40.0
-        self.line.addfigure_under(img[42:674,50:1015,:],ll_lat,ll_lon,ur_lat,ur_lon)
+        self.line.addfigure_under(img[42:674,50:1015,:],ll_lat,ll_lon,ur_lat,ur_lon,name=filename)
         #self.line.addfigure_under(img[710:795,35:535,:],ll_lat-7.0,ll_lon,ll_lat-5.0,ur_lon-10.0,outside=True)
         self.baddbocachica.config(text='Remove Forecast\nfrom Bocachica')
-        self.baddbocachica.config(command=self.gui_rmbocachica,bg='dark grey')
+        self.baddbocachica.config(command=lambda: self.gui_rmbocachica(filename),bg='dark grey')
         
-    def gui_rmbocachica(self):
+    def gui_rmbocachica(self,name):
         'GUI handler for removing the bocachica forecast image'
         self.line.tb.set_message('Removing bocachica figure under')
         try:
-            self.line.m.figure_under.remove()
+            self.line.m.figure_under[name].remove()
         except:
-            for f in self.line.m.figure_under:
+            for f in self.line.m.figure_under[name]:
                 f.remove()
         self.baddbocachica.config(text='Add Forecast\nfrom Bocachica')
         self.baddbocachica.config(command=self.gui_addbocachica,bg=self.bg)
@@ -916,7 +914,6 @@ class gui:
         'GUI handler for adding tropical tidbit foreacast maps to basemap plot'
         import tkinter.messagebox as tkMessageBox
         try:
-            from scipy.misc import imread
             filename = self.gui_file_select(ext='.png',ftype=[('All files','*.*'),
                         				  ('PNG','*.png')])
             if not filename:
@@ -924,22 +921,22 @@ class gui:
                 return
             print('Opening png File:'+filename)
             img = imread(filename)
-        except:
-            tkMessageBox.showwarning('Sorry','Loading image file from Tropical tidbits not working...')
+        except Exception as e:
+            tkMessageBox.showwarning('Sorry','Loading image file from Tropical tidbits not working...'+e)
             return
         ll_lat,ll_lon,ur_lat,ur_lon = 21.22,-106.64,51.70,-57.46
-        self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon)
+        self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon,name=filename)
         #self.line.addfigure_under(img[710:795,35:535,:],ll_lat-7.0,ll_lon,ll_lat-5.0,ur_lon-10.0,outside=True)
         self.baddtidbit.config(text='Remove Tropical tidbit')
-        self.baddtidbit.config(command=self.gui_rmtidbit,bg='dark grey')
+        self.baddtidbit.config(command=lambda: self.gui_rmtidbit(filename),bg='dark grey')
         
-    def gui_rmtidbit(self):
+    def gui_rmtidbit(self,name):
         'GUI handler for removing the tropical tidbit forecast image'
         self.line.tb.set_message('Removing Tropical tidbit figure under')
         try:
-            self.line.m.figure_under.remove()
+            self.line.m.figure_under[name].remove()
         except:
-            for f in self.line.m.figure_under:
+            for f in self.line.m.figure_under[name]:
                 f.remove()
         self.baddtidbit.config(text='Add Tropical tidbit')
         self.baddtidbit.config(command=self.gui_addtidbit,bg=self.bg)
@@ -949,7 +946,6 @@ class gui:
         'GUI handler for adding bocachica foreacast maps to basemap plot'
         import tkinter.messagebox as tkMessageBox
         try:
-            from scipy.misc import imread
             filename = self.gui_file_select(ext='.png',ftype=[('All files','*.*'),
                         				  ('PNG','*.png')])
             if not filename:
@@ -961,18 +957,18 @@ class gui:
             tkMessageBox.showwarning('Sorry','Loading image file from Bocachica not working...')
             return
         ll_lat,ll_lon,ur_lat,ur_lon = -59.392,-47.46,26.785,47.5
-        self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon)
+        self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon,name=filename)
         #self.line.addfigure_under(img[710:795,35:535,:],ll_lat-7.0,ll_lon,ll_lat-5.0,ur_lon-10.0,outside=True)
         self.baddtrajectory.config(text='Remove trajectory\nImage')
-        self.baddtrajectory.config(command=self.gui_rmtrajectory,bg='dark grey')
+        self.baddtrajectory.config(command=lambda: self.gui_rmtrajectory(filename),bg='dark grey')
         
-    def gui_rmtrajectory(self):
+    def gui_rmtrajectory(self,name):
         'GUI handler for removing the bocachica forecast image'
         self.line.tb.set_message('Removing trajectory figure under')
         try:
-            self.line.m.figure_under.remove()
+            self.line.m.figure_under[name].remove()
         except:
-            for f in self.line.m.figure_under:
+            for f in self.line.m.figure_under[name]:
                 f.remove()
         self.baddtrajectory.config(text='Add Trajectory\nImage')
         self.baddtrajectory.config(command=self.gui_addtrajectory,bg=self.bg)
@@ -982,7 +978,6 @@ class gui:
         'GUI handler for adding figures forecast maps to basemap plot'
         import tkinter.simpledialog as tkSimpleDialog
         try:
-            from scipy.misc import imread
             import PIL
             filename = self.gui_file_select(ext='.png',ftype=[('All files','*.*'),
                                                           ('PNG','*.png'),
@@ -1003,19 +998,19 @@ class gui:
             ll_lon = tkSimpleDialog.askfloat('Lower left lon','Lower left lon? [deg]')
             ur_lat = tkSimpleDialog.askfloat('Upper right lat','Upper right lat? [deg]')
             ur_lon = tkSimpleDialog.askfloat('Upper right lon','Upper right lon? [deg]')
-        self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon)
-        self.baddfigure.config(text='Remove Forecast\nfrom image')
-        self.baddfigure.config(command=self.gui_rmfigure,bg='dark grey')
+        self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon,name=filename)
+        self.baddfigure.config(text='Remove image')
+        self.baddfigure.config(command=lambda: self.gui_rmfigure(filename),bg='dark grey')
     
-    def gui_rmfigure(self):
+    def gui_rmfigure(self,name):
         'GUI handler for removing the forecast image'
         self.line.tb.set_message('Removing figure under')
         try:
-            self.line.m.figure_under.remove()
+            self.line.m.figure_under[name].remove()
         except:
-            for f in self.line.m.figure_under:
+            for f in self.line.m.figure_under[name]:
                 f.remove()
-        self.baddfigure.config(text='Add Forecast\nfrom image',command=self.gui_addfigure,bg=self.bg)
+        self.baddfigure.config(text='Add image',command=self.gui_addfigure,bg=self.bg)
         self.line.get_bg(redraw=True)
         
     def gui_addgeos(self):
@@ -1033,11 +1028,11 @@ class gui:
         popup = Popup_list(arr)
         i = popup.var.get()
         self.line.tb.set_message('Selected WMS server: {}'.format(out[i]['name']))
-        r = self.add_WMS(website=out[i]['website'],name=out[i]['name'],printurl=True,notime=out[i]['notime'])
+        r = self.add_WMS(website=out[i]['website'],name='WMS',printurl=True,notime=out[i]['notime'])
         if r:
             self.wmsname = out[i]['name']
             self.baddwms.config(text='Remove WMS: {}'.format(out[i]['name']))
-            self.baddwms.config(command=self.gui_rm_wms,bg='dark grey')
+            self.baddwms.config(command=lambda: self.gui_rm_wms('WMS'),bg='dark grey')
             
     def gui_add_SUA_WMS(self):
         'Button to add Special Use Airspace WMS layer'
@@ -1060,13 +1055,13 @@ class gui:
         else:
             res = (1080,720)
         if popup:
-            tkMessageBox.showwarning('Downloading from internet','Trying to load {} data from {}\n with most current model run'.format(name,website.split('/')[2]))
+            tkMessageBox.showwarning('Downloading from internet','Trying to load data from {}\n with most current model/measurements'.format(website.split('/')[2]))
         self.root.config(cursor='exchange')
         self.root.update()
         try:
             from owslib.wms import WebMapService
             from owslib.util import openURL
-            from StringIO import StringIO
+            from io import StringIO,BytesIO
             from PIL import Image
             print('Loading WMS from :'+website.split('/')[2])
             self.line.tb.set_message('Loading WMS from :'+website.split('/')[2])
@@ -1124,13 +1119,13 @@ class gui:
             return False
         try:
             legend_call = openURL(img.geturl().replace('GetMap','GetLegend'))
-            geos_legend = Image.open(StringIO(legend_call.read()))
+            geos_legend = Image.open(BytesIO(legend_call.read()))
         except:
             self.line.tb.set_message('legend image from WMS server problem')
         if printurl:
             print(img.geturl()        )
         try:
-            geos = Image.open(StringIO(img.read()))
+            geos = Image.open(BytesIO(img.read()))
         except Exception as ie:
             print(ie)
             try:
@@ -1148,7 +1143,7 @@ class gui:
                               srs='EPSG:4326',
                               format='image/png',
                               CQL_filter=cql_filter)
-                    geos = Image.open(StringIO(img.read()))
+                    geos = Image.open(BytesIO(img.read()))
                 elif r.lower().find('property')>-1:
                     print('problem with the CQL_filter on the WMS server, retrying...')
                     img = wms.getmap(layers=[cont[i]],style=['default'],
@@ -1157,14 +1152,14 @@ class gui:
                               transparent=True,
                               srs='EPSG:4326',
                               format='image/png')
-                    geos = Image.open(StringIO(img.read()))
+                    geos = Image.open(BytesIO(img.read()))
             except:
                 self.root.config(cursor='')
                 self.root.update()
                 tkMessageBox.showwarning('Sorry','Problem reading the image a second time... abandonning')
                 return False
         try: 
-            self.line.addfigure_under(geos.transpose(Image.FLIP_TOP_BOTTOM),ylim[0],xlim[0],ylim[1],xlim[1],text=time_sel,alpha=alpha)
+            self.line.addfigure_under(geos.transpose(Image.FLIP_TOP_BOTTOM),ylim[0],xlim[0],ylim[1],xlim[1],text=time_sel,alpha=alpha,name=name)
         except Exception as ie:
             #print(ie)
             self.root.config(cursor='')
@@ -1184,18 +1179,18 @@ class gui:
         'core of removing the WMS plots on the figure and relinking command'
         self.line.tb.set_message('Removing {} figure under'.format(name))
         try:
-            self.line.m.figure_under.remove()
+            self.line.m.figure_under[name].remove()
         except:
-            for f in self.line.m.figure_under:
+            for f in self.line.m.figure_under[name]:
                 try:
                     f.remove
                 except TypeError:
                     pass
         try:
-            self.line.m.figure_under_text.remove()
+            self.line.m.figure_under_text[name].remove()
         except:
             try:
-                for f in self.line.m.figure_under_text:
+                for f in self.line.m.figure_under_text[name]:
                     try:
                         f.remove  
                     except TypeError:
@@ -1220,9 +1215,9 @@ class gui:
         'GUI handler for removing the GEOS forecast image, wrapper to rm_WMS'
         self.rm_WMS(name='GEOS',button=self.baddgeos,newcommand=self.gui_addgeos)
         
-    def gui_rm_wms(self):
+    def gui_rm_wms(self,name='WMS'):
         'GUI handler for removing any WMS image, wrapper to rm_WMS'
-        self.rm_WMS(name='WMS',button=self.baddwms,newcommand=self.gui_add_any_WMS)
+        self.rm_WMS(name=name,button=self.baddwms,newcommand=self.gui_add_any_WMS)
         
     def gui_rm_SUA_WMS(self):
         'Button to add Special Use Airspace WMS layer'
@@ -1234,12 +1229,13 @@ class gui:
         from gui import Select_flt_mod
         flt_mods = get_flt_modules()
         select = Select_flt_mod(flt_mods,height=self.height)
+        self.line.parse_flt_module_file(select.mod_path)
         try:
             print('Applying the flt_module {}'.format(select.selected_flt))
             self.line.parse_flt_module_file(select.mod_path)
         except Exception as ie:
-            if not 'selected_flt' in ie: print(ie)
-            print('flt_module selection cancelled')
+            #if not 'selected_flt' in ie: print(ie)
+            print('flt_module selection cancelled',ie)
             #import pdb; pdb.set_trace()
             return
     
@@ -1295,9 +1291,9 @@ class Select_flt_mod(tkSimpleDialog.Dialog):
         from PIL import Image, ImageTk
         self.rbuttons = []
         self.flt = tk.StringVar()
-        self.flt.set(self.flt_mods.keys()[0])
+        self.flt.set(list(self.flt_mods.keys())[0])
         tk.Label(master, text=self.text).grid(row=0)
-        keys = self.flt_mods.keys()
+        keys = list(self.flt_mods.keys())
         keys.sort()
         for i,l in enumerate(keys):
             try:
@@ -1486,7 +1482,7 @@ class ask(tkSimpleDialog.Dialog):
         for i,l in enumerate(self.choice2):
             self.radbutton2.append(tk.Radiobutton(master,text=l,variable=self.radb2_val,value=l))
             self.radbutton2[i].grid(row=ii,column=i)
-        self.fields = range(len(self.names))
+        self.fields = list(range(len(self.names)))
         for i,n in enumerate(self.names):
             tk.Label(master,text=n).grid(row=i+1+ii)
             self.fields[i] = tk.Entry(master)
@@ -1497,7 +1493,7 @@ class ask(tkSimpleDialog.Dialog):
                     pass
             self.fields[i].grid(row=i+1+ii,column=1)
     def apply(self):
-        self.names_val = range(len(self.names))
+        self.names_val = list(range(len(self.names)))
         for i,n in enumerate(self.names):
             self.names_val[i] = float(self.fields[i].get())
         self.choice_val = self.radb_val.get()
@@ -1869,7 +1865,7 @@ def gui_file_select_fx(ext='*',
     Simple gui file select program. Uses TKinter for interface, returns full path
     """
     from tkinter import Tk
-    from tkFileDialog import askopenfilename
+    from tkinter.filedialog import askopenfilename
     from os.path import abspath
     Tk().withdraw() # we don't want a full GUI, so keep the root window from appearing
     filename = askopenfilename(defaultextension=ext,filetypes=ftype) # show an "Open" dialog box and return the path to the selected file

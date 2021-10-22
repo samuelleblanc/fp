@@ -399,18 +399,6 @@ def build_buttons(ui,lines,vertical=True):
                          command = g.dummy_func)
     g.baddaeronet.pack(in_=ui.top)
     g.baddaeronet.config(command=g.gui_addaeronet)
-    g.baddbocachica = tk.Button(g.root,text='Add Forecast\nfrom Bocachica',
-                         command = g.gui_addbocachica)
-    g.baddbocachica.pack(in_=ui.top)
-    g.baddtrajectory = tk.Button(g.root,text='Add trajectory\nImage',
-                         command = g.gui_addtrajectory)
-    g.baddtrajectory.pack(in_=ui.top)
-    g.baddfigure = tk.Button(g.root,text='Add Forecast\nfrom image',
-                         command = g.gui_addfigure)
-    g.baddfigure.pack(in_=ui.top)
-    g.baddtidbit = tk.Button(g.root,text='Add Tropical tidbit',
-                         command = g.gui_addtidbit)
-    g.baddtidbit.pack(in_=ui.top)
     g.baddgeos = tk.Button(g.root,text='Add GEOS Forecast',
                          command = g.gui_addgeos)
     g.baddgeos.pack(in_=ui.top)
@@ -420,6 +408,22 @@ def build_buttons(ui,lines,vertical=True):
     g.baddwms = tk.Button(g.root,text='Add WMS layer',
                          command = g.gui_add_any_WMS)
     g.baddwms.pack(in_=ui.top)
+    
+    tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
+             ).pack(in_=ui.top,side=side,padx=8,pady=5)
+    tk.Label(g.root,text='from local images:').pack(in_=ui.top)
+    g.baddbocachica = tk.Button(g.root,text='Add Forecast\nfrom Bocachica',
+                         command = g.gui_addbocachica)
+    g.baddbocachica.pack(in_=ui.top)
+    g.baddtrajectory = tk.Button(g.root,text='Add trajectory\nImage',
+                         command = g.gui_addtrajectory)
+    g.baddtrajectory.pack(in_=ui.top)
+    g.baddfigure = tk.Button(g.root,text='Add image',
+                         command = g.gui_addfigure)
+    g.baddfigure.pack(in_=ui.top)
+    g.baddtidbit = tk.Button(g.root,text='Add Tropical tidbit',
+                         command = g.gui_addtidbit)
+    g.baddtidbit.pack(in_=ui.top)
     
     #g.bipython = tk.Button(g.root,text='open iPython',
     #                     command = IPython.start_ipython([],user_ns=locals()))
@@ -443,7 +447,7 @@ def get_datestr(ui):
     import tkinter.simpledialog as tkSimpleDialog
     from datetime import datetime
     import re
-    ui.datestr = tkSimpleDialog.askstring('Flight Date','Flight Date (yyyy-mm-dd):')
+    ui.datestr = tkSimpleDialog.askstring('Flight Date','Flight Date (yyyy-mm-dd):',initialvalue=datetime.utcnow().strftime('%Y-%m-%d'))
     if not ui.datestr:
         ui.datestr = datetime.utcnow().strftime('%Y-%m-%d')
     else:
@@ -467,6 +471,7 @@ def init_plot(m,start_lon='14 38.717E',start_lat='22 58.783S',color='red'):
     lat0,lon0 = mi.pll(start_lat), mi.pll(start_lon)
     x0,y0 = lon0,lat0 #m(lon0,lat0)
     line, = m.plot([x0],[y0],'o-',color=color,linewidth=3)
+    line.labels_points = []
     text = ('Press s to stop interaction\\n'
             'Press i to restart interaction\\n')
     return line
@@ -496,7 +501,7 @@ def bind_move_window(ui,lines):
         if not ui.w==ui.root.winfo_width():
             ui.w = ui.root.winfo_width()
             lines.get_bg(redraw=True)
-            lines.redraw_pars_mers()
+            #lines.redraw_pars_mers()
     ui.root.bind('<Configure>',redraw_when_moved)
 
 def Create_interaction(test=False,profile=None,**kwargs):
@@ -523,13 +528,13 @@ def Create_interaction(test=False,profile=None,**kwargs):
         line.labels_points = mi.plot_map_labels(m,flabels)
         mi.plot_map_labels(m,faero,marker='*',skip_lines=2,color='y',textcolor='lightgrey')
     except Exception as e:
-        print('Problem with label files!')
+        print('Problem with label files!',e)
     get_datestr(ui)
     ui.tb.set_message('making the Excel connection')
     wb = ex.dict_position(datestr=ui.datestr,color=line.get_color(),profile=profile,
          version=__version__,platform_file=platform_filename,**kwargs)
     ui.tb.set_message('Building the interactivity on the map')
-    lines = mi.LineBuilder(line,m=m,ex=wb,tb=ui.tb,blit=False)
+    lines = mi.LineBuilder(line,m=m,ex=wb,tb=ui.tb,blit=True)
     ui.tb.set_message('Saving temporary excel file')
     savetmp(ui,wb)
     
@@ -537,6 +542,7 @@ def Create_interaction(test=False,profile=None,**kwargs):
     lines.get_bg(redraw=True)
     bind_move_window(ui,lines)
     ui.tb.set_message('Ready for interaction')
+    lines.get_bg()
     def stopandquit():
         'simple function to handle the stop and quit'
         lines.ex.wb.close()
