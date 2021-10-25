@@ -859,7 +859,7 @@ class dict_position:
             print('Exception found:',ie)
             return
         self.name = wb.sheets(sheet_num).name
-        wb.sheets(sheet_num).activate(steal_focus=False)
+        wb.sheets(sheet_num).activate()
         wb.sh = wb.sheets(sheet_num)
         print('Activating sheet:%i, name:%s'%(sheet_num,wb.sheets(sheet_num).name))
         self.platform, self.p_info,use_file = self.get_platform_info(self.name,platform_file)
@@ -966,7 +966,7 @@ class dict_position:
     def switchsheet(self,i):
         'Switch the active sheet with name supplied'
         #from xlwings import Sheet
-        self.wb.sheets(i+1).activate(steal_focus=False)
+        self.wb.sheets(i+1).activate()
         self.wb.sh = self.wb.sheets(i+1)
 
     def save2xl(self,filename=None):
