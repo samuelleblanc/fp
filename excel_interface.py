@@ -519,11 +519,10 @@ class dict_position:
         writes out the dict_position class values to excel spreadsheet
         """
         import numpy as np
-        from xlwings import Range
-        import xlwings as xw
         #self.wb.set_current()
-        self.wb.sh.activate()
-        Range('A2').value = np.array([self.WP,
+        #self.wb.sh.activate(steal_focus=False)
+        sh = self.wb.sh
+        sh.range('A2').value = np.array([self.WP,
                                       self.lat,
                                       self.lon,
                                       self.speed,
@@ -545,13 +544,13 @@ class dict_position:
                                       self.climb_time
                                       ]).T
         for i,c in enumerate(self.comments):
-            Range('U%i'%(i+2)).value = c
-        Range('G2:J%i'% (self.n+1)).number_format = 'hh:mm'
-        Range('E2:E%i'% (self.n+1)).number_format = '0'
-        Range('B:B').autofit()
-        Range('C:C').autofit()
-        Range('B:B').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
-        Range('C:C').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
+            sh.range('U%i'%(i+2)).value = c
+        sh.range('G2:J%i'% (self.n+1)).number_format = 'hh:mm'
+        sh.range('E2:E%i'% (self.n+1)).number_format = '0'
+        sh.range('B:B').autofit()
+        sh.range('C:C').autofit()
+        sh.range('B:B').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
+        sh.range('C:C').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
 
 
     def check_xl(self):
@@ -569,13 +568,12 @@ class dict_position:
         If there is change, empty out the corresponding calculated areas
         Priority is always given to metric
         """
-        from xlwings import Range
-        import xlwings as xw
         import numpy as np
-        self.wb.sh.activate() #self.wb.set_current()
+        sh = self.wb.sh
+        #self.wb.sh.activate(steal_focus=False) #self.wb.set_current()
         row_start = 2
-        last_row = xw.Range((self.wb.sheets.active.cells.last_cell.row,2)).end('up').row
-        tmp = Range((row_start,1),(last_row,26)).value 
+        last_row = sh.range((self.wb.sheets.active.cells.last_cell.row,2)).end('up').row
+        tmp = sh.range((row_start,1),(last_row,26)).value 
         
         if len(np.shape(tmp))==1: tmp = [tmp]
         # run through each line to check for updates
@@ -584,12 +582,12 @@ class dict_position:
             if t[1] is None or t[2] is None:#lat or lon is deleted
                 self.dels(i)
                 self.n = self.n-1
-                Range((i+row_start,1),(i+row_start,26)).delete() 
+                sh.range((i+row_start,1),(i+row_start,26)).delete() 
                 deleted = True
         
         # check updated sheets (after deletions)
-        last_row = xw.Range((self.wb.sheets.active.cells.last_cell.row,2)).end('up').row
-        tmp = Range((row_start,1),(last_row,26)).value
+        last_row = sh.range((self.wb.sheets.active.cells.last_cell.row,2)).end('up').row
+        tmp = sh.range((row_start,1),(last_row,26)).value
         if len(np.shape(tmp))==1: tmp = [tmp]
         num = 0
         for i,t in enumerate(tmp):
@@ -623,8 +621,8 @@ class dict_position:
         """
         Program that moves up all excel rows by one line overriding the ith line
         """
-        from xlwings import Range
-        linesbelow = Range('A%i:U%i'%(i+3,self.n+1)).value
+        sh = self.wb.sh
+        linesbelow = sh.range('A%i:U%i'%(i+3,self.n+1)).value
         n_rm = (self.n+1)-(i+3)
         linelist = False
         for j,l in enumerate(linesbelow):
@@ -640,8 +638,8 @@ class dict_position:
                 linesbelow[0] = linesbelow[0]-1
             except:
                 yup = True
-        Range('A%i:U%i'%(i+2,i+2)).value = linesbelow
-        Range('A%i:U%i'%(self.n+1,self.n+1)).clear_contents()
+        sh.range('A%i:U%i'%(i+2,i+2)).value = linesbelow
+        sh.range('A%i:U%i'%(self.n+1,self.n+1)).clear_contents()
 
     def dels(self,i):
         """
@@ -858,7 +856,7 @@ class dict_position:
             print('Exception found:',ie)
             return
         self.name = wb.sheets(sheet_num).name
-        wb.sheets(sheet_num).activate()
+        wb.sheets(sheet_num).activate(steal_focus=False)
         wb.sh = wb.sheets(sheet_num)
         print('Activating sheet:%i, name:%s'%(sheet_num,wb.sheets(sheet_num).name))
         self.platform, self.p_info,use_file = self.get_platform_info(self.name,platform_file)
@@ -893,9 +891,8 @@ class dict_position:
         
     def verify_UTC_conversion(self):
         'verify the input UTC conversion when reading a excel file'
-        from xlwings import Range
-        tmp0 = Range('A2:U2').value
-        tmp0 = Range('A2:U2').value
+        tmp0 = self.wb.sh.range('A2:U2').value
+        tmp0 = self.wb.sh.range('A2:U2').value
         _,_,_,_,_,_,_,utc,loc,_,_,_,_,_,_,_ = tmp0[0:16]
         return loc*24-utc*24
 
@@ -935,7 +932,7 @@ class dict_position:
             self.name = name
             wb.sheets.active.name = self.name
             sh = wb.sheets.active
-        xw.Range('A1').value = ['WP','Lat\n[+-90]','Lon\n[+-180]',
+        sh.range('A1').value = ['WP','Lat\n[+-90]','Lon\n[+-180]',
                              'Speed\n[m/s]','delayT\n[min]','Altitude\n[m]',
                              'CumLegT\n[hh:mm]','UTC\n[hh:mm]','LocalT\n[hh:mm]',
                              'LegT\n[hh:mm]','Dist\n[km]','CumDist\n[km]',
@@ -944,18 +941,18 @@ class dict_position:
                              'Bearing\n[deg]','ClimbT\n[min]','Comments']
         freeze_top_pane(wb)
         
-        xw.Range('G2:J2').number_format = 'hh:mm'
-        xw.Range('W1').value = self.datestr
-        xw.Range('X1').value = self.campaign
-        xw.Range('Z1').value = 'Created with'
-        xw.Range('Z2').value = 'moving_lines'
-        xw.Range('Z3').value = self.__version__
-        xw.Range('W:W').autofit()
-        xw.Range('W:W').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
-        xw.Range('X:X').autofit()
-        xw.Range('X:X').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
-        xw.Range('Z:Z').autofit()
-        xw.Range('Z:Z').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
+        sh.range('G2:J2').number_format = 'hh:mm'
+        sh.range('W1').value = self.datestr
+        sh.range('X1').value = self.campaign
+        sh.range('Z1').value = 'Created with'
+        sh.range('Z2').value = 'moving_lines'
+        sh.range('Z3').value = self.__version__
+        sh.range('W:W').autofit()
+        sh.range('W:W').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
+        sh.range('X:X').autofit()
+        sh.range('X:X').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
+        sh.range('Z:Z').autofit()
+        sh.range('Z:Z').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
         #Range('A2').value = np.arange(50).reshape((50,1))+1
         wb.sh = sh
         return wb
@@ -963,7 +960,7 @@ class dict_position:
     def switchsheet(self,i):
         'Switch the active sheet with name supplied'
         #from xlwings import Sheet
-        self.wb.sheets(i+1).activate()
+        self.wb.sheets(i+1).activate(steal_focus=False)
         self.wb.sh = self.wb.sheets(i+1)
 
     def save2xl(self,filename=None):
@@ -975,7 +972,7 @@ class dict_position:
 
     def get_datestr_from_xl(self):
         'Simple program to get the datestr from the excel spreadsheet'
-        self.datestr = str(Range('W1').value).split(' ')[0]
+        self.datestr = str(self.wb.sh.range('W1').value).split(' ')[0]
         
     def save2txt(self,filename=None):
         """ 
@@ -1358,12 +1355,14 @@ def get_curdir():
 def freeze_top_pane(wb):
     'Freezes and formats the top pane window in the current excel workbook (wb)'
     import xlwings as xw
-    active_window = wb.app.api.ActiveWindow
-    active_window.FreezePanes = False
-    active_window.SplitColumn = 0
-    active_window.SplitRow = 1
-    active_window.FreezePanes = True
-    
+    try:
+        active_window = wb.app.api.ActiveWindow
+        active_window.FreezePanes = False
+        active_window.SplitColumn = 0
+        active_window.SplitRow = 1
+        active_window.FreezePanes = True
+    except:
+        pass
     wb.sheets.active.range('1:1').font.bold = True
     wb.sheets.active.range('1:1').autofit()
     
