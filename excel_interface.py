@@ -931,7 +931,10 @@ class dict_position:
             sh = wb.sheets.add(name=name,after=wb.sheets[wb.sheets.count-1])   
             self.sheet_num = self.sheet_num+1
         else:
-            wb = xw.Book()
+            try:
+                wb = xw.Book()
+            except:
+                wb = xw.Book()
             self.name = name
             wb.sheets.active.name = self.name
             sh = wb.sheets.active

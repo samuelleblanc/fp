@@ -1189,15 +1189,16 @@ def get_sat_tracks_from_tle(datestr):
     import ephem
     import numpy as np
     from map_interactive import get_tle_from_file
+    import os
     try:
-        sat = get_tle_from_file('.\sat.tle')
+        sat = get_tle_from_file(os.path.join('.','sat.tle'))
     except:
         try:
             from gui import gui_file_select_fx
             fname = gui_file_select_fx(ext='*.tle',ftype=[('All files','*.*'),('Two Line element','*.tle')])
             sat = get_tle_from_file(fname)
         except:
-            import tkMessageBox
+            import tk.messagebox as tkMessageBox
             tkMessageBox.showerror('No sat','There was an error reading the sat.tle file')
             return None
     for k in sat.keys():
