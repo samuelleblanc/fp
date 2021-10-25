@@ -89,22 +89,24 @@ class dict_position:
         Modified: Samuel LeBlanc, 2016-08-31, Swakopmund, Namibia
                  - fixed saving for pilots, added delay time in comments
         Modified: Samuel LeBlanc, 2019-06-03, Santa Cruz, CA
-                 - Calc_climb_time typo in reading platform.txt file. 
+                 - Calc_climb_time typo in reading platform.txt file.
+        Modified: Samuel LeBlanc, 2021-10-22, Santa Cruz, CA
+                 - Made into python3 compatible
+                 - using the new xlwings (v.0.24) api instead of pre-0.9
+                 - added compatibility with macos
     """
-    import numpy as np
-    #from xlwings import Range,Sheet
-    import xlwings as xw
-    from datetime import datetime
-
-    import map_interactive as mi
-    from map_interactive import pll
-    import map_utils as mu
-
     def __init__(self,lon0='14 38.717E',lat0='22 58.783S',speed=150.0,UTC_start=7.0,
                  UTC_conversion=+1.0,alt0=0.0,
                  verbose=False,filename=None,datestr=None,
                  newsheetonly=False,name='P3 Flight path',sheet_num=1,color='red',
                  profile=None,campaign='None',version='v1.09',platform_file='platform.txt'):
+        import numpy as np
+        import xlwings as xw
+        from datetime import datetime
+
+        import map_interactive as mi
+        from map_interactive import pll
+        import map_utils as mu
 
         if profile:
             lon0,lat0,UTC_start = profile['Start_lon'],profile['Start_lat'],profile['UTC_start']
@@ -519,6 +521,7 @@ class dict_position:
         writes out the dict_position class values to excel spreadsheet
         """
         import numpy as np
+        import xlwings as xw
         #self.wb.set_current()
         #self.wb.sh.activate(steal_focus=False)
         sh = self.wb.sh
