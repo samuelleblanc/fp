@@ -115,6 +115,7 @@ class LineBuilder:
         self.tb = tb
         self.verbose = verbose
         self.blit = blit
+        self.firstrun = True
         try:
             self.get_bg()
         except:
@@ -344,6 +345,10 @@ class LineBuilder:
 
     def onfigureenter(self,event):
         'event handler for updating the figure with excel data'
+        if self.firstrun:
+            self.get_bg(redraw=True)
+            print('first run!')
+            self.firstrun = False
         if self.moving: return
         self.tb.set_message('Recalculating ...')
         if self.verbose:

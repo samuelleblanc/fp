@@ -809,7 +809,7 @@ class gui:
         self.sat_obj = plot_sat_tracks(self.line.m,sat)
         self.line.get_bg(redraw=True)
         self.baddsat.config(text='Remove Sat tracks')
-        self.baddsat.config(command=self.gui_rmsat,bg='dark grey')
+        self.baddsat.config(command=self.gui_rmsat,style='Bp.TButton')
         
     def gui_rmsat(self):
         'Gui button to remove the satellite tracks'
@@ -825,7 +825,7 @@ class gui:
             else:
                 s.remove()
         self.baddsat.config(text='Add Satellite tracks')
-        self.baddsat.config(command=self.gui_addsat_tle,bg=self.bg)
+        self.baddsat.config(command=self.gui_addsat_tle,style=self.bg)
         self.line.get_bg(redraw=True)
         self.line.tb.set_message('Finished removing satellite tracks')
         
@@ -849,7 +849,7 @@ class gui:
         self.aero_obj = aeronet.plot_aero(self.line.m,aero)
         self.line.get_bg(redraw=True)
         self.baddaeronet.config(text='Remove Aeronet AOD')
-        self.baddaeronet.config(command=self.gui_rmaeronet,bg='dark grey')
+        self.baddaeronet.config(command=self.gui_rmaeronet,style='Bp.TButton')
         
     def gui_rmaeronet(self):
         'Gui function to remove the aeronet points on the map'
@@ -873,7 +873,7 @@ class gui:
                 else:
                     l.remove()
         self.baddaeronet.config(text='Add current\nAERONET AOD')
-        self.baddaeronet.config(command=self.gui_addaeronet,bg=self.bg)
+        self.baddaeronet.config(command=self.gui_addaeronet,style=self.bg)
         self.line.get_bg(redraw=True)
         self.line.tb.set_message('Finished removing AERONET AOD')
             
@@ -896,7 +896,7 @@ class gui:
         self.line.addfigure_under(img[42:674,50:1015,:],ll_lat,ll_lon,ur_lat,ur_lon,name=filename)
         #self.line.addfigure_under(img[710:795,35:535,:],ll_lat-7.0,ll_lon,ll_lat-5.0,ur_lon-10.0,outside=True)
         self.baddbocachica.config(text='Remove Forecast\nfrom Bocachica')
-        self.baddbocachica.config(command=lambda: self.gui_rmbocachica(filename),bg='dark grey')
+        self.baddbocachica.config(command=lambda: self.gui_rmbocachica(filename),style='Bp.TButton')
         
     def gui_rmbocachica(self,name):
         'GUI handler for removing the bocachica forecast image'
@@ -907,7 +907,7 @@ class gui:
             for f in self.line.m.figure_under[name]:
                 f.remove()
         self.baddbocachica.config(text='Add Forecast\nfrom Bocachica')
-        self.baddbocachica.config(command=self.gui_addbocachica,bg=self.bg)
+        self.baddbocachica.config(command=self.gui_addbocachica,style=self.bg)
         self.line.get_bg(redraw=True)
         
     def gui_addtidbit(self):
@@ -934,7 +934,7 @@ class gui:
         self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon,name=filename)
         #self.line.addfigure_under(img[710:795,35:535,:],ll_lat-7.0,ll_lon,ll_lat-5.0,ur_lon-10.0,outside=True)
         self.baddtidbit.config(text='Remove Tropical tidbit')
-        self.baddtidbit.config(command=lambda: self.gui_rmtidbit(filename),bg='dark grey')
+        self.baddtidbit.config(command=lambda: self.gui_rmtidbit(filename),style='Bp.TButton')
         
     def gui_rmtidbit(self,name):
         'GUI handler for removing the tropical tidbit forecast image'
@@ -945,7 +945,7 @@ class gui:
             for f in self.line.m.figure_under[name]:
                 f.remove()
         self.baddtidbit.config(text='Add Tropical tidbit')
-        self.baddtidbit.config(command=self.gui_addtidbit,bg=self.bg)
+        self.baddtidbit.config(command=self.gui_addtidbit,style=self.bg)
         self.line.get_bg(redraw=True)
         
     def gui_addtrajectory(self):
@@ -966,7 +966,7 @@ class gui:
         self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon,name=filename)
         #self.line.addfigure_under(img[710:795,35:535,:],ll_lat-7.0,ll_lon,ll_lat-5.0,ur_lon-10.0,outside=True)
         self.baddtrajectory.config(text='Remove trajectory\nImage')
-        self.baddtrajectory.config(command=lambda: self.gui_rmtrajectory(filename),bg='dark grey')
+        self.baddtrajectory.config(command=lambda: self.gui_rmtrajectory(filename),style='Bp.TButton')
         
     def gui_rmtrajectory(self,name):
         'GUI handler for removing the bocachica forecast image'
@@ -977,7 +977,7 @@ class gui:
             for f in self.line.m.figure_under[name]:
                 f.remove()
         self.baddtrajectory.config(text='Add Trajectory\nImage')
-        self.baddtrajectory.config(command=self.gui_addtrajectory,bg=self.bg)
+        self.baddtrajectory.config(command=self.gui_addtrajectory,style=self.bg)
         self.line.get_bg(redraw=True)
 
     def gui_addfigure(self,ll_lat=None,ll_lon=None,ur_lat=None,ur_lon=None):
@@ -1006,7 +1006,7 @@ class gui:
             ur_lon = tkSimpleDialog.askfloat('Upper right lon','Upper right lon? [deg]')
         self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon,name=filename)
         self.baddfigure.config(text='Remove image')
-        self.baddfigure.config(command=lambda: self.gui_rmfigure(filename),bg='dark grey')
+        self.baddfigure.config(command=lambda: self.gui_rmfigure(filename),style='Bp.TButton')
     
     def gui_rmfigure(self,name):
         'GUI handler for removing the forecast image'
@@ -1016,7 +1016,7 @@ class gui:
         except:
             for f in self.line.m.figure_under[name]:
                 f.remove()
-        self.baddfigure.config(text='Add image',command=self.gui_addfigure,bg=self.bg)
+        self.baddfigure.config(text='Add image',command=self.gui_addfigure,style=self.bg)
         self.line.get_bg(redraw=True)
         
     def gui_addgeos(self):
@@ -1024,7 +1024,7 @@ class gui:
         r = self.add_WMS(website='http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx',name='GEOS')
         if r:
             self.baddgeos.config(text='Remove GEOS Forecast')
-            self.baddgeos.config(command=self.gui_rmgeos,bg='dark grey')
+            self.baddgeos.config(command=self.gui_rmgeos,style='Bp.TButton')
             
     def gui_add_any_WMS(self,filename='WMS.txt'):
         'Button to add any WMS layer defined in a WMS txt file, each line has name of server, then the website'
@@ -1038,7 +1038,7 @@ class gui:
         if r:
             self.wmsname = out[i]['name']
             self.baddwms.config(text='Remove WMS: {}'.format(out[i]['name']))
-            self.baddwms.config(command=lambda: self.gui_rm_wms('WMS'),bg='dark grey')
+            self.baddwms.config(command=lambda: self.gui_rm_wms('WMS'),style='Bp.TButton')
             
     def gui_add_SUA_WMS(self):
         'Button to add Special Use Airspace WMS layer'
@@ -1049,7 +1049,7 @@ class gui:
                          cql_filter='low_altitude<240',hires=True)
         if r:
             self.baddsua.config(text='Remove SUA')
-            self.baddsua.config(command=self.gui_rm_SUA_WMS,bg='dark grey')
+            self.baddsua.config(command=self.gui_rm_SUA_WMS,style='Bp.TButton')
         
     def add_WMS(self,website='http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx',
                 name='GEOS',printurl=False,notime=False,alpha=1.0,popup=True,cql_filter=None,hires=False): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
@@ -1213,7 +1213,7 @@ class gui:
         except:
             self.line.tb.set_message('Removing legend problem')
         button_label = button.config()['text'][-1]
-        button.config(command=newcommand,bg=self.bg)
+        button.config(command=newcommand,style=self.bg)
         button.config(text='Add {} layer'.format(name))
         self.line.get_bg(redraw=True)
         

@@ -289,37 +289,40 @@ def build_buttons(ui,lines,vertical=True):
         h = 20
         w = 2
     g = gui.gui(lines,root=ui.root,noplt=True)
-    g.refresh = tk.Button(g.root,text='Refresh',
-                          command=g.refresh,
-                          bg='chartreuse')
-    g.refreshspeed = tk.Button(g.root,text='Refresh without Speeds',
+    g.refresh_style = ttk.Style()
+    g.refresh_style.configure('B1.TButton',background='chartreuse',foreground='green')
+    g.refresh = ttk.Button(g.root,text='Refresh',
+                          command=g.refresh,style='B1.TButton')
+    g.refreshspeed = ttk.Button(g.root,text='Refresh without Speeds',
                           command=g.refresh_nospeed)
-    g.bopenfile = tk.Button(g.root,text='Open',
+    g.bopenfile = ttk.Button(g.root,text='Open',
                             command=g.gui_open_xl)
-    g.bsavexl = tk.Button(g.root,text='Save',
+    g.bsavexl = ttk.Button(g.root,text='Save',
                           command=g.gui_save_xl)
-    g.bsavexl_pilot = tk.Button(g.root,text='for pilot',
+    g.bsavexl_pilot = ttk.Button(g.root,text='for pilot',
                           command=g.gui_save_xl_pilot)
-    g.bsavetxt = tk.Button(g.root,text='TXT',
+    g.bsavetxt = ttk.Button(g.root,text='TXT',
                           command=g.gui_save_txt)
-    g.bsaveas2kml = tk.Button(g.root,text='SaveAs',
+    g.bsaveas2kml = ttk.Button(g.root,text='SaveAs',
                               command=g.gui_saveas2kml)
-    g.bsave2kml = tk.Button(g.root,text='Update',
+    g.bsave2kml = ttk.Button(g.root,text='Update',
                             command=g.gui_save2kml)
-    g.bsave2gpx = tk.Button(g.root,text='GPX',
+    g.bsave2gpx = ttk.Button(g.root,text='GPX',
                             command=g.gui_save2gpx)
-    g.bsave2ict = tk.Button(g.root,text='ICT',
+    g.bsave2ict = ttk.Button(g.root,text='ICT',
 			    command=g.gui_save2ict)
-    g.bsavepng = tk.Button(g.root,text='map to PNG',
+    g.bsavepng = ttk.Button(g.root,text='map to PNG',
 			    command=g.gui_savefig)    
-    g.bsaveall = tk.Button(g.root,text='Save All',
-			    command=g.gui_saveall,bg='lightskyblue')
+    g.bsaveall_style = ttk.Style()
+    g.bsaveall_style.configure('B2.TButton',background='lightskyblue',foreground='blue')
+    g.bsaveall = ttk.Button(g.root,text='Save All',
+			    command=g.gui_saveall,style='B2.TButton')
     g.refresh.pack(in_=ui.top,side=side,fill=tk.X,pady=6)
     g.refreshspeed.pack(in_=ui.top,side=side,fill=tk.X,pady=2)
-    tk.Label(g.root,text='File options').pack(in_=ui.top,side=side) 
-    g.frame_xl = tk.Frame(ui.top)
+    ttk.Label(g.root,text='File options').pack(in_=ui.top,side=side) 
+    g.frame_xl = ttk.Frame(ui.top)
     g.frame_xl.pack(in_=ui.top,side=side,fill=tk.X,pady=2)
-    tk.Label(ui.top,text='Excel file:').pack(in_=g.frame_xl,side=tk.LEFT)
+    ttk.Label(ui.top,text='Excel file:').pack(in_=g.frame_xl,side=tk.LEFT)
     g.bopenfile.pack(in_=g.frame_xl,side=tk.LEFT)
     g.bsavexl.pack(in_=g.frame_xl,side=tk.LEFT)
     g.bsavexl_pilot.pack(in_=g.frame_xl,side=tk.LEFT)
@@ -328,28 +331,28 @@ def build_buttons(ui,lines,vertical=True):
     tk.Label(ui.top,text='Kml file:').pack(in_=g.frame_kml,side=tk.LEFT)
     g.bsaveas2kml.pack(in_=g.frame_kml,side=tk.LEFT)
     g.bsave2kml.pack(in_=g.frame_kml,side=tk.LEFT)
-    g.frame_save = tk.Frame(ui.top)
+    g.frame_save = ttk.Frame(ui.top)
     g.frame_save.pack(in_=ui.top,side=side,fill=tk.X,pady=2)
-    tk.Label(ui.top,text='Saving to:').pack(in_=g.frame_save,side=tk.LEFT)
+    ttk.Label(ui.top,text='Saving to:').pack(in_=g.frame_save,side=tk.LEFT)
     g.bsavetxt.pack(in_=g.frame_save,side=tk.RIGHT)
     g.bsave2gpx.pack(in_=g.frame_save,side=tk.RIGHT)
     g.bsave2ict.pack(in_=g.frame_save,side=tk.RIGHT)
-    g.frame_save2 = tk.Frame(ui.top)
+    g.frame_save2 = ttk.Frame(ui.top)
     g.frame_save2.pack(in_=ui.top,side=side,fill=tk.X,pady=2)
     g.bsavepng.pack(in_=g.frame_save2,side=tk.RIGHT)
     g.bsaveall.pack(in_=g.frame_save2,side=tk.LEFT)         
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
              ).pack(in_=ui.top,side=side,padx=8,pady=5)
-    g.frame_plot = tk.Frame(ui.top)
+    g.frame_plot = ttk.Frame(ui.top)
     g.frame_plot.pack(in_=ui.top,side=side,fill=tk.X,pady=2)
-    tk.Label(ui.top,text='Plots:').pack(in_=g.frame_plot,side=tk.LEFT)
-    g.bplotlat = tk.Button(g.root,text='Alt vs Lat',
+    ttk.Label(ui.top,text='Plots:').pack(in_=g.frame_plot,side=tk.LEFT)
+    g.bplotlat = ttk.Button(g.root,text='Alt vs Lat',
                            command=g.gui_plotaltlat)
     g.bplotlat.pack(in_=g.frame_plot,side=tk.RIGHT)
-    g.bplotalt = tk.Button(g.root,text='Alt vs time',
+    g.bplotalt = ttk.Button(g.root,text='Alt vs time',
                            command=g.gui_plotalttime)
     g.bplotalt.pack(in_=g.frame_plot,side=tk.RIGHT)
-    g.bplotsza = tk.Button(g.root,text='SZA',
+    g.bplotsza = ttk.Button(g.root,text='SZA',
                            command=g.gui_plotsza)
     g.bplotsza.pack(in_=g.frame_plot,side=tk.RIGHT)
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
@@ -368,60 +371,60 @@ def build_buttons(ui,lines,vertical=True):
     g.flightselect_arr[0].pack(in_=g.frame_select,side=side,padx=4,pady=2,fill=tk.BOTH)
     g.flightselect_arr[0].select()
     g.iactive.set(0)
-    g.newflightpath = tk.Button(g.root,text='New flight path',
+    g.newflightpath = ttk.Button(g.root,text='New flight path',
                                 command = g.gui_newflight)
     g.newflightpath.pack(in_=ui.top,padx=5,pady=2)
     #g.removeflightpath = tk.Button(g.root,text='Remove flight path',
     #                               command = g.gui_removeflight)
     #g.removeflightpath.pack(in_=ui.top,padx=5,pady=5)
-    g.frame_points = tk.Frame(ui.top)
+    g.frame_points = ttk.Frame(ui.top)
     g.frame_points.pack(in_=ui.top,side=side,fill=tk.X,pady=2)
-    tk.Label(ui.top,text='Points:').pack(in_=g.frame_points,side=tk.LEFT)
-    g.addpoint = tk.Button(g.root,text='Add',
+    ttk.Label(ui.top,text='Points:').pack(in_=g.frame_points,side=tk.LEFT)
+    g.addpoint = ttk.Button(g.root,text='Add',
                            command = g.gui_addpoint)
     g.addpoint.pack(in_=g.frame_points,padx=0,pady=0,side=tk.LEFT)
-    g.movepoints = tk.Button(g.root,text='Move',
+    g.movepoints = ttk.Button(g.root,text='Move',
                              command = g.gui_movepoints)
     g.movepoints.pack(in_=g.frame_points,padx=0,pady=0,side=tk.LEFT)
-    g.rotpoints = tk.Button(g.root,text='Rotate',
+    g.rotpoints = ttk.Button(g.root,text='Rotate',
                              command = g.gui_rotatepoints)
     g.rotpoints.pack(in_=g.frame_points,padx=0,pady=0,side=tk.LEFT)
-    g.add_flt_module = tk.Button(g.root,text='Add flt module', command=g.gui_flt_module)
+    g.add_flt_module = ttk.Button(g.root,text='Add flt module', command=g.gui_flt_module)
     g.add_flt_module.pack(in_=ui.top)
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
              ).pack(in_=ui.top,side=side,padx=8,pady=5)
     #tk.Label(g.root,text='Extra info:').pack(in_=ui.top,side=side)
-    g.baddsat = tk.Button(g.root,text='Add Satellite tracks',
+    g.baddsat = ttk.Button(g.root,text='Add Satellite tracks',
                          command = g.dummy_func)
     g.baddsat.pack(in_=ui.top)
     g.baddsat.config(command=g.gui_addsat_tle)
-    g.baddaeronet = tk.Button(g.root,text='Add current\nAERONET AOD',
+    g.baddaeronet = ttk.Button(g.root,text='Add current\nAERONET AOD',
                          command = g.dummy_func)
     g.baddaeronet.pack(in_=ui.top)
     g.baddaeronet.config(command=g.gui_addaeronet)
     #g.baddgeos = tk.Button(g.root,text='Add GEOS Forecast',
     #                     command = g.gui_addgeos)
     #g.baddgeos.pack(in_=ui.top)
-    g.baddsua = tk.Button(g.root,text='Add Special Use Airspace',
+    g.baddsua = ttk.Button(g.root,text='Add Special Use Airspace',
                          command = g.gui_add_SUA_WMS)
     g.baddsua.pack(in_=ui.top)
-    g.baddwms = tk.Button(g.root,text='Add WMS layer',
+    g.baddwms = ttk.Button(g.root,text='Add WMS layer',
                          command = g.gui_add_any_WMS)
     g.baddwms.pack(in_=ui.top)
     
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
              ).pack(in_=ui.top,side=side,padx=8,pady=5)
-    tk.Label(g.root,text='from local images:').pack(in_=ui.top)
-    g.baddbocachica = tk.Button(g.root,text='Add Forecast\nfrom Bocachica',
+    ttk.Label(g.root,text='from local images:').pack(in_=ui.top)
+    g.baddbocachica = ttk.Button(g.root,text='Add Forecast\nfrom Bocachica',
                          command = g.gui_addbocachica)
     g.baddbocachica.pack(in_=ui.top)
-    g.baddtrajectory = tk.Button(g.root,text='Add trajectory\nImage',
+    g.baddtrajectory = ttk.Button(g.root,text='Add trajectory\nImage',
                          command = g.gui_addtrajectory)
     g.baddtrajectory.pack(in_=ui.top)
-    g.baddfigure = tk.Button(g.root,text='Add image',
+    g.baddfigure = ttk.Button(g.root,text='Add image',
                          command = g.gui_addfigure)
     g.baddfigure.pack(in_=ui.top)
-    g.baddtidbit = tk.Button(g.root,text='Add Tropical tidbit',
+    g.baddtidbit = ttk.Button(g.root,text='Add Tropical tidbit',
                          command = g.gui_addtidbit)
     g.baddtidbit.pack(in_=ui.top)
     
@@ -438,9 +441,15 @@ def build_buttons(ui,lines,vertical=True):
     
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
              ).pack(in_=ui.top,side=side,padx=8,pady=5)
-    tk.Button(g.root,text='Quit',command=g.stopandquit,bg='lightcoral'
+    quit_style = ttk.Style()
+    quit_style.configure('B3.TButton',background='lightcoral',foreground='darkred')
+    ttk.Button(g.root,text='Quit',command=g.stopandquit,style='B3.TButton'
               ).pack(in_=ui.top,side=side)
-    g.bg = g.baddsat.cget('bg')
+    g.active_style = ttk.Style()
+    g.active_style.configure('Ba.TButton',background='grey',foreground='black')
+    g.pressed_style = ttk.Style()
+    g.pressed_style.configure('Bp.TButton',background='darkgrey',foreground='darkgrey')
+    g.bg = 'Ba.TButton'#g.baddsat.cget('bg')
     ui.g = g
 
 def get_datestr(ui):
@@ -542,7 +551,7 @@ def Create_interaction(test=False,profile=None,**kwargs):
     lines.get_bg(redraw=True)
     bind_move_window(ui,lines)
     ui.tb.set_message('Ready for interaction')
-    lines.get_bg()
+    lines.get_bg(redraw=True)
     def stopandquit():
         'simple function to handle the stop and quit'
         lines.ex.wb.close()
