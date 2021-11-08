@@ -94,6 +94,8 @@ class dict_position:
                  - Made into python3 compatible
                  - using the new xlwings (v.0.24) api instead of pre-0.9
                  - added compatibility with macos
+        Modified: Samuel LeBlanc, 2021-11-08, Santa Cruz, CA
+                 - Bug fix for end points not being deleted properly
     """
     def __init__(self,lon0='14 38.717E',lat0='22 58.783S',speed=150.0,UTC_start=7.0,
                  UTC_conversion=+1.0,alt0=0.0,
@@ -580,13 +582,23 @@ class dict_position:
         
         if len(np.shape(tmp))==1: tmp = [tmp]
         # run through each line to check for updates
-        deleted = False
+        if self.n > len(tmp):
+            deleted = True
+        else:
+            deleted = False
         for i,t in reversed(list(enumerate(tmp))):
             if t[1] is None or t[2] is None:#lat or lon is deleted
                 self.dels(i)
                 self.n = self.n-1
                 sh.range((i+row_start,1),(i+row_start,26)).delete() 
                 deleted = True
+        # double check if end point is deleted.
+        if self.n > len(tmp):
+            for j in range(self.n,len(tmp)-1,-1):
+                #print('delelting point: {}, len(tmp):{}, self.n:{}'.format(j,len(tmp),self.n))
+                self.dels(j-1)
+                self.n = self.n-1    
+                #import pdb; pdb.set_trace()
         
         # check updated sheets (after deletions)
         last_row = sh.range((self.wb.sheets.active.cells.last_cell.row,2)).end('up').row
