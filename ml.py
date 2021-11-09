@@ -78,6 +78,8 @@
                 - added one line saving for pilots.
         Modified: Samuel LeBlanc, v1.25, 2021-04-08, Santa Cruz, CA
                 - added buttons for quick adding the IMPACTS "tropicaltidbits.com" imagery
+        Modified: Samuel LeBlan, v1.28, 2021-11-08, Santa Cruz, CA  
+                - bug fix for deletion points
                 
 """
 try:
@@ -131,7 +133,7 @@ except:
 #import six, six.moves
 import warnings
 
-__version__ = 'v1.27'
+__version__ = 'v1.28'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'
