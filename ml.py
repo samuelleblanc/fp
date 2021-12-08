@@ -133,7 +133,7 @@ except:
 #import six, six.moves
 import warnings
 
-__version__ = 'v1.28'
+__version__ = 'v1.29'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'

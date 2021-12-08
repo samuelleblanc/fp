@@ -876,13 +876,14 @@ class dict_position:
         print('Activating sheet:%i, name:%s'%(sheet_num,wb.sheets(sheet_num).name))
         self.platform, self.p_info,use_file = self.get_platform_info(self.name,platform_file)
         print('Using platform data for: %s' %self.platform)
-        self.datestr = str(self.sheet.range('W1').value).split(' ')[0]
+        self.datestr = str(wb.sh.range('W1').value).split(' ')[0]
         self.verify_datestr()
         if campaign != 'None':
             self.campaign
         else:
-            self.campaign = str(self.sheet.range('X1').value).split(' ')[0]
+            self.campaign = str(wb.sh.range('X1').value).split(' ')[0]
             self.verify_campaign()
+        self.wb = wb
         self.UTC_conversion = self.verify_UTC_conversion()
         return wb
         
@@ -1290,7 +1291,8 @@ def save2xl_for_pilots(filename,ex_arr):
             wb_pilot.sheets(1).name = a.name
             sheet_one = False
         else:
-            wb_pilot.sheets(1).add(name=a.name)
+            sh = wb_pilot.sheets.add(name=a.name,after=wb_pilot.sheets[wb_pilot.sheets.count-1])
+            #wb_pilot.sheets(1).add(name=a.name)
         xw.Range('A1').value = ['WP','Lat\n[+-90]','Lon\n[+-180]',
                              'Altitude\n[kft]','Comments']
         freeze_top_pane(wb_pilot)
