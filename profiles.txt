@@ -4,7 +4,7 @@
                  'UTC_start':22.25,'UTC_conversion':-5.0,
                  'start_alt':10.0}
 {'Profile':'IMPACTS-ER2','Plane_name':'ER2',
-                 'Start_lon':'-81.150419','Start_lat':'32.013491',
+                 'Start_lon':' -79.014444','Start_lat':'35.170833',
                  'Lon_range':[-92,-65],'Lat_range':[30,50],
                  'UTC_start':13.5,'UTC_conversion':-5.0,
                  'start_alt':12.8}
