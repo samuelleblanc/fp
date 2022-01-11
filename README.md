@@ -1,6 +1,6 @@
 # Name:
 
-Moving Lines, version 1.25
+Moving Lines, version 1.29
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1478125.svg)](https://doi.org/10.5281/zenodo.1478125)
 
@@ -92,6 +92,7 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 ## Move, zoom the map around:
     1) Buttons at the bottom of the map are used for navigation
     2) from left to right: Home screen (first image seen), Previous view, Next view, Pan, Zoom, subplots properties, save map
+	3) Can use the scroll in to zoom into point, or scroll out.
 **If zoom is selected, draw rectangle to desired location, will not be able to make new points until zoom unselected**
     
 ## Saving flight paths for sharing
@@ -137,11 +138,11 @@ Takes advantage of clickable map for creating a flight plan, and already existin
         - optionally Google Earth
     
 ## source:
-        - Python 2.7
+        - Python 3.9
         - Numpy
         - Scipy
         - matplotlib
-        - basemap from matplotlib (http://matplotlib.org/basemap/)
+        - ~~basemap from matplotlib (http://matplotlib.org/basemap/)~~ cartopy
         - Tkinter (usually included in python)
         - simplekml, pykml
         - gpxpy
@@ -152,7 +153,7 @@ Takes advantage of clickable map for creating a flight plan, and already existin
         
 # Required files (included in distribution):
 
-    - labels.txt : csv files with points on map to be labelled. Each line represent one point, Format: name, longitude, latitude, marker symbol
+    - labels.txt : csv files with points on map to be labelled. Each line represent one point, Format: name, longitude, latitude, marker and color symbol
     - aeronet_locations.txt: csv files with location of aeronet sites. found from : http://aeronet.gsfc.nasa.gov/aeronet_locations.txt
     - sat.tle: Selected data for satellite tracks in form of Two Line Element set from http://www.celestrak.com
     - profiles.txt: text file containing dictionary assignment for map setup defaults. each profile linked to a field mission, python dict format.
@@ -162,7 +163,7 @@ Takes advantage of clickable map for creating a flight plan, and already existin
     - file.rc: plotting defaults file (python matplotlib.rc format)
     - map_icons: folder with icons for use on google earth (optional)
     - flt_modules: folder with multiple flt files. To use when creating the flt_module paths. 
-    - map_???.pkl: files to enable faster initial loading of the basemap
+    - ~~map_???.pkl: files to enable faster initial loading of the basemap~~
     
 # Source files:
 
@@ -184,9 +185,7 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 
 # Known Bugs:
 
-    - Sometime slow starting up, especiallly when excel is not open
-    - issue when adding multiple points in excel, and not pressing the 'refresh' button
-    - comments not appropriately saved when adding/moving/deleting 
+    - Sometime slow starting up, especiallly when excel is not open 
     
 # Modification History:
 
@@ -240,18 +239,24 @@ Takes advantage of clickable map for creating a flight plan, and already existin
                         - added one line saving for pilots.
     Modified (v1.25): Samuel LeBlanc, 2021-04-08, Santa Cruz, CA
                         - added buttons for quick adding the IMPACTS "tropicaltidbits.com" imagery
+	Modified (v1.28): Samuel LeBlanc, v1.28, 2021-11-08, Santa Cruz, CA  
+						- bug fix for deletion points
+	Modified (v1.29): Samuel LeBlanc, v1.29, 2022-01-11, Santa Cruz, CA
+						- bug fix for saving multiple excel sheets
+						- adding scroll to zoom 
+						- adding custom color to labels.txt points
 # To cite:
 
 Cite as:
 
-Samuel LeBlanc, samuelleblanc/fp: Moving Lines updates for IMPACTS, v1.25, Zenodo, doi:10.5281/zenodo.4769315, 2021.
+Samuel LeBlanc (2021). samuelleblanc/fp: v1.28 New release with minor deleted point bug fix (v1.28). Zenodo. https://doi.org/10.5281/zenodo.5655342
 
 BibTex:
-@misc{samuel_leblanc_2021_4769315,
+@misc{samuel_leblanc_2021_5655342,
 author = {LeBlanc, Samuel},
-doi = {10.5281/zenodo.4769315},
+doi = {10.5281/zenodo.5655342},
 publisher = {Zenodo},
-title = {{samuelleblanc/fp: Moving Lines updates for IMPACTS, v1.25}},
-url = {https://doi.org/10.5281/zenodo.4769315},
+title = {{samuelleblanc/fp: v1.28 New release with minor deleted point bug fix}},
+url = {https://doi.org/10.5281/zenodo.5655342},
 year = {2021}
 }

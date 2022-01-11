@@ -78,8 +78,12 @@
                 - added one line saving for pilots.
         Modified: Samuel LeBlanc, v1.25, 2021-04-08, Santa Cruz, CA
                 - added buttons for quick adding the IMPACTS "tropicaltidbits.com" imagery
-        Modified: Samuel LeBlan, v1.28, 2021-11-08, Santa Cruz, CA  
+        Modified: Samuel LeBlanc, v1.28, 2021-11-08, Santa Cruz, CA  
                 - bug fix for deletion points
+        Modified: Samuel LeBlanc, v1.29, 2022-01-11, Santa Cruz, CA
+                - bug fix for saving multiple excel sheets
+                - adding scroll to zoom 
+                - adding custom color to labels.txt points
                 
 """
 try:
