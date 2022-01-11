@@ -536,8 +536,8 @@ def Create_interaction(test=False,profile=None,**kwargs):
     faero = 'aeronet_locations.txt'
     try:
         ui.tb.set_message('putting labels and aeronet')
-        line.labels_points = mi.plot_map_labels(m,flabels)
-        mi.plot_map_labels(m,faero,marker='*',skip_lines=2,color='y',textcolor='lightgrey')
+        line.labels_points = mi.plot_map_labels(m,flabels,alpha=0.4)
+        mi.plot_map_labels(m,faero,marker='*',skip_lines=2,color='y',textcolor='k',alpha=0.3)
     except Exception as e:
         print('Problem with label files!',e)
     get_datestr(ui)

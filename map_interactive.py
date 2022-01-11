@@ -15,6 +15,7 @@ import numpy as np
 import sys
 import re
 import copy
+from matplotlib.colors import is_color_like
 
 import map_interactive as mi
 from map_utils import spherical_dist,equi,shoot,bearing
@@ -139,6 +140,7 @@ class LineBuilder:
             'figure_enter_event',self.onfigureenter)
         self.cid_onaxesenter = self.line.figure.canvas.mpl_connect(
             'axes_enter_event',self.onfigureenter)
+        self.cid_onzoomscroll = self.line.figure.canvas.mpl_connect('scroll_event',self.zoom_fun)
 
     def disconnect(self):
         'Function to disconnect all events (except keypress)'
@@ -148,6 +150,7 @@ class LineBuilder:
         self.line.figure.canvas.mpl_disconnect(self.cid_onkeyrelease)
         self.line.figure.canvas.mpl_disconnect(self.cid_onfigureenter)
         self.line.figure.canvas.mpl_disconnect(self.cid_onaxesenter)
+        self.line.figure.canvas.mpl_disconnect(self.cid_onzoomscroll)
 
     def onpress(self,event):
         'Function that enables either selecting a point, or creating a new point when clicked'
@@ -366,6 +369,50 @@ class LineBuilder:
         self.update_labels()
         self.tb.set_message('Done Recalculating')
         self.line.axes.format_coord = self.format_position_simple
+        
+    def zoom_fun(self,event,base_scale=1.25):
+        'For zooming with scroll_event'
+        # from gist at https://gist.github.com/scott-vsi/522e756d636557ae8f1ef3cdb069cecd
+        # make this figure the current figure 
+        #plt._figure(ax.get_figure().number)
+        # push the current view to define home if stack is empty
+        #toolbar = ax.get_figure().canvas.toolbar # only set the home state
+        #if self.tb._views.empty():
+        #    self.tb.push_current()
+
+        # get the current x and y limits
+        cur_xlim = self.m.get_xlim()
+        cur_ylim = self.m.get_ylim()
+        xdata = event.xdata # get event x location
+        ydata = event.ydata # get event y location
+        # hat tip to @giadang
+        # Get distance from the cursor to the edge of the figure frame
+        x_left = xdata - cur_xlim[0]
+        x_right = cur_xlim[1] - xdata
+        y_top = ydata - cur_ylim[0]
+        y_bottom = cur_ylim[1] - ydata
+        if event.button == 'up':
+            # deal with zoom in
+            scale_factor = 1/base_scale
+        elif event.button == 'down':
+            # deal with zoom out
+            scale_factor = base_scale
+        else:
+            # deal with something that should never happen
+            scale_factor = 1
+            #print event.button
+        # set new limits
+        self.m.set_xlim([xdata - x_left*scale_factor,
+                     xdata + x_right*scale_factor])
+        self.m.set_ylim([ydata - y_top*scale_factor,
+                     ydata + y_bottom*scale_factor])
+
+        # push the current view limits and position onto the stack
+        # REVIEW perhaps this should participate in a drag_zoom like
+        # matplotlib/backend_bases.py:NavigationToolbar2:drag_zoom()
+        self.tb.push_current()
+        self.get_bg(redraw=True)
+        #self.draw_canvas()#ax.figure.canvas.draw() # force re-draw
                 
     def format_position_simple(self,x,y):
         'format the position indicator with only position'
@@ -958,14 +1005,15 @@ def pll(string):
             deg_m = deg_m + float(str_ls[i])/60.0
     return deg+(deg_m*sign)
 
-def plot_map_labels(m,filename,marker=None,skip_lines=0,color='k',textcolor='k'):
+def plot_map_labels(m,filename,marker=None,skip_lines=0,color=None,textcolor='k',alpha=0.3):
     """
     program to plot the map labels on the basemap plot defined by m
     if marker is set, then it will be the default for all points in file
     """
     labels = mi.load_map_labels(filename,skip_lines=skip_lines) 
+    
     labels_points = []
-    for l in labels:
+    for j,l in enumerate(labels):
         try:
             x,y = m(l['lon'],l['lat'])
             xtxt,ytxt = m(l['lon']+0.05,l['lat'])
@@ -976,10 +1024,25 @@ def plot_map_labels(m,filename,marker=None,skip_lines=0,color='k',textcolor='k')
             ma = marker
         else:
             ma = l['marker'] 
-        point = m.plot(x,y,color=color,marker=ma)
-        m.annotate(l['label'],(xtxt,ytxt),color=textcolor)
+        #print('filename: {fa},label:{la},color:{co}'.format(fa=filename,la=l['label'],co=color))
+        #if color:
+        #    import pdb; pdb.set_trace()
+        if color:
+            co = color
+            tco = textcolor
+        else:
+            co = l.get('color',color)
+            tco = l.get('color',textcolor)
+        if not is_color_like(co): 
+            print('Color selection error in labels file: {fa}, for label: {la}'.format(fa=filename,la=l['label']))
+            co = 'k'
+            tco = co
+        point = m.plot(x,y,color=co,marker=ma,alpha=alpha)
+        m.annotate(l['label'],(xtxt,ytxt),color=tco,alpha=alpha)
         point[0].set_pickradius(10)
         labels_points.append(point[0])
+            
+        #import pdb; pdb.set_trace()
     return labels_points
 
 def load_map_labels(filename,skip_lines=0):
@@ -1001,7 +1064,13 @@ def load_map_labels(filename,skip_lines=0):
             if sp[0].startswith('#'):
                 continue
             try:
-                out.append({'label':sp[0],'lon':mi.pll(sp[1]),'lat':mi.pll(sp[2]),'marker':sp[3].rstrip('\n')})
+                marker = sp[3].rstrip('\n').strip()
+                if len(marker)>1: 
+                    color = marker[1:]
+                    marker = marker[0]
+                else:
+                    color = 'k'
+                out.append({'label':sp[0],'lon':mi.pll(sp[1]),'lat':mi.pll(sp[2]),'marker':marker,'color':color})
             except IndexError:
                 continue
     return out
