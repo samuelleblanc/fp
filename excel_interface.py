@@ -1281,6 +1281,9 @@ def save2xl_for_pilots(filename,ex_arr):
         xlwings
     History:
         written: Samuel LeBlanc, NASA Ames, CA 2016-07-28
+        Modified: Samuel LeBlanc, Santa Cruz, CA, 2022-02-03
+                  -changed for supporting python 3 
+                  - removed all formatting from xlxs
     """
     import xlwings as xw #from xlwings import Workbook,Sheet,Range
     from excel_interface import format_lat_lon, freeze_top_pane
@@ -1295,19 +1298,19 @@ def save2xl_for_pilots(filename,ex_arr):
             #wb_pilot.sheets(1).add(name=a.name)
         xw.Range('A1').value = ['WP','Lat\n[+-90]','Lon\n[+-180]',
                              'Altitude\n[kft]','Comments']
-        freeze_top_pane(wb_pilot)
+        #freeze_top_pane(wb_pilot)
         xw.Range('G2:J2').number_format = 'hh:mm'
         xw.Range('W1').value = a.datestr
         xw.Range('X1').value = a.campaign
         xw.Range('Z1').value = 'Created with'
         xw.Range('Z2').value = 'moving_lines'
         xw.Range('Z3').value = a.__version__
-        xw.Range('W:W').autofit()
-        xw.Range('W:W').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
-        xw.Range('X:X').autofit()
-        xw.Range('X:X').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
-        xw.Range('Z:Z').autofit()
-        xw.Range('Z:Z').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
+        #xw.Range('W:W').autofit()
+        #xw.Range('W:W').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
+        #xw.Range('X:X').autofit()
+        #xw.Range('X:X').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
+        #xw.Range('Z:Z').autofit()
+        #xw.Range('Z:Z').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
         for i in range(len(a.lon)):
             lat_f,lon_f = format_lat_lon(a.lat[i],a.lon[i],format=a.pilot_format)
             if a.delayt[i]>3.0:

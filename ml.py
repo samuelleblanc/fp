@@ -84,6 +84,8 @@
                 - bug fix for saving multiple excel sheets
                 - adding scroll to zoom 
                 - adding custom color to labels.txt points
+        Modified: Samuel LeBlanc, v1.30, 2022-02-03, Santa Cruz, CA
+                - bug fix to for_pilots excel spreadsheet
                 
 """
 try:
@@ -137,7 +139,7 @@ except:
 #import six, six.moves
 import warnings
 
-__version__ = 'v1.29'
+__version__ = 'v1.30'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'
