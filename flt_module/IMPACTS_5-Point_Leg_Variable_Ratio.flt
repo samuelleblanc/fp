@@ -1,6 +1,6 @@
 #IMPACTS 5-Point Leg based on ER-2 leg length
 %leg_length,angle,er2_p3_ground_speed_ratio
-angle,leg_length*(er2_p3_ground_speed_ratio-1)*0.5
+angle,leg_length*(1-1/er2_p3_ground_speed_ratio)*0.5
 angle,leg_length*(0.5/er2_p3_ground_speed_ratio)
 angle,leg_length*(0.5/er2_p3_ground_speed_ratio)
-angle,leg_length*(er2_p3_ground_speed_ratio-1)*0.5
+angle,leg_length*(1-1/er2_p3_ground_speed_ratio)*0.5
