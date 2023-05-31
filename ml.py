@@ -86,7 +86,10 @@
                 - adding custom color to labels.txt points
         Modified: Samuel LeBlanc, v1.30, 2022-02-03, Santa Cruz, CA
                 - bug fix to for_pilots excel spreadsheet
-                
+        Modified: Samuel LeBlanc, v1.40, 2023-05-30, Santa Cruz, CA
+                - added new projections
+                - added new variables to the profiles.txt format
+                 
 """
 try:
     import Tkinter as tk
@@ -139,7 +142,7 @@ except:
 #import six, six.moves
 import warnings
 
-__version__ = 'v1.30'
+__version__ = 'v1.40'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'
@@ -190,7 +193,7 @@ def Get_default_profile(filename):
                      'Start_lon':'14 38.717E','Start_lat':'22 58.783S',
                      'Lon_range':[-20,20],'Lat_range':[-30,10],
                      'UTC_start':7.0,'UTC_conversion':+2.0,
-                     'start_alt':95.0},
+                     'start_alt':95.0,'proj':'PlateCarree'},
                     {'Profile':'NAAMES','Plane_name':'C130',
                      'Start_lon':'52 44.547W','Start_lat':'47 37.273N',
                      'Lon_range':[-55,-20],'Lat_range':[40,60],
@@ -487,7 +490,7 @@ def savetmp(ui,wb):
 def init_plot(m,start_lon='14 38.717E',start_lat='22 58.783S',color='red'):
     lat0,lon0 = mi.pll(start_lat), mi.pll(start_lon)
     x0,y0 = lon0,lat0 #m(lon0,lat0)
-    line, = m.plot([x0],[y0],'o-',color=color,linewidth=3)
+    line, = m.plot([x0],[y0],'o-',color=color,linewidth=3,transform=m.merc)
     line.labels_points = []
     text = ('Press s to stop interaction\\n'
             'Press i to restart interaction\\n')

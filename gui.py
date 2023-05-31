@@ -1521,10 +1521,13 @@ class Select_profile(tkSimpleDialog.Dialog):
     MOdifications:
         written: Samuel LeBlanc, 2015-09-15, NASA Ames, CA
     """
-    def __init__(self,default_profiles,title='Enter map defaults'):
+    def __init__(self,default_profiles,title='Enter map defaults',
+        proj_list=['PlateCarree','NorthPolarStereo','AlbersEqualArea','AzimuthalEquidistant',
+        'LambertCylindrical','Mercator','Miller','Mollweide','Orthographic','Robinson','Stereographic','SouthPolarStereo','Geostationary']):
         import tkinter as tk
         self.default_profiles = default_profiles
         self.profile = self.default_profiles[0]
+        self.proj_list = proj_list
         parent = tk._default_root
         tkSimpleDialog.Dialog.__init__(self,parent,title)
 
@@ -1574,6 +1577,12 @@ class Select_profile(tkSimpleDialog.Dialog):
         tk.Label(master, text='Start Alt:').grid(row=9,sticky=tk.E)
         self.start_alt = tk.Entry(master)
         self.start_alt.grid(row=9,column=1,columnspan=2)
+        
+        tk.Label(master, text='Projection:').grid(row=10,sticky=tk.E)
+        self.proj_string = tk.StringVar()
+        self.proj_string.set(self.proj_list[0])
+        self.proj = tk.OptionMenu(master,self.proj_string,*self.proj_list)
+        self.proj.grid(row=10,column=1,columnspan=2)
 
         self.set_profvalues(names[0])
         return self.drop
@@ -1592,6 +1601,8 @@ class Select_profile(tkSimpleDialog.Dialog):
                 self.set_val(self.start_utc,p['UTC_start'])
                 self.set_val(self.utc_convert,p['UTC_conversion'])
                 self.set_val(self.start_alt,p['start_alt'])
+                self.proj_string.set(p.get('proj','PlateCarree'))
+                
 
     def set_val(self,e,val):
         'Simple program to delete the value and replace with current value'

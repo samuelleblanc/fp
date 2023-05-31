@@ -1,3 +1,14 @@
+{'Profile':'ARCSIX','Plane_name':'P3',
+                 'Start_lon':'68 42 11W','Start_lat':'76 31 52N', 
+                 'Lon_range':[-100,20],'Lat_range':[72,73],
+                 'UTC_start':10.5,'UTC_conversion':-2.0,
+                 'start_alt':76.5,
+				 'proj':'NorthPolarStereo','lat_0':76.0,'lon_0':68.0}
+{'Profile':'ALOFT','Plane_name':'ER2',
+                 'Start_lon':'82.52111W','Start_lat':'27.84944N',
+                 'Lon_range':[-95,-75],'Lat_range':[22,36],
+                 'UTC_start':16.00,'UTC_conversion':-5.0,
+                 'start_alt':10.0}
 {'Profile':'IMPACTS-WFF','Plane_name':'P3',
                  'Start_lon':'75.466389W','Start_lat':'37.940194N',
                  'Lon_range':[-92,-65],'Lat_range':[30,50],
@@ -13,12 +24,6 @@
                  'Lon_range':[-105,-77],'Lat_range':[21,34],
                  'UTC_start':13.5,'UTC_conversion':-5.0,
                  'start_alt':10.0}
-{'Profile':'ARCSIX','Plane_name':'P3',
-                 'Start_lon':'68 42 11W','Start_lat':'76 31 52N', 
-                 'Lon_range':[-80,-7.5],'Lat_range':[65,89],
-                 'UTC_start':10.5,'UTC_conversion':-2.0,
-                 'start_alt':76.5,
-				 'proj':'npstere'}
 {'Profile':'CAMP2Ex','Plane_name':'P3',
                  'Start_lon':'120.5597','Start_lat':'15.18583',
                  'Lon_range':[110,135],'Lat_range':[0,30],

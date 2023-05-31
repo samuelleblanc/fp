@@ -100,7 +100,7 @@ class LineBuilder:
         self.xs = list(line.get_xdata())
         self.ys = list(line.get_ydata())
         if self.m:
-            self.lons,self.lats = self.xs,self.ys #self.lons,self.lats = self.m(self.xs,self.ys,inverse=True)
+            self.lons,self.lats = self.m.convert_latlon(self.xs,self.ys) #self.lons,self.lats = self.m(self.xs,self.ys,inverse=True)
             self.large = self.m.large
             if not self.m.use_cartopy:
                 self.par = self.m.par
@@ -192,7 +192,7 @@ class LineBuilder:
                 self.xs.append(self.xs[self.contains_index])
                 self.ys.append(self.ys[self.contains_index])
                 if self.m:
-                    lo,la = self.xs[self.contains_index],self.ys[self.contains_index] #self.m(self.xs[self.contains_index],self.ys[self.contains_index],inverse=True)
+                    lo,la = self.m.convert_latlon(self.xs[self.contains_index],self.ys[self.contains_index]) #self.m(self.xs[self.contains_index],self.ys[self.contains_index],inverse=True)
                     self.lons.append(lo)
                     self.lats.append(la)
                 self.set_alt0 = True
@@ -208,7 +208,7 @@ class LineBuilder:
                                                         ys[point_contains_index],'bo',zorder=40)
             self.draw_canvas(extra_points=[self.highlight_linepoint])
             if self.m:
-                lo,la = xs[point_contains_index],ys[point_contains_index] #self.m(xs[point_contains_index],ys[point_contains_index],inverse=True)
+                lo,la = self.m.convert_latlon(xs[point_contains_index],ys[point_contains_index]) #self.m(xs[point_contains_index],ys[point_contains_index],inverse=True)
                 self.lons.append(lo)
                 self.lats.append(la)
             self.xs.append(xs[point_contains_index])
@@ -220,7 +220,7 @@ class LineBuilder:
             self.ys.append(event.ydata)
             #print(self.xy,event.xdata,event.ydata)
             if self.m:
-                lo,la = event.xdata,event.ydata #self.m(event.xdata,event.ydata,inverse=True)
+                lo,la = self.m.convert_latlon(event.xdata,event.ydata) #self.m(event.xdata,event.ydata,inverse=True)
                 self.lons.append(lo)
                 self.lats.append(la)
             self.line.axes.format_coord = self.format_position_distance
@@ -281,7 +281,7 @@ class LineBuilder:
                 self.ex.appends(self.lats[-1],self.lons[-1])    
                 self.ex.calculate()
                 self.ex.write_to_excel()           
-            self.xy = self.lats[-1],self.lons[-1]
+            self.xy = self.m.invert_lonlat(self.lons[-1],self.lats[-1])
         else:
             if self.ex:
                 if self.set_alt0:
@@ -319,7 +319,7 @@ class LineBuilder:
         self.xs[i] = event.xdata
         self.ys[i] = event.ydata
         if self.m:
-            self.lons[i],self.lats[i] = event.xdata,event.ydata# self.m(event.xdata,event.ydata,inverse=True)
+            self.lons[i],self.lats[i] = self.m.convert_latlon(event.xdata,event.ydata)# self.m(event.xdata,event.ydata,inverse=True)
         self.line.set_data(list(self.xs),list(self.ys))
         if self.contains:
             self.draw_canvas(extra_points=[self.highlight_linepoint,self.line.range_circles,self.line.range_cir_anno])
@@ -361,9 +361,12 @@ class LineBuilder:
             self.lats = list(self.ex.lat)
             self.lons = list(self.ex.lon)
             if self.m:
-                x,y = self.ex.lon,self.ex.lat #self.m(self.ex.lon,self.ex.lat)
-                self.xs = list(x)
-                self.ys = list(y)
+                x,y = self.m.invert_lonlat(self.ex.lon,self.ex.lat) #self.m(self.ex.lon,self.ex.lat)
+                try:
+                    self.xs = list(x)
+                    self.ys = list(y)
+                except TypeError as ei:
+                    import pdb; pdb.set_trace()
                 self.line.set_data(self.xs,self.ys)
                 self.draw_canvas()
         self.update_labels()
@@ -417,7 +420,10 @@ class LineBuilder:
     def format_position_simple(self,x,y):
         'format the position indicator with only position'
         if self.m:
-            return 'Lon=%.7f, Lat=%.7f'%(x,y) #self.m(x, y, inverse = True))
+            if self.m.use_cartopy:
+                return 'Lon=%.7f, Lat=%.7f'%self.m.convert_latlon(x,y)
+            else:
+                return 'Lon=%.7f, Lat=%.7f'%(x,y) #self.m(x, y, inverse = True))
         else:   
             return 'x=%2.5f, y=%2.5f' % (x,y)
 
@@ -425,8 +431,8 @@ class LineBuilder:
         'format the position indicator with distance from previous point'
         if self.m:
             x0,y0 = self.xy
-            lon0,lat0 = x0,y0 #self.m(x0,y0,inverse=True)
-            lon,lat = x,y #self.m(x,y,inverse=True)
+            lon0,lat0 = self.m.convert_latlon(x0,y0) #self.m(x0,y0,inverse=True)
+            lon,lat = self.m.convert_latlon(x,y)
             r = spherical_dist([float(lat0),float(lon0)],[float(lat),float(lon)])
             return 'Lon=%.7f, Lat=%.7f, d=%.2f km'%(lon,lat,r)
         else:
@@ -480,30 +486,31 @@ class LineBuilder:
         colors = ['lightgrey','lightgrey','lightgrey','lightsalmon','crimson']
         line = []
         an = []
+
         for i,d in enumerate(diam):
-            ll, = equi(self.m,lon,lat,d,color=colors[i])
+            ll, = equi(self.m,lon,lat,d,color=colors[i],transform=self.m.merc)
             line.append(ll)
             slon,slat,az = shoot(lon,lat,0.0,d)
-            x,y = slon,slat #self.m(slon,slat)
+            x,y = self.m.invert_lonlat(slon,slat) #self.m(slon,slat)
             ano = self.line.axes.annotate('%i km' %(d),(x,y),color='silver')
             an.append(ano)
         if azi:
             slon,slat,az = shoot(lon,lat,azi,diam[-1])
             mlon,mlat,az = shoot(lon,lat,azi+180.0,diam[-1])
-            lazi1, = self.m.plot([slon],[slat],'--*',color='grey',markeredgecolor='#BBBB00',markerfacecolor='#EEEE00',markersize=20)
-            lazi2, = self.m.plot([mlon,lon,slon],[mlat,lat,slat],'--',color='grey')
+            lazi1, = self.m.plot([slon],[slat],'--*',color='grey',markeredgecolor='#BBBB00',markerfacecolor='#EEEE00',markersize=20,transform=self.m.merc)
+            lazi2, = self.m.plot([mlon,lon,slon],[mlat,lat,slat],'--',color='grey',transform=self.m.merc)
             line.append(lazi1)
             line.append(lazi2)
         # plot angle points on the line
         for deg in [0,90,180,270]:
             dlo,dla,az = shoot(lon,lat,deg,diam[-1])
             elo,ela,az = shoot(lon,lat,deg,diam[-1]*0.85)
-            ll, = self.m.plot([elo,dlo],[ela,dla],'-',color='grey')
+            ll, = self.m.plot([elo,dlo],[ela,dla],'-',color='grey',transform=self.m.merc)
             line.append(ll)
             for dd in [22.5,45.0,67.5]:
                 dlo,dla,az = shoot(lon,lat,deg+dd,diam[-1])
                 elo,ela,az = shoot(lon,lat,deg+dd,diam[-1]*0.93)
-                ll, = self.m.plot([elo,dlo],[ela,dla],'-',color='grey')
+                ll, = self.m.plot([elo,dlo],[ela,dla],'-',color='grey',transform=self.m.merc)
                 line.append(ll)
         return line,an
 
@@ -613,7 +620,7 @@ class LineBuilder:
         if self.verbose:
             print('New points at lon: %f, lat: %f' %(newlon,newlat))
         if self.m:
-            x,y = newlon,newlat #self.m(newlon,newlat)
+            x,y = self.m.invert_lonlat(newlon,newlat) #self.m(newlon,newlat)
             if not insert:
                 self.lons.append(newlon)
                 self.lats.append(newlat)
@@ -647,7 +654,7 @@ class LineBuilder:
         'Program to move a point a certain distance and bearing'
         newlon,newlat,baz = shoot(self.lons[i],self.lats[i],Bearing,maxdist=distance)
         if self.m:
-            x,y = newlon,newlat #self.m(newlon,newlat)
+            x,y = self.m.invert_lonlat(newlon,newlat) #self.m(newlon,newlat)
             self.lons[i] = newlon
             self.lats[i] = newlat
         else:
@@ -832,7 +839,8 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj
         else:
             dp = 0
         if use_cartopy:
-            proj = ccrs.PlateCarree()
+            #proj = ccrs.PlateCarree()
+            proj = ccrs.__dict__[profile.get('proj','PlateCarree')]() #central_longitude=profile.get('central_longitude',0),central_latitude=profile.get('central_latitude',30))
             m = fig.add_subplot(111,projection=proj)
             m.proj = proj
             m.use_cartopy = True
@@ -874,6 +882,23 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj
         m.figure.canvas.draw()
         m.ax = m.axes
         
+        def converter_latlon(x,y):
+            merc = ccrs.PlateCarree()
+            return merc.transform_point(x,y,src_crs=m.proj)
+        def inverter_lonlat(lon,lat):
+            merc = ccrs.PlateCarree()
+            
+            if hasattr(lon,'__len__'):
+                x_tmp,y_tmp = [],[]
+                tp = [m.proj.transform_point(lon[ilon],lat[ilon],src_crs=merc) for ilon,llo in enumerate(lon)]
+                nul = [(x_tmp.append(t[0]),y_tmp.append(t[1])) for t in tp]
+                return x_tmp, y_tmp
+            else:
+                 return m.proj.transform_point(lon,lat,src_crs=merc)
+        m.merc = ccrs.PlateCarree()
+        m.convert_latlon = converter_latlon
+        m.invert_lonlat = inverter_lonlat
+        
     else:
         m.drawcoastlines()
         #m.fillcontinents(color='#AAAAAA')
@@ -905,6 +930,11 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj
         m.mer = mer
         m.orig_xlim = m.ax.get_xlim()
         m.orig_ylim = m.ax.get_ylim()
+        def dummy_convert(x,y):
+             return(x,y)
+        m.convert_latlon = dummy_convert
+        m.invert_lonlat = m
+        m.merc = None
 
         # move the meridian labels to a proper position
         for aa in m.artists[0].keys():
@@ -1015,8 +1045,8 @@ def plot_map_labels(m,filename,marker=None,skip_lines=0,color=None,textcolor='k'
     labels_points = []
     for j,l in enumerate(labels):
         try:
-            x,y = m(l['lon'],l['lat'])
-            xtxt,ytxt = m(l['lon']+0.05,l['lat'])
+            x,y = m.invert_lonlat(l['lon'],l['lat'])
+            xtxt,ytxt = m.invert_lonlat(l['lon']+0.05,l['lat'])
         except:
             x,y = l['lon'],l['lat']
             xtxt,ytxt = l['lon']+0.05,l['lat']
@@ -1187,13 +1217,15 @@ def plot_sat_tracks(m,sat,label_every=20):
             lat = sat[k]['lat']
         else:
             (lon,lat) = sat[k]
-        x,y = lon,lat # x,y = m(lon,lat)
-        tmp_l = m.plot(x,y,marker='.',label=k,linestyle='-',linewidth=0.2)
+        #x,y = m.invert_lonlat(lon,lat) # x,y = m(lon,lat)
+        x,y = lon,lat
+        tmp_l = m.plot(x,y,marker='.',label=k,linestyle='-',linewidth=0.2,transform=m.merc)
         sat_obj.append(tmp_l)
         sat_lines[k] = tmp_l
         sat_keys.append(k)
         co = sat_obj[-1][-1].get_color()
         #sat_obj.append(mu.mplot_spec(m,lon,lat,'-',linewidth=0.2))
+
         if type(sat[k]) is dict:
             try:
                 latrange = [m.llcrnrlat,m.urcrnrlat]
@@ -1201,11 +1233,13 @@ def plot_sat_tracks(m,sat,label_every=20):
             except:
                 latrange = m.get_ylim()
                 lonrange = m.get_xlim()
+            #llcrnr = m.invert_lonlat(lonrange[0],latrange[0])
+            #urcrnr = m.invert_lonlat(lonrange[1],latrange[1])
             sat_text[k] = []
             for i,d in enumerate(sat[k]['d']):
                 if not i%label_every:
-                    if ((lat[i]>=latrange[0])&(lat[i]<=latrange[1])&(lon[i]>=lonrange[0])&(lon[i]<=lonrange[1])):
-                        sat_obj.append(m.ax.text(x[i],y[i],'%02i:%02i' % (d.tuple()[3],d.tuple()[4]),color=co))
+                    if ((lat[i]>=latrange[0])&(lat[i]<=latrange[1])&(lon[i]>=lonrange[0])&(lon[i]<=lonrange[1])):#((lat[i]>=llcrnr[1])&(lat[i]<=urcrnr[1])&(lon[i]>=llcrnr[0])&(lon[i]<=urcrnr[0])):
+                        sat_obj.append(m.ax.text(x[i],y[i],'%02i:%02i' % (d.tuple()[3],d.tuple()[4]),color=co,transform=m.merc))
                         sat_text[k].append(sat_obj[-1])
     if len(sat.keys())>4:
         ncol = 2
@@ -1259,17 +1293,24 @@ def get_sat_tracks_from_tle(datestr):
     import numpy as np
     from map_interactive import get_tle_from_file
     import os
+    from datetime import datetime, timedelta
+    import tkinter.messagebox as tkMessageBox
     try:
-        sat = get_tle_from_file(os.path.join('.','sat.tle'))
+        fname = os.path.join('.','sat.tle')
+        sat = get_tle_from_file(fname)
     except:
         try:
             from gui import gui_file_select_fx
             fname = gui_file_select_fx(ext='*.tle',ftype=[('All files','*.*'),('Two Line element','*.tle')])
             sat = get_tle_from_file(fname)
         except:
-            import tk.messagebox as tkMessageBox
             tkMessageBox.showerror('No sat','There was an error reading the sat.tle file')
             return None
+    dt = datetime.now()-datetime.fromtimestamp(os.path.getmtime(fname))
+    if dt>timedelta(days=14):
+        tkMessageBox.showerror('Old TLEs','The file {} has been modified more than 14 days ago. Satellite tracks may be innacurate. Please update.'.format(fname))
+    else:
+        print('... Imported the sat.tle file, now plotting')
     for k in sat.keys():
         sat[k]['ephem'] = ephem.readtle(k,sat[k]['tle1'],sat[k]['tle2'])
         sat[k]['d'] = [ephem.Date(datestr+' 00:00')]
