@@ -913,6 +913,8 @@ class gui:
     def gui_addtidbit(self):
         'GUI handler for adding tropical tidbit foreacast maps to basemap plot'
         import tkinter.messagebox as tkMessageBox
+        from load_utils import load_from_json
+        import os
         try:
             filename = self.gui_file_select(ext='.png',ftype=[('All files','*.*'),
                         				  ('PNG','*.png')])
@@ -924,9 +926,31 @@ class gui:
         except Exception as e:
             tkMessageBox.showwarning('Sorry','Loading image file from Tropical tidbits not working...'+e)
             return
-        regions = {'CONUS':[18.94,-130.38,57.54,-59.35],'Eastern US':[21.25,-106.64,51.73,-57.46],
-                    'North-Central US':[35.61,-105.95,51.94,-76.48],'South-Central US':[24.53,-111.95,43.06,-83.53],
-                    'Northeast US':[34.65,-87.84,48.83,-62.72],'Southeast US':[21.51,-99.08,41.20,-67.36]}
+        try:
+            regions = load_from_json(os.path.join('.','image_corners_tidbits.json'))
+        except IOError:
+            from gui import gui_file_select_fx
+            fname = gui_file_select_fx(ext='*.json',ftype=[('All files','*.*'),('JSON corner for regions','*.json')])
+            regions = load_from_json(fname)
+        except Exception as ei:
+            print(' ...using internal corner definitions for Tropical Tidbits')
+            print(ei)
+            regions = {'CONUS':[18.94,-130.38,57.54,-59.35],
+                         'Eastern US':[21.25,-106.64,51.73,-57.46],
+                         'North-Central US':[35.61,-105.95,51.94,-76.48],
+                         'South-Central US':[24.53,-111.95,43.06,-83.53],
+                         'Northeast US':[34.65,-87.84,48.83,-62.72],
+                         'Southeast US':[21.51,-99.08,41.20,-67.36],
+                         'Northwest US':[37.55,-136.31,56.20,-98.08],
+                         'Southwest US':[27.52,-132.12,46.20,-99.32],
+                         'Western US':[24.29,-136.69,51.78,-87.48],
+                         'North Atlantic':[-1.83,-113.85,69.60,5.10],
+                         'Western Atlantic':[3.97,-107.04,42.52,-46.95],
+                         'Tropical Atlantic':[3.87,-77.25,42.80,11.68],
+                         'Western Pacific':[-1.85,85.88,69.64,-153.85],
+                         'Central Pacific':[-1.15,167.75,37.83,-126.64],
+                         'Eastern Pacific':[-1.15,-142.25,37.90,-76.64]
+                         }
         reg_list = list(regions.keys())
         p0 = Popup_list(reg_list,title='Which Region?',Text='Select the region of the figure:',multi=False)
         ll_lat,ll_lon,ur_lat,ur_lon = regions[reg_list[p0.result]]

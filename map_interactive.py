@@ -218,7 +218,7 @@ class LineBuilder:
             self.xy = self.xs[-1],self.ys[-1]
             self.xs.append(event.xdata)
             self.ys.append(event.ydata)
-            #print(self.xy,event.xdata,event.ydata)
+            #print(self.xy,event.xdata,event.ydata,self.xs[-1],self.ys[-1])
             if self.m:
                 lo,la = self.m.convert_latlon(event.xdata,event.ydata) #self.m(event.xdata,event.ydata,inverse=True)
                 self.lons.append(lo)
@@ -461,6 +461,8 @@ class LineBuilder:
                     continue
         if self.labelsoff:
             return
+        vas = ['bottom', 'baseline', 'center', 'center_baseline', 'top']
+        has = ['left', 'right', 'center']
         for i in self.wp:    
             if not self.lbl:
                 self.lbl = [self.line.axes.annotate(s+'%i'%i,
@@ -470,9 +472,10 @@ class LineBuilder:
                     if not self.xs[i-1]:
                         continue
                     self.lbl.append(self.line.axes.
-                                    annotate(s+'%i'%i,(self.xs[i-1],self.ys[i-1])))
+                                    annotate(s+'%i'%i,(self.xs[i-1],self.ys[i-1]),ha=has[i%3],va=vas[i%5],zorder=45))
                 except IndexError:
-                    pass                    
+                    pass
+        
         self.line.figure.canvas.draw()
 
     def plt_range_circles(self,lon,lat,azi=None):

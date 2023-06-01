@@ -702,8 +702,8 @@ class dict_position:
         Program that appends to the current class with values supplied, or with defaults from the command line
         """
         import numpy as np
-        self.lat = np.append(self.lat,lat)
-        self.lon = np.append(self.lon,lon)
+        self.lat = np.append(self.lat,pll(lat))
+        self.lon = np.append(self.lon,pll(lon))
         self.speed = np.append(self.speed,sp)
         self.delayt = np.append(self.delayt,dt)
         self.alt = np.append(self.alt,alt)
@@ -739,8 +739,8 @@ class dict_position:
         Program that appends to the current class with values supplied, or with defaults from the command line
         """
         import numpy as np
-        self.lat = np.insert(self.lat,i,lat)
-        self.lon = np.insert(self.lon,i,lon)
+        self.lat = np.insert(self.lat,i,pll(lat))
+        self.lon = np.insert(self.lon,i,pll(lon))
         self.speed = np.insert(self.speed,i,sp)
         self.delayt = np.insert(self.delayt,i,dt)
         self.alt = np.insert(self.alt,i,alt)
@@ -791,10 +791,10 @@ class dict_position:
         if alt is None: alt = np.nan
         if altk is None: altk = np.nan
         if self.lat[i] != lat:
-            self.lat[i] = lat
+            self.lat[i] = pll(lat)
             changed = True
         if self.lon[i] != lon:
-            self.lon[i] = lon
+            self.lon[i] = pll(lon)
             changed = True
         if self.speed[i] != sp:
             if np.isfinite(sp):
@@ -1264,7 +1264,7 @@ def populate_ex_arr(filename=None,colorcycle=['red','blue','green']):
             campaign = 'None'
         else:
             campaign = arr[i-1].campaign
-        arr.append(ex.dict_position(filename=filename,sheet_num=i+1,color=colorcycle[i],campaign='None'))
+        arr.append(ex.dict_position(filename=filename,sheet_num=i+1,color=colorcycle[i],campaign=campaign))
     return arr
     
 def save2xl_for_pilots(filename,ex_arr):

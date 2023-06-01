@@ -489,8 +489,8 @@ def savetmp(ui,wb):
 
 def init_plot(m,start_lon='14 38.717E',start_lat='22 58.783S',color='red'):
     lat0,lon0 = mi.pll(start_lat), mi.pll(start_lon)
-    x0,y0 = lon0,lat0 #m(lon0,lat0)
-    line, = m.plot([x0],[y0],'o-',color=color,linewidth=3,transform=m.merc)
+    x0,y0 = m.invert_lonlat(lon0,lat0) #m(lon0,lat0)
+    line, = m.plot([x0],[y0],'o-',color=color,linewidth=3)
     line.labels_points = []
     text = ('Press s to stop interaction\\n'
             'Press i to restart interaction\\n')

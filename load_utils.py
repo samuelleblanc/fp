@@ -1194,7 +1194,10 @@ def recarray_to_dict(ra):
 
 def save_to_json(f,d):
     'Function to save dictionary with numpy elements (d) to a text file (f) define by the JSON typing'
-    from json_tricks.np import dumps
+    try:
+        from json_tricks import dumps
+    except:
+        from json_tricks.np import dumps
     with open(f,'w') as handle:
         handle.write(dumps(d,indent=2))
 
@@ -1203,7 +1206,10 @@ def save_to_json(f,d):
 
 def load_from_json(f):
     'Function to load JSON file and translate to dictionary with numpy elements from text file(f) define by the JSON typing'
-    from json_tricks.np import loads
+    try:
+        from json_tricks import loads
+    except:
+        from json_tricks.np import loads
     with open(f,'r') as handle:
         d = dict(loads(handle.read()))
     return d
