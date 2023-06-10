@@ -87,6 +87,7 @@ class gui:
         self.colors = ['red']
         self.colorcycle = ['red','blue','green','cyan','magenta','yellow','black','lightcoral','teal','darkviolet','orange']
         self.get_geometry()
+        self.geotiff_path = 'elevation_10KMmd_GMTEDmd.tif'
         if not root:
             self.root = tk.Tk()
         else:
@@ -318,9 +319,16 @@ class gui:
         else:
             print('Problem with loading a new figure handler')
             return
-        ax1.plot(self.line.ex.cumlegt,self.line.ex.alt,'x-')
+        ax1.plot(self.line.ex.cumlegt,self.line.ex.alt,'x-',label=self.line.ex.name)
         for i,w in enumerate(self.line.ex.WP):
             ax1.annotate('{}'.format(w),(self.line.ex.cumlegt[i],self.line.ex.alt[i]),color='r')
+        try:
+            from map_interactive import get_elev
+            elev,lat_new,lon_new,utcs,geotiff_path = get_elev(self.line.ex.cumlegt,self.line.ex.lat,self.line.ex.lon,dt=60,geotiff_path=self.geotiff_path)
+            ax1.fill_between(utcs,elev,0,color='tab:brown',alpha=0.3,zorder=1,label='Surface\nElevation',edgecolor=None)
+            self.geotiff_path = geotiff_path
+        except:
+            print('Surface elevation not working')
         ax1.set_title('Altitude vs time for %s on %s' %(self.line.ex.name,self.line.ex.datestr),y=1.08)
         fig.subplots_adjust(top=0.85,right=0.8)
         ax1.set_xlabel('Flight duration [Hours]')
@@ -340,6 +348,7 @@ class gui:
         alt_labels = ['%2.2f'%(a*3.28084/1000.0) for a in ax1.get_yticks()]
         ax3.set_yticklabels(alt_labels)
         ax1.grid()
+        ax1.legend(frameon=True,loc='center left', bbox_to_anchor=(1.05, 0.75))
         if self.noplt:
             canvas.draw()
         else:
@@ -367,9 +376,17 @@ class gui:
         else:
             print('Problem with loading a new figure handler')
             return
-        ax1.plot(self.line.ex.lat,self.line.ex.alt,'x-')
+        ax1.plot(self.line.ex.lat,self.line.ex.alt,'x-',label=self.line.ex.name)
         for i,w in enumerate(self.line.ex.WP):
             ax1.annotate('{}'.format(w),(self.line.ex.lat[i],self.line.ex.alt[i]),color='r')
+        try:
+            from map_interactive import get_elev
+            elev,lat_new,lon_new,utcs,geotiff_path = get_elev(self.line.ex.cumlegt,self.line.ex.lat,self.line.ex.lon,dt=60,geotiff_path=self.geotiff_path)
+            ax1.fill_between(lat_new,elev,0,color='tab:brown',alpha=0.3,zorder=1,label='Surface\nElevation',edgecolor=None)
+            [ax1.fill_between([l,lat_new[i+1]],[elev[i],elev[i+1]],0,color='tab:brown',alpha=0.1,zorder=1,edgecolor=None) for i,l in list(enumerate(lat_new[:-1]))]
+            self.geotiff_path = geotiff_path
+        except:
+            print('Surface elevation not working')
         ax1.set_title('Altitude vs. Latitude for %s on %s' %(self.line.ex.name,self.line.ex.datestr),y=1.08)
         fig.subplots_adjust(top=0.85,right=0.8)
         ax1.set_xlabel('Latitude [Degrees]')
@@ -382,6 +399,7 @@ class gui:
         alt_labels = ['%2.2f'%(a*3.28084/1000.0) for a in ax1.get_yticks()]
         ax3.set_yticklabels(alt_labels)
         ax1.grid()
+        ax1.legend(frameon=True,loc='center left', bbox_to_anchor=(1.05, 0.75))
         if self.noplt:
             canvas.draw()
         else:
@@ -838,10 +856,10 @@ class gui:
         self.line.tb.set_message('Getting the aeronet files from http://aeronet.gsfc.nasa.gov/')
         latr = [self.line.m.llcrnrlat,self.line.m.urcrnrlat]
         lonr = [self.line.m.llcrnrlon,self.line.m.urcrnrlon]
-        aero = aeronet.get_aeronet(daystr=self.line.ex.datestr,lat_range=latr,lon_range=lonr)
+        aero = aeronet.get_aeronet(daystr=self.line.ex.datestr,lat_range=latr,lon_range=lonr,version='3')
         if not aero:
             self.line.tb.set_message('Failed first attempt at aeronet, trying again')
-            aero = aeronet.get_aeronet(daystr=str(datetime.now()-relativedelta(days=1)),lat_range=latr,lon_range=lonr)
+            aero = aeronet.get_aeronet(daystr=str(datetime.now()-relativedelta(days=1)),lat_range=latr,lon_range=lonr,version='3')
             if not aero:
                 tkMessageBox.showwarning('Sorry','Failed to access the aeronet servers or failed to load the files')
                 return
@@ -1074,7 +1092,73 @@ class gui:
         if r:
             self.baddsua.config(text='Remove SUA')
             self.baddsua.config(command=self.gui_rm_SUA_WMS,style='Bp.TButton')
+            
+    def gui_add_kml(self):
+        'Button function to add any kml/kmz file'
+        r = self.add_kml()
         
+        if r:
+            self.baddkml.config(text='Remove KML/KMZ')
+            self.baddkml.config(command=self.gui_rm_kml,style='Bp.TButton')
+            
+    def gui_add_FIR(self):
+        'Button function to add FIR boundaries from kmz file'
+        import os
+        r = self.add_kml(fname=os.path.join('.','firs.kmz'),name='FIR')
+        
+        if r:
+            self.baddfir.config(text='Remove FIR boundaries')
+            self.baddfir.config(command=self.gui_rm_fir,style='Bp.TButton')
+            
+    def gui_rm_fir(self):
+        'Gui button to remove the satellite tracks'
+        self.line.tb.set_message('Removing FIR')
+        try:
+            self.FIR[-1].set_visible(False)
+        except:
+            pass
+        for s in self.FIR:
+            if type(s) is list:
+                for so in s:
+                    so.remove()
+            else:
+                s.remove()
+        self.baddfir.config(text='Add FIR boundaries')
+        self.baddfir.config(command=self.gui_add_FIR,style=self.bg)
+        self.line.get_bg(redraw=True)
+            
+    def add_kml(self,fname=None,color='tab:pink',name='kmls'):
+        'function to add kml'
+        from map_interactive import plot_kml
+        if not fname:
+            fname = self.gui_file_select(ext='.kml',ftype=[('All files','*.*'),
+                                                          ('KML','*.kml'),('KMZ','*.kmz')])
+        try:
+            self.line.tb.set_message('Adding kml file:{}'.format(fname))
+            self.__dict__[name] = plot_kml(fname,self.line.m,color=color)
+            return True
+        except:
+            print(' *** Issue adding the kml file: {}'.format(fname))
+            self.line.tb.set_message('Problem with kml file:{}'.format(fname))
+            return False
+           
+    def gui_rm_kml(self,name='kmls'):
+        'Gui button to remove the satellite tracks'
+        self.line.tb.set_message('Removing KML/KMZ')
+        try:
+            self.kmls[-1].set_visible(False)
+        except:
+            pass
+        for s in self.kmls:
+            if type(s) is list:
+                for so in s:
+                    so.remove()
+            else:
+                s.remove()
+        self.baddkml.config(text='Add KML/KMZ')
+        self.baddkml.config(command=self.gui_add_kml,style=self.bg)
+        self.line.get_bg(redraw=True)
+            
     def add_WMS(self,website='http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx',
                 name='GEOS',printurl=False,notime=False,alpha=1.0,popup=True,cql_filter=None,hires=False): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
         'GUI handler for adding the figures from WMS support of GEOS'

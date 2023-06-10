@@ -1,4 +1,4 @@
-def get_aeronet(daystr=None,lat_range=[],lon_range=[],lev='LEV10',avg=True,daystr2=None,version='2'):
+def get_aeronet(daystr=None,lat_range=[],lon_range=[],lev='LEV15',avg=True,daystr2=None,version='2'):
     """ 
     Purpose:
        Program to go and get the aeronet data on the day defined by daystr
@@ -103,9 +103,11 @@ def get_aeronet(daystr=None,lat_range=[],lon_range=[],lev='LEV10',avg=True,dayst
     lines = []
     for ibr,br in enumerate(soup.findAll('br')):
         nt = br.nextSibling
-        if (version=='3') & (ibr<3):
+        if (version=='3') & (ibr<2):
             print( nt)
             continue
+        if (version=='3') & (ibr<3):
+            nt = nt.split('\n')[-1]
         if len(lines)==0:
             if 'Number_of_Wavelengths' in nt:
                 nt = nt.strip()+',exact_wvl2,exact_wvl3,exact_wvl4,exact_wvl5'
@@ -127,8 +129,14 @@ def get_aeronet(daystr=None,lat_range=[],lon_range=[],lev='LEV10',avg=True,dayst
         if not label in fields_to_ignore:
             if dat[label].dtype.type is np.str_:
                 dat[label] = np.genfromtxt(dat[label])
-    
-    return recarray_to_dict(dat)
+                
+    aero = recarray_to_dict(dat)            
+    remap = {'Site_LatitudeDegrees':'Latitude','Site_LongitudeDegrees':'Longitude','AOD_500nm':'AOT_500'}
+    for k in remap:
+        if k in aero: 
+            aero[remap[k]] = aero[k]
+            
+    return aero
     
 def plot_aero(m,aero,no_colorbar=True,a_max = 1.5):
     """
@@ -138,7 +146,7 @@ def plot_aero(m,aero,no_colorbar=True,a_max = 1.5):
     from matplotlib import cm
     from matplotlib.lines import Line2D
     import numpy as np
-    x,y = m(aero['Longitude'].astype('double'),aero['Latitude'].astype('double'))
+    x,y = m.invert_lonlat(aero['Longitude'].astype('double'),aero['Latitude'].astype('double'))
     
     if no_colorbar:
         colors = np.round(aero['AOT_500'].astype('double')/a_max*7.0)/7.0

@@ -656,7 +656,7 @@ class LineBuilder:
     def movepoint(self,i,Bearing,distance,last=False):
         'Program to move a point a certain distance and bearing'
         newlon,newlat,baz = shoot(self.lons[i],self.lats[i],Bearing,maxdist=distance)
-        if self.m:
+        if self.m: 
             x,y = self.m.invert_lonlat(newlon,newlat) #self.m(newlon,newlat)
             self.lons[i] = newlon
             self.lats[i] = newlat
@@ -1370,6 +1370,120 @@ def get_flt_modules():
         dict[f] = {'path':os.path.abspath(os.path.join('.','flt_module',f)),
                    'png':png}
     return dict
+
+
+def extract_elevation_from_geotiff(latitudes, longitudes,geotiff_path='elevation_10KMmd_GMTEDmd.tif'):
+    """
+    Load the geotiff with surface elevation. Subset and find the latitudes and longitudes and return the elevation.
     
+    Using the DEM by default of 10km, combined and described by:
+    
+    Amatulli, G., Domisch, S., Tuanmu, M.-N., Parmentier, B., Ranipeta, A., Malczyk, J., and Jetz, W. (2018)
+    A suite of global, cross-scale topographic variables for environmental and biodiversity modeling. Scientific Data volume 5, 
+    Article number: 180040. DOI: doi:10.1038/sdata.2018.40.
+    """
+    import rasterio
+    from rasterio.transform import from_origin
+    with rasterio.open(geotiff_path) as src:
+        # Retrieve the geographic transform (geotransform) information
+        transform = src.transform
+
+        # Convert latitude and longitude coordinates to pixel indices
+        col_indices, row_indices = ~transform * (longitudes, latitudes)
+
+        # Round the pixel indices to the nearest whole number
+        col_indices = col_indices.round().astype(int)
+        row_indices = row_indices.round().astype(int)
+
+        # Read the elevation values corresponding to the pixel indices
+        elevations = src.read(1)
+        #, window=((row_indices.min(), row_indices.max() + 1),
+        #                                 (col_indices.min(), col_indices.max() + 1)))
+
+    return elevations[row_indices, col_indices]
         
+def get_elev(utc,lat,lon,dt=60,geotiff_path='elevation_10KMmd_GMTEDmd.tif'):
+    'Function returning surface elevation and a new latitude, longitude, and time for overplotting at an interval of dt seconds (default 300 seconds)'
+    from scipy import interpolate
+    import os
+    utc = np.array(utc)
+    lat = np.array(lat)
+    lon = np.array(lon)
     
+    utcs = np.arange(utc[0]*3600,utc[-1]*3600,dt)
+    fx_lat = interpolate.interp1d(utc*3600,lat,bounds_error=False)
+    fx_lon = interpolate.interp1d(utc*3600,lon,bounds_error=False)
+    lat_new = fx_lat(utcs)
+    lon_new = fx_lon(utcs)
+    fname = os.path.join('.',geotiff_path)
+    if not os.path.isfile(fname):
+        try:
+            from gui import gui_file_select_fx
+            fname = gui_file_select_fx(ext='*.tif',ftype=[('All files','*.*'),('GEOTIFF','*.tif')])
+        except:
+            tkMessageBox.showerror('No GEOTIFF DEM surface Elevation','There was an error reading the DEM surface elevation file: {}'.format(fname))
+    
+    elev = extract_elevation_from_geotiff(lat_new,lon_new,geotiff_path=fname)
+    return elev,lat_new,lon_new,utcs/3600.0,fname
+    
+def parse_and_plot_kml(kml_content, ax,color='tab:pink'):
+    'function to plot the kml content (either kml file or as part of kmz'
+    import xml.etree.ElementTree as ET
+    # Parse the KML content
+    root = ET.fromstring(kml_content)
+        # Define the namespaces
+    namespaces = {
+        'kml': 'http://www.opengis.net/kml/2.2',
+        'google_kml': 'http://earth.google.com/kml/2.0',
+        'gx': 'http://www.google.com/kml/ext/2.2',
+        '': 'http://earth.google.com/kml/2.0'
+    }
+    # Find the Placemark elements in KML
+    placemarks = root.findall('.//kml:Placemark', namespaces) + root.findall('.//google_kml:Placemark', namespaces) + root.findall('.//gx:Placemark', namespaces)
+    # Iterate over each Placemark and plot its geometry
+    print('... Found {} placemarks in the kml/kmz file'.format(len(placemarks)))
+    plcmrks = []
+    for placemark in placemarks:
+        geom = placemark.findtext('.//coordinates', namespaces=namespaces)
+        if geom is None:
+            geom = placemark.findtext('.//kml:Point/kml:coordinates', namespaces=namespaces)
+        if geom is None:
+            geom = placemark.find('.//google_kml:Polygon/google_kml:outerBoundaryIs/google_kml:LinearRing/google_kml:coordinates', namespaces)
+        if geom is None:
+            geom = placemark.find('.//gx:Polygon/gx:outerBoundaryIs/gx:LinearRing/gx:coordinates', namespaces)
+        
+        #import ipdb; ipdb.set_trace()
+        if geom is not None:
+            coords = [tuple(map(float, coord.split(','))) for coord in geom.strip().split()]
+            longitudes, latitudes = zip(*coords)
+            # Plot the polygon
+            pp_tmp = ax.plot(longitudes, latitudes, color=color, linewidth=1,transform=ccrs.Geodetic())
+            plcmrks.append(pp_tmp)
+        
+    return plcmrks
+
+def plot_kml(kml_file, ax,color='tab:pink'):
+    'function to plot the insides of the kml file'
+    import zipfile
+    print('...opening KML/KMZ: {}'.format(kml_file))
+    
+    # Extract the contents of KMZ file if provided
+    if kml_file.endswith('.kmz'):
+        with zipfile.ZipFile(kml_file, 'r') as zfile:
+            # Find all KML files within the KMZ archive
+            kml_files = [f for f in zfile.namelist() if f.lower().endswith('.kml')]
+            if not kml_files:
+                raise ValueError('No KML file found in the KMZ archive.')
+            # Loop through each KML file
+            for kml_file in kml_files:
+                with zfile.open(kml_file) as kfile:
+                    kml_content = kfile.read()
+                    plots = parse_and_plot_kml(kml_content, ax,color=color)
+    else:
+        with open(kml_file, 'r') as kfile:
+            kml_content = kfile.read()
+        plots = parse_and_plot_kml(kml_content, ax,color=color)
+    print('... Plotted {} lines from KML'.format(len(plots)))
+    return plots
+
+

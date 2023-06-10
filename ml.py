@@ -89,6 +89,12 @@
         Modified: Samuel LeBlanc, v1.40, 2023-05-30, Santa Cruz, CA
                 - added new projections
                 - added new variables to the profiles.txt format
+        Modified: Samuel LeBlanc, v1.41, 2023-06-08, Santa Cruz, CA
+                - added surface elevation to elevation plots
+                - added plotting of select kml files
+                - added FIR boundaries plotting.
+                - added the AERONET v3 debugging and defaults
+                
                  
 """
 try:
@@ -142,7 +148,7 @@ except:
 #import six, six.moves
 import warnings
 
-__version__ = 'v1.40'
+__version__ = 'v1.41'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'
@@ -416,6 +422,14 @@ def build_buttons(ui,lines,vertical=True):
     #g.baddgeos = tk.Button(g.root,text='Add GEOS Forecast',
     #                     command = g.gui_addgeos)
     #g.baddgeos.pack(in_=ui.top)
+    g.baddkml = ttk.Button(g.root,text='Add KML/KMZ',
+                         command = g.gui_add_kml)
+    g.baddkml.pack(in_=ui.top)
+    
+    g.baddfir = ttk.Button(g.root,text='Add FIR boundaries',
+                         command = g.gui_add_FIR)
+    g.baddfir.pack(in_=ui.top)
+    
     g.baddsua = ttk.Button(g.root,text='Add Special Use Airspace',
                          command = g.gui_add_SUA_WMS)
     g.baddsua.pack(in_=ui.top)

@@ -14,4 +14,6 @@ datas = [(os.path.join(ei.get_curdir(),'sat.tle'),'.'),
          (os.path.join(ei.get_curdir(),'profiles.txt'),'.'),
          (os.path.join(ei.get_curdir(),'platform.txt'),'.'),
          (os.path.join(ei.get_curdir(),'image_corners_tidbits.json'),'.'),
-         (os.path.join(ei.get_curdir(),'WMS.txt'),'.')]
+         (os.path.join(ei.get_curdir(),'WMS.txt'),'.'),
+         (os.path.join(ei.get_curdir(),'elevation_10KMmd_GMTEDmd.tif'),'.'),
+         (os.path.join(ei.get_curdir(),'firs.kmz'),'.')]

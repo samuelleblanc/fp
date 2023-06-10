@@ -9,6 +9,11 @@
                  'Lon_range':[-95,-75],'Lat_range':[22,36],
                  'UTC_start':16.00,'UTC_conversion':-5.0,
                  'start_alt':10.0}
+{'Profile':'PACE-PAX','Plane_name':'ER2',
+                 'Start_lon':'118 05 04W','Start_lat':'34 37 46N',
+                 'Lon_range':[-126,-114],'Lat_range':[32,43],
+                 'UTC_start':16.0,'UTC_conversion':-7.0,
+                 'start_alt':775.0}
 {'Profile':'IMPACTS-WFF','Plane_name':'P3',
                  'Start_lon':'75.466389W','Start_lat':'37.940194N',
                  'Lon_range':[-92,-65],'Lat_range':[30,50],
@@ -16,7 +21,7 @@
                  'start_alt':10.0}
 {'Profile':'IMPACTS-ER2','Plane_name':'ER2',
                  'Start_lon':' -79.014444','Start_lat':'35.170833',
-                 'Lon_range':[-92,-65],'Lat_range':[30,50],
+                 'Lon_range':[-92,-65],'Lat_range':[30,50],  
                  'UTC_start':13.5,'UTC_conversion':-5.0,
                  'start_alt':12.8}
 {'Profile':'TRACER-AQ','Plane_name':'GV',
