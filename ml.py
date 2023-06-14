@@ -94,6 +94,7 @@
                 - added plotting of select kml files
                 - added FIR boundaries plotting.
                 - added the AERONET v3 debugging and defaults
+                - modified plotting of satellite tracks for esthetics
                 
                  
 """

@@ -1205,7 +1205,7 @@ def get_sat_tracks(datestr,kml):
             print('Skipping %s; no points downloaded' %name)
     return sat
 
-def plot_sat_tracks(m,sat,label_every=20): 
+def plot_sat_tracks(m,sat,label_every=6): 
     """
     Program that goes through and plots the satellite tracks
     """
@@ -1222,7 +1222,7 @@ def plot_sat_tracks(m,sat,label_every=20):
             (lon,lat) = sat[k]
         #x,y = m.invert_lonlat(lon,lat) # x,y = m(lon,lat)
         x,y = lon,lat
-        tmp_l = m.plot(x,y,marker='.',label=k,linestyle='-',linewidth=0.2,transform=m.merc)
+        tmp_l = m.plot(x,y,marker='+',markersize=1,label=k,linestyle='-',linewidth=0.2,transform=m.merc)
         sat_obj.append(tmp_l)
         sat_lines[k] = tmp_l
         sat_keys.append(k)
@@ -1288,7 +1288,7 @@ def plot_sat_tracks(m,sat,label_every=20):
     #sat_obj.append(leg_onpick)
     return sat_obj
 
-def get_sat_tracks_from_tle(datestr):
+def get_sat_tracks_from_tle(datestr,fraction_minute_interval=3):
     """
     Program to build the satellite tracks from the two line element file
     """
@@ -1320,8 +1320,8 @@ def get_sat_tracks_from_tle(datestr):
         sat[k]['ephem'].compute(sat[k]['d'][0])
         sat[k]['lat'] = [np.rad2deg(sat[k]['ephem'].sublat)]
         sat[k]['lon'] = [np.rad2deg(sat[k]['ephem'].sublong)]
-        for t in range(24*60*2):
-            d = ephem.Date(sat[k]['d'][t]+ephem.minute/2.0)
+        for t in range(24*60*fraction_minute_interval):
+            d = ephem.Date(sat[k]['d'][t]+ephem.minute/float(fraction_minute_interval))
             sat[k]['d'].append(d)
             sat[k]['ephem'].compute(d)
             sat[k]['lat'].append(np.rad2deg(sat[k]['ephem'].sublat))
