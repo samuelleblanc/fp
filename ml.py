@@ -95,6 +95,9 @@
                 - added FIR boundaries plotting.
                 - added the AERONET v3 debugging and defaults
                 - modified plotting of satellite tracks for esthetics
+        Modified: Samuel LeBlanc, v1.42, 2023-07-20, Santa Cruz, CA 
+                - added support for the MSWMS from MSS
+                - added extra selections options for the WMS loading.
                 
                  
 """
@@ -149,7 +152,7 @@ except:
 #import six, six.moves
 import warnings
 
-__version__ = 'v1.41'
+__version__ = 'v1.42'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'
@@ -373,6 +376,9 @@ def build_buttons(ui,lines,vertical=True):
     g.bplotsza = ttk.Button(g.root,text='SZA',
                            command=g.gui_plotsza)
     g.bplotsza.pack(in_=g.frame_plot,side=tk.RIGHT)
+    g.bplotaltmss = ttk.Button(g.root,text='MSS Profile',
+                           command=g.gui_plotmss_profile)
+    g.bplotaltmss.pack(in_=g.frame_plot,side=tk.BOTTOM)
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
              ).pack(in_=ui.top,side=side,padx=8,pady=5)
     g.frame_select = tk.Frame(g.root,relief=tk.SUNKEN,bg='white')

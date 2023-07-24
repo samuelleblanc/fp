@@ -846,6 +846,7 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj
             proj = ccrs.__dict__[profile.get('proj','PlateCarree')]() #central_longitude=profile.get('central_longitude',0),central_latitude=profile.get('central_latitude',30))
             m = fig.add_subplot(111,projection=proj)
             m.proj = proj
+            m.proj_name = profile.get('proj','PlateCarree')
             m.use_cartopy = True
         else:
             if proj == 'cyl':
@@ -861,6 +862,7 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj
                 #m = Basemap(projection='npstere',lat_0=76.5,lon_0=-68.75,
                 #    boundinglat=55,resolution='l',ax=ax)
             m.use_cartopy = False
+            m.proj_name = proj
                 
     m.artists = []
     if m.use_cartopy:
@@ -1130,7 +1132,7 @@ def load_WMS_file(filename,skip_lines=0):
             if len(sp)>2:
                 out.append({'name':sp[0].strip(),'website':sp[1].strip(),'notime':str2bool(sp[2].rstrip('\n'))})
             else:
-                out.append({'name':sp[0].strip(),'website':sp[1].rstrip('\n'),'notime':True})
+                out.append({'name':sp[0].strip(),'website':sp[1].rstrip('\n'),'notime':False})
     return out
     
 def load_sat_from_net():
@@ -1486,4 +1488,97 @@ def plot_kml(kml_file, ax,color='tab:pink'):
     print('... Plotted {} lines from KML'.format(len(plots)))
     return plots
 
+def convert_ccrs_to_epsg(ccrs_string):
+    'Function to convert the cartoipy projection values to an epsg numrical value'
+    projs_dict = {'PlateCarree':4326,
+                   'NorthPolarStereo':3995,
+                   'AlbersEqualArea':9822,
+                   'AzimuthalEquidistant':2163,
+                   'LambertCylindrical':9834,
+                   'Mercator':3857,
+                   'Miller':54003,
+                   'Mollweide':54009,
+                   'Orthographic':9840,
+                   'Robinson':54030,
+                   'Stereographic':3995,
+                   'SouthPolarStereo':3031,
+                   'Geostationary':4121}
+    return projs_dict.get(ccrs_string,4326)
+    
+def alt2pres(altitude):
+    '''
+    Determine site pressure from altitude.
 
+    Parameters
+    ----------
+    altitude : numeric
+        Altitude above sea level. [m]
+
+    Returns
+    -------
+    pressure : numeric
+        Atmospheric pressure. [Pa]
+
+    Notes
+    ------
+    The following assumptions are made
+
+    ============================   ================
+    Parameter                      Value
+    ============================   ================
+    Base pressure                  101325 Pa
+    Temperature at zero altitude   288.15 K
+    Gravitational acceleration     9.80665 m/s^2
+    Lapse rate                     -6.5E-3 K/m
+    Gas constant for air           287.053 J/(kg K)
+    Relative Humidity              0%
+    ============================   ================
+
+    References
+    -----------
+    .. [1] "A Quick Derivation relating altitude to air pressure" from
+       Portland State Aerospace Society, Version 1.03, 12/22/2004.
+    '''
+
+    press = 100 * ((44331.514 - altitude) / 11880.516) ** (1 / 0.1902632)
+
+    return press
+
+def pres2alt(pressure):
+    '''
+    Determine altitude from site pressure.
+
+    Parameters
+    ----------
+    pressure : numeric
+        Atmospheric pressure. [Pa]
+
+    Returns
+    -------
+    altitude : numeric
+        Altitude above sea level. [m]
+
+    Notes
+    ------
+    The following assumptions are made
+
+    ============================   ================
+    Parameter                      Value
+    ============================   ================
+    Base pressure                  101325 Pa
+    Temperature at zero altitude   288.15 K
+    Gravitational acceleration     9.80665 m/s^2
+    Lapse rate                     -6.5E-3 K/m
+    Gas constant for air           287.053 J/(kg K)
+    Relative Humidity              0%
+    ============================   ================
+
+    References
+    -----------
+    .. [1] "A Quick Derivation relating altitude to air pressure" from
+       Portland State Aerospace Society, Version 1.03, 12/22/2004.
+    '''
+
+    alt = 44331.5 - 4946.62 * pressure ** (0.190263)
+
+    return alt

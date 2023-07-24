@@ -298,7 +298,7 @@ class gui:
         print('Saving ICT file to :'+filepath)
         self.line.ex.save2ict(filepath)
         
-    def gui_plotalttime(self):
+    def gui_plotalttime(self,surf_alt=True,no_extra_axes=False):
         'gui function to run the plot of alt vs. time'
         if self.noplt:
             from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -322,37 +322,79 @@ class gui:
         ax1.plot(self.line.ex.cumlegt,self.line.ex.alt,'x-',label=self.line.ex.name)
         for i,w in enumerate(self.line.ex.WP):
             ax1.annotate('{}'.format(w),(self.line.ex.cumlegt[i],self.line.ex.alt[i]),color='r')
-        try:
-            from map_interactive import get_elev
-            elev,lat_new,lon_new,utcs,geotiff_path = get_elev(self.line.ex.cumlegt,self.line.ex.lat,self.line.ex.lon,dt=60,geotiff_path=self.geotiff_path)
-            ax1.fill_between(utcs,elev,0,color='tab:brown',alpha=0.3,zorder=1,label='Surface\nElevation',edgecolor=None)
-            self.geotiff_path = geotiff_path
-        except:
-            print('Surface elevation not working')
+        if surf_alt:
+            try:
+                from map_interactive import get_elev
+                elev,lat_new,lon_new,utcs,geotiff_path = get_elev(self.line.ex.cumlegt,self.line.ex.lat,self.line.ex.lon,dt=60,geotiff_path=self.geotiff_path)
+                ax1.fill_between(utcs,elev,0,color='tab:brown',alpha=0.3,zorder=1,label='Surface\nElevation',edgecolor=None)
+                self.geotiff_path = geotiff_path
+            except:
+                print('Surface elevation not working')
         ax1.set_title('Altitude vs time for %s on %s' %(self.line.ex.name,self.line.ex.datestr),y=1.08)
         fig.subplots_adjust(top=0.85,right=0.8)
         ax1.set_xlabel('Flight duration [Hours]')
         ax1.set_ylabel('Alt [m]')
         ax1.xaxis.tick_bottom()
-        ax2 = ax1.twiny()
-        ax2.xaxis.tick_top()
-        ax2.set_xlabel('UTC [Hours]')
-        ax2.set_xticks(ax1.get_xticks())
-        cum2utc = self.line.ex.utc[0]
-        utc_label = ['%2.2f'%(u+cum2utc) for u in ax1.get_xticks()]
-        ax2.set_xticklabels(utc_label)
-        ax3 = ax1.twinx()
-        ax3.yaxis.tick_right()
-        ax3.set_ylabel('Altitude [Kft]')
-        ax3.set_yticks(ax1.get_yticks())
-        alt_labels = ['%2.2f'%(a*3.28084/1000.0) for a in ax1.get_yticks()]
-        ax3.set_yticklabels(alt_labels)
+        if not no_extra_axes:
+            ax2 = ax1.twiny()
+            ax2.xaxis.tick_top()
+            ax2.set_xlabel('UTC [Hours]')
+            ax2.set_xticks(ax1.get_xticks())
+            cum2utc = self.line.ex.utc[0]
+            utc_label = ['%2.2f'%(u+cum2utc) for u in ax1.get_xticks()]
+            ax2.set_xticklabels(utc_label)
+            ax3 = ax1.twinx()
+            ax3.yaxis.tick_right()
+            ax3.set_ylabel('Altitude [Kft]')
+            ax3.set_yticks(ax1.get_yticks())
+            alt_labels = ['%2.2f'%(a*3.28084/1000.0) for a in ax1.get_yticks()]
+            ax3.set_yticklabels(alt_labels)
         ax1.grid()
         ax1.legend(frameon=True,loc='center left', bbox_to_anchor=(1.05, 0.75))
         if self.noplt:
             canvas.draw()
+            fig.canvas = canvas
         else:
             plt.figure(f1.number)
+        return fig
+        
+    def gui_plotmss_profile(self,filename='vert_WMS.txt',hires=False):
+        'function to plot the alt vs time, with the addition oif the MSS (WMS) service with under figure profiles'
+        from map_interactive import alt2pres, load_WMS_file
+        fig = self.gui_plotalttime(surf_alt=False,no_extra_axes=False)
+        
+        #build the waypoints string
+        wp_str =  ['{:2.2f},{:2.2f},'.format(la,self.line.lons[ila]) for ila,la in list(enumerate(self.line.lats))]
+        wps = ''.join(wp_str).strip(',')
+        
+        #get the bbox extent in pressure levels
+        press = alt2pres(self.line.ex.alt)
+        bbox = (201,1013.25,10,min(press)/100.0)
+        
+        # load the wms
+        out = load_WMS_file(filename)
+        arr = ['{} : {}'.format(dict['name'],dict['website']) for dict in out]
+        if len(arr)>1:
+            popup = Popup_list(arr,title='Select WMS server to load graphics capabilities')
+            i = popup.var.get()
+        else:
+            i = 0
+        img,label,img_leg = self.add_WMS(website=out[i]['website'],printurl=True,bbox=bbox,path=wps,hires=hires,vert_crs=True)
+
+        try:
+            xlims = fig.axes[0].get_xlim()
+            ylims = fig.axes[0].get_ylim()
+            if img: fig.axes[0].imshow(img,origin='upper',extent=[0,max(self.line.ex.cumlegt),0,max(self.line.ex.alt)],aspect='auto') #
+            fig.canvas.draw()
+            import pdb; pdb.set_trace()
+        except: 
+            import pdb; pdb.set_trace()
+
+        if label:
+            try:
+                fig.ax.text(0.0,0.0,text,transform=fig.ax.transAxes)
+            except:
+                print('Problem adding text on profile figure, continuning...')
         return fig
         
     def gui_plotaltlat(self):
@@ -1063,35 +1105,41 @@ class gui:
         
     def gui_addgeos(self):
         'wrapper for the add wms function, specifically for GEOS'
-        r = self.add_WMS(website='http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx',name='GEOS')
-        if r:
-            self.baddgeos.config(text='Remove GEOS Forecast')
-            self.baddgeos.config(command=self.gui_rmgeos,style='Bp.TButton')
+        img,label,img_leg = self.add_WMS(website='http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx')
+        if img:
+            r = self.add_wms_images(img,img_leg,name='GEOS',text=label)
+            if r:
+                self.baddgeos.config(text='Remove GEOS Forecast')
+                self.baddgeos.config(command=self.gui_rmgeos,style='Bp.TButton')
             
     def gui_add_any_WMS(self,filename='WMS.txt'):
         'Button to add any WMS layer defined in a WMS txt file, each line has name of server, then the website'
         from map_interactive import load_WMS_file
         out = load_WMS_file(filename)
         arr = ['{} : {}'.format(dict['name'],dict['website']) for dict in out]
-        popup = Popup_list(arr)
+        popup = Popup_list(arr,title='Select WMS server to load graphics capabilities')
         i = popup.var.get()
         self.line.tb.set_message('Selected WMS server: {}'.format(out[i]['name']))
-        r = self.add_WMS(website=out[i]['website'],name='WMS',printurl=True,notime=out[i]['notime'])
-        if r:
-            self.wmsname = out[i]['name']
-            self.baddwms.config(text='Remove WMS: {}'.format(out[i]['name']))
-            self.baddwms.config(command=lambda: self.gui_rm_wms('WMS'),style='Bp.TButton')
+        img,label,img_leg = self.add_WMS(website=out[i]['website'],printurl=True,notime=out[i]['notime'])
+        if img:
+            r = self.add_wms_images(img,img_leg,name='WMS',text=label)
+            if r:
+                self.wmsname = out[i]['name']
+                self.baddwms.config(text='Remove WMS: {}'.format(out[i]['name']))
+                self.baddwms.config(command=lambda: self.gui_rm_wms('WMS'),style='Bp.TButton')
             
     def gui_add_SUA_WMS(self):
         'Button to add Special Use Airspace WMS layer'
         import tkinter.messagebox as tkMessageBox
         tkMessageBox.showwarning('SUA for US only','Special Use Airspace for US only')
-        r = self.add_WMS(website='https://sua.faa.gov/geoserver/wms?LAYERS=SUA',name='SUA',
-                         printurl=True,notime=True,alpha=0.5,popup=False,
+        img,label,img_leg = self.add_WMS(website='https://sua.faa.gov/geoserver/wms?LAYERS=SUA',
+                         printurl=True,notime=True,popup=False,
                          cql_filter='low_altitude<240',hires=True)
-        if r:
-            self.baddsua.config(text='Remove SUA')
-            self.baddsua.config(command=self.gui_rm_SUA_WMS,style='Bp.TButton')
+        if img:
+            r = self.add_wms_images(img,img_leg,name='SUA',alpha=0.5,text=label)
+            if r:
+                self.baddsua.config(text='Remove SUA')
+                self.baddsua.config(command=self.gui_rm_SUA_WMS,style='Bp.TButton')
             
     def gui_add_kml(self):
         'Button function to add any kml/kmz file'
@@ -1160,10 +1208,12 @@ class gui:
         self.line.get_bg(redraw=True)
             
     def add_WMS(self,website='http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx',
-                name='GEOS',printurl=False,notime=False,alpha=1.0,popup=True,cql_filter=None,hires=False): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
+                printurl=False,notime=False,popup=True,cql_filter=None,hires=False,
+                vert_crs=False,xlim=None,ylim=None,bbox=None,**kwargs): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
         'GUI handler for adding the figures from WMS support of GEOS'
         from gui import Popup_list
         import tkinter.messagebox as tkMessageBox
+        from map_interactive import convert_ccrs_to_epsg
         if hires:
             res = (2160,1680)
         else:
@@ -1172,7 +1222,9 @@ class gui:
             tkMessageBox.showwarning('Downloading from internet','Trying to load data from {}\n with most current model/measurements'.format(website.split('/')[2]))
         self.root.config(cursor='exchange')
         self.root.update()
-        try:
+        
+        # Get capabilities
+        try: 
             from owslib.wms import WebMapService
             from owslib.util import openURL
             from io import StringIO,BytesIO
@@ -1185,7 +1237,7 @@ class gui:
             print(ie)
             self.root.config(cursor='')
             tkMessageBox.showwarning('Sorry','Loading WMS map file from '+website.split('/')[2]+' servers not working...')
-            return False
+            return False, None, False
         titles = [wms[c].title for c in cont]
         arr = [x.split('-')[-1]+':  '+y for x,y in zip(cont,titles)]
         self.root.config(cursor='')
@@ -1195,47 +1247,81 @@ class gui:
         print('Selected WMS map: '+titles[i].split(',')[-1])
         self.root.config(cursor='exchange')
         self.root.update()
+        
         if wms[cont[i]].timepositions:
             times = wms[cont[i]].timepositions
-            jpop = Popup_list(times)
-            time_sel = times[jpop.var.get()]
+            jpop = Popup_list(times,title='Select Valid Times')
+            time_sel = times[jpop.var.get()].strip()
+            if '/' in time_sel:
+                tss = time_sel.split('/')
+                time_sel = tss[1] 
         else:
             time_sel = None
+            
+        if wms[cont[i]].elevations:
+            elevations = wms[cont[i]].elevations
+            jpop = Popup_list(elevations,title='Select Valid Elevations')
+            elev_sel = elevations[jpop.var.get()]
+        else:
+            elev_sel = None
+            
+        if wms[cont[i]].crsOptions:
+            #print('building the ccrs')
+            ccrs_val = convert_ccrs_to_epsg(self.line.m.proj_name)
+            ccrs_str = '{}'.format(ccrs_val)
+            crss = wms[cont[i]].crsOptions
+            if vert_crs: ccrs_str = 'VERT'
+            srss = [c for c in crss if c.find(ccrs_str)>-1]
+            if len(srss)>0:
+                srs = srss[0]
+            else:
+                jpop = Popup_list(crss,title='No matching EPSG values, please select')
+                srs = crss[jpop.var.get()]
+        else:
+            srs = 'epsg:4326'
+            
         try:
+            #print('building the time_select')
             if not time_sel:
                 from datetime import datetime
                 time_sel = datetime.now().strftime('%Y-%m-%d')+'T12:00'
             if notime:
                 time_sel = None
+            label = '{} {}'.format(time_sel,elev_sel)
             #ylim = self.line.line.axes.get_ylim()
             #xlim = self.line.line.axes.get_xlim()
-            ylim = self.line.m.llcrnrlat,self.line.m.urcrnrlat
-            xlim = self.line.m.llcrnrlon,self.line.m.urcrnrlon
+            if not ylim: ylim = self.line.m.llcrnrlat,self.line.m.urcrnrlat
+            if not xlim: xlim = self.line.m.llcrnrlon,self.line.m.urcrnrlon
         except:
             self.root.config(cursor='')
             self.root.update()
             tkMessageBox.showwarning('Sorry','Problem getting the limits and time of the image')
-            return False
+            return False, None, False
+        if not bbox: bbox = (xlim[0],ylim[0],xlim[1],ylim[1])
         try:
+            #print('trying the wms get map')
             img = wms.getmap(layers=[cont[i]],style=['default'],
-                              bbox=(xlim[0],ylim[0],xlim[1],ylim[1]), #(ylim[0],xlim[0],ylim[1],xlim[1]),
+                              bbox=bbox, #(ylim[0],xlim[0],ylim[1],xlim[1]),
                               size=res,
                               transparent=True,
                               time=time_sel,
-                              srs='EPSG:4326',
+                              elevation=elev_sel,
+                              srs=srs,
                               format='image/png',
-                              CQL_filter=cql_filter)
+                              dim_init_time=time_sel,
+                              CQL_filter=cql_filter,**kwargs)
         except Exception as ie:
             print(ie)
             self.root.config(cursor='')
             self.root.update()
             tkMessageBox.showwarning('Sorry','Problem getting the image from WMS server')
-            return False
+            return False, None, False
         try:
             legend_call = openURL(img.geturl().replace('GetMap','GetLegend'))
             geos_legend = Image.open(BytesIO(legend_call.read()))
         except:
             self.line.tb.set_message('legend image from WMS server problem')
+            geos_legend = False
         if printurl:
             print(img.geturl()        )
         try:
@@ -1251,29 +1337,42 @@ class gui:
                     self.root.config(cursor='exchange')
                     self.root.update()
                     img = wms.getmap(layers=[cont[i]],style=['default'],
-                              bbox=(xlim[0],ylim[0],xlim[1],ylim[1]),
+                              bbox=bbox,
                               size=res,
                               transparent=True,
-                              srs='EPSG:4326',
+                              srs=srs,
                               format='image/png',
-                              CQL_filter=cql_filter)
+                              CQL_filter=cql_filter,**kwargs)
                     geos = Image.open(BytesIO(img.read()))
                 elif r.lower().find('property')>-1:
                     print('problem with the CQL_filter on the WMS server, retrying...')
                     img = wms.getmap(layers=[cont[i]],style=['default'],
-                              bbox=(xlim[0],ylim[0],xlim[1],ylim[1]),
+                              bbox=bbox,
                               size=res,
                               transparent=True,
-                              srs='EPSG:4326',
-                              format='image/png')
+                              srs=srs,
+                              format='image/png',**kwargs)
                     geos = Image.open(BytesIO(img.read()))
             except:
                 self.root.config(cursor='')
                 self.root.update()
                 tkMessageBox.showwarning('Sorry','Problem reading the image a second time... abandonning')
-                return False
+                return False, None, False
+        return geos, label, geos_legend
+        
+        
+    def add_wms_images(self,geos,geos_legend,name='GEOS',alpha=1.0,text='',flip=False):
+        'adding the wms images to the plots'
+        from PIL import Image
+        import tkinter.messagebox as tkMessageBox
+        ylim = self.line.m.llcrnrlat,self.line.m.urcrnrlat
+        xlim = self.line.m.llcrnrlon,self.line.m.urcrnrlon
         try: 
-            self.line.addfigure_under(geos.transpose(Image.FLIP_TOP_BOTTOM),ylim[0],xlim[0],ylim[1],xlim[1],text=time_sel,alpha=alpha,name=name)
+            if flip:
+                imm = geos.transpose(Image.FLIP_TOP_BOTTOM)
+            else:
+                imm = geos
+            self.line.addfigure_under(geos,ylim[0],xlim[0],ylim[1],xlim[1],text=text,alpha=alpha,name=name)
         except Exception as ie:
             #print(ie)
             self.root.config(cursor='')
