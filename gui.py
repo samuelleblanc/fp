@@ -77,6 +77,7 @@ class gui:
     """
     def __init__(self,line=None,root=None,noplt=False):
         import tkinter as tk
+        import os
         if not line:
             print('No line_builder object defined')
             return
@@ -87,7 +88,7 @@ class gui:
         self.colors = ['red']
         self.colorcycle = ['red','blue','green','cyan','magenta','yellow','black','lightcoral','teal','darkviolet','orange']
         self.get_geometry()
-        self.geotiff_path = 'elevation_10KMmd_GMTEDmd.tif'
+        self.geotiff_path = os.path.abspath('elevation_10KMmd_GMTEDmd.tif')
         if not root:
             self.root = tk.Tk()
         else:
@@ -1221,6 +1222,7 @@ class gui:
         from gui import Popup_list
         import tkinter.messagebox as tkMessageBox
         from map_interactive import convert_ccrs_to_epsg
+        from datetime import datetime
         if hires:
             res = (2160,1680)
         else:
@@ -1266,7 +1268,7 @@ class gui:
                 time_sel = tss[1] 
         else:
             time_sel = None
-            
+                       
         if wms[cont[i]].elevations:
             elevations = wms[cont[i]].elevations
             jpop = Popup_list(elevations,title='Select Valid Elevations')
@@ -1290,9 +1292,11 @@ class gui:
             srs = 'epsg:4326'
             
         try:
+            inittime_sel = [datetime.now().strftime('%Y-%m-%d')+'T12:00Z', 
+                            datetime.now().strftime('%Y-%m-%d')+'T06:00Z',
+                            datetime.now().strftime('%Y-%m-%d')+'T00:00Z']
             #print('building the time_select')
             if not time_sel:
-                from datetime import datetime
                 time_sel = datetime.now().strftime('%Y-%m-%d')+'T12:00'
             if notime:
                 time_sel = None
@@ -1307,24 +1311,28 @@ class gui:
             tkMessageBox.showwarning('Sorry','Problem getting the limits and time of the image')
             return False, None, False
         if not bbox: bbox = (xlim[0],ylim[0],xlim[1],ylim[1])
-        try:
-            #print('trying the wms get map')
-            img = wms.getmap(layers=[cont[i]],style='default',
-                              bbox=bbox, #(ylim[0],xlim[0],ylim[1],xlim[1]),
-                              size=res,
-                              transparent=True,
-                              time=time_sel,
-                              elevation=elev_sel,
-                              srs=srs,
-                              format='image/png',
-                              dim_init_time=time_sel,
-                              CQL_filter=cql_filter,**kwargs)
-        except Exception as ie:
-            print(ie)
-            self.root.config(cursor='')
-            self.root.update()
-            tkMessageBox.showwarning('Sorry','Problem getting the image from WMS server')
-            return False, None, False
+        for i_init, dim_init in enumerate(inittime_sel):
+            try:
+                #print('trying the wms get map')
+                img = wms.getmap(layers=[cont[i]],style='default',
+                                  bbox=bbox, #(ylim[0],xlim[0],ylim[1],xlim[1]),
+                                  size=res,
+                                  transparent=True,
+                                  time=time_sel,
+                                  elevation=elev_sel,
+                                  srs=srs,
+                                  format='image/png',
+                                  dim_init_time=dim_init,
+                                  CQL_filter=cql_filter,**kwargs)
+                if img:
+                    break
+            except Exception as ie:
+                if i_init>len(inittime_sel)-1:
+                    print(ie)
+                    self.root.config(cursor='')
+                    self.root.update()
+                    tkMessageBox.showwarning('Sorry','Problem getting the image from WMS server')
+                    return False, None, False
         try:
             legend_call = openURL(img.geturl().replace('GetMap','GetLegend'))
             geos_legend = Image.open(BytesIO(legend_call.read()))
