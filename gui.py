@@ -325,6 +325,9 @@ class gui:
         if surf_alt:
             try:
                 from map_interactive import get_elev
+                if not os.path.isfile(self.geotiff_path):
+                    filename = self.gui_file_select(ext='.tif',ftype=[('All files','*.*'),
+                                                             ('GeoTiff','*.tif')])
                 elev,lat_new,lon_new,utcs,geotiff_path = get_elev(self.line.ex.cumlegt,self.line.ex.lat,self.line.ex.lon,dt=60,geotiff_path=self.geotiff_path)
                 ax1.fill_between(utcs,elev,0,color='tab:brown',alpha=0.3,zorder=1,label='Surface\nElevation',edgecolor=None)
                 self.geotiff_path = geotiff_path
@@ -361,7 +364,7 @@ class gui:
     def gui_plotmss_profile(self,filename='vert_WMS.txt',hires=False):
         'function to plot the alt vs time, with the addition oif the MSS (WMS) service with under figure profiles'
         from map_interactive import alt2pres, load_WMS_file
-        fig = self.gui_plotalttime(surf_alt=False,no_extra_axes=False)
+        fig = self.gui_plotalttime(surf_alt=False,no_extra_axes=True)
         
         #build the waypoints string
         wp_str =  ['{:2.2f},{:2.2f},'.format(la,self.line.lons[ila]) for ila,la in list(enumerate(self.line.lats))]
@@ -386,9 +389,10 @@ class gui:
             ylims = fig.axes[0].get_ylim()
             if img: fig.axes[0].imshow(img,origin='upper',extent=[0,max(self.line.ex.cumlegt),0,max(self.line.ex.alt)],aspect='auto') #
             fig.canvas.draw()
-            import pdb; pdb.set_trace()
+            #import pdb; pdb.set_trace()
         except: 
-            import pdb; pdb.set_trace()
+            print('Problem addin profile figure, continuning...')
+            #import pdb; pdb.set_trace()
 
         if label:
             try:
@@ -1067,6 +1071,7 @@ class gui:
     def gui_addfigure(self,ll_lat=None,ll_lon=None,ur_lat=None,ur_lon=None):
         'GUI handler for adding figures forecast maps to basemap plot'
         import tkinter.simpledialog as tkSimpleDialog
+        import os
         try:
             import PIL
             filename = self.gui_file_select(ext='.png',ftype=[('All files','*.*'),
@@ -1078,6 +1083,7 @@ class gui:
                 return
             print('Opening png File: %s' %filename)
             img = imread(filename)
+            print('... opened')
         except:
             import tkinter.messagebox as tkMessageBox
             tkMessageBox.showwarning('Sorry','Error occurred unable to load file')
@@ -1088,9 +1094,10 @@ class gui:
             ll_lon = tkSimpleDialog.askfloat('Lower left lon','Lower left lon? [deg]')
             ur_lat = tkSimpleDialog.askfloat('Upper right lat','Upper right lat? [deg]')
             ur_lon = tkSimpleDialog.askfloat('Upper right lon','Upper right lon? [deg]')
-        self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon,name=filename)
+        fpath = os.path.split(filename)
+        self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon,name=fpath[1])
         self.baddfigure.config(text='Remove image')
-        self.baddfigure.config(command=lambda: self.gui_rmfigure(filename),style='Bp.TButton')
+        self.baddfigure.config(command=lambda: self.gui_rmfigure(fpath[1]),style='Bp.TButton')
     
     def gui_rmfigure(self,name):
         'GUI handler for removing the forecast image'
@@ -1208,7 +1215,7 @@ class gui:
         self.line.get_bg(redraw=True)
             
     def add_WMS(self,website='http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx',
-                printurl=False,notime=False,popup=True,cql_filter=None,hires=False,
+                printurl=False,notime=False,popup=False,cql_filter=None,hires=False,
                 vert_crs=False,xlim=None,ylim=None,bbox=None,**kwargs): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
         'GUI handler for adding the figures from WMS support of GEOS'
         from gui import Popup_list
@@ -1243,8 +1250,10 @@ class gui:
         self.root.config(cursor='')
         popup = Popup_list(arr)
         i = popup.var.get()
-        self.line.tb.set_message('Selected WMS map: '+titles[i].split(',')[-1])
-        print('Selected WMS map: '+titles[i].split(',')[-1])
+        wms_layer_title = titles[i].split(',')[-1]
+        self.line.tb.set_message('Selected WMS map: '+wms_layer_title)
+        print('Selected WMS map: '+wms_layer_title)
+        
         self.root.config(cursor='exchange')
         self.root.update()
         
@@ -1275,8 +1284,8 @@ class gui:
             if len(srss)>0:
                 srs = srss[0]
             else:
-                jpop = Popup_list(crss,title='No matching EPSG values, please select')
-                srs = crss[jpop.var.get()]
+                kpop = Popup_list(crss,title='No matching EPSG values, please select')
+                srs = crss[kpop.var.get()]
         else:
             srs = 'epsg:4326'
             
@@ -1287,7 +1296,7 @@ class gui:
                 time_sel = datetime.now().strftime('%Y-%m-%d')+'T12:00'
             if notime:
                 time_sel = None
-            label = '{} {}'.format(time_sel,elev_sel)
+            label = '{}: {}, {}'.format(wms_layer_title,time_sel,elev_sel)
             #ylim = self.line.line.axes.get_ylim()
             #xlim = self.line.line.axes.get_xlim()
             if not ylim: ylim = self.line.m.llcrnrlat,self.line.m.urcrnrlat
@@ -1300,7 +1309,7 @@ class gui:
         if not bbox: bbox = (xlim[0],ylim[0],xlim[1],ylim[1])
         try:
             #print('trying the wms get map')
-            img = wms.getmap(layers=[cont[i]],style=['default'],
+            img = wms.getmap(layers=[cont[i]],style='default',
                               bbox=bbox, #(ylim[0],xlim[0],ylim[1],xlim[1]),
                               size=res,
                               transparent=True,
