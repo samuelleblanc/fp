@@ -1317,7 +1317,10 @@ def get_sat_tracks_from_tle(datestr,fraction_minute_interval=3):
     else:
         print('... Imported the sat.tle file, now plotting')
     for k in sat.keys():
-        sat[k]['ephem'] = ephem.readtle(k,sat[k]['tle1'],sat[k]['tle2'])
+        try:
+            sat[k]['ephem'] = ephem.readtle(k,sat[k]['tle1'],sat[k]['tle2'])
+        except ValueError:
+            tkMessageBox.showerror('bad TLE line','The Satellite {} line do not conform to TLE standard. Please update.'.format(k))
         sat[k]['d'] = [ephem.Date(datestr+' 00:00')]
         sat[k]['ephem'].compute(sat[k]['d'][0])
         sat[k]['lat'] = [np.rad2deg(sat[k]['ephem'].sublat)]
