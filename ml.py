@@ -98,6 +98,8 @@
         Modified: Samuel LeBlanc, v1.42, 2023-07-20, Santa Cruz, CA 
                 - added support for the MSWMS from MSS
                 - added extra selections options for the WMS loading.
+        Modified: Samuel LeBlanc, v1.43, 2023-07-27, Hampton, VA 
+                - bugfix for Mac OS laoding of files, and pkl map files.
                 
                  
 """
@@ -152,7 +154,7 @@ except:
 #import six, six.moves
 import warnings
 
-__version__ = 'v1.42'
+__version__ = 'v1.43'
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'
@@ -294,6 +296,44 @@ def Create_gui(vertical=True):
     ui.tb.update()
     ui.canvas._tkcanvas.pack(in_=ui.bot,side=tk.TOP,fill=tk.BOTH,expand=1)
     return ui
+    
+class VerticalScrolledFrame(ttk.Frame):
+    def __init__(self, parent, *args, **kw):
+        ttk.Frame.__init__(self, parent, *args, **kw)
+
+        # Create a canvas object and a vertical scrollbar for scrolling it.
+        vscrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL)
+        vscrollbar.pack(fill=tk.Y, side=tk.RIGHT, expand=tk.FALSE)
+        self.canvas = tk.Canvas(self, bd=0, highlightthickness=0, 
+                                width = 200, height = 300,
+                                yscrollcommand=vscrollbar.set)
+        self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.TRUE)
+        vscrollbar.config(command = self.canvas.yview)
+
+        # Reset the view
+        self.canvas.xview_moveto(0)
+        self.canvas.yview_moveto(0)
+
+        # Create a frame inside the canvas which will be scrolled with it.
+        self.interior = ttk.Frame(self.canvas)
+        self.interior.bind('<Configure>', self._configure_interior)
+        self.canvas.bind('<Configure>', self._configure_canvas)
+        self.interior_id = self.canvas.create_window(0, 0, window=self.interior, anchor=tk.NW)
+
+
+    def _configure_interior(self, event):
+        # Update the scrollbars to match the size of the inner frame.
+        size = (self.interior.winfo_reqwidth(), self.interior.winfo_reqheight())
+        self.canvas.config(scrollregion=(0, 0, size[0], size[1]))
+        if self.interior.winfo_reqwidth() != self.canvas.winfo_width():
+            # Update the canvas's width to fit the inner frame.
+            self.canvas.config(width = self.interior.winfo_reqwidth())
+        
+    def _configure_canvas(self, event):
+        if self.interior.winfo_reqwidth() != self.canvas.winfo_width():
+            # Update the inner frame's width to fill the canvas.
+            self.canvas.itemconfigure(self.interior_id, width=self.canvas.winfo_width())
+        
 
 def build_buttons(ui,lines,vertical=True):
     'Program to set up the buttons'
@@ -338,8 +378,8 @@ def build_buttons(ui,lines,vertical=True):
     g.bsaveall_style.configure('B2.TButton',background='lightskyblue',foreground='blue')
     g.bsaveall = ttk.Button(g.root,text='Save All',
 			    command=g.gui_saveall,style='B2.TButton')
-    g.refresh.pack(in_=ui.top,side=side,fill=tk.X,pady=6)
-    g.refreshspeed.pack(in_=ui.top,side=side,fill=tk.X,pady=2)
+    g.refresh.pack(in_=ui.top,side=side,fill=tk.X,pady=0)
+    g.refreshspeed.pack(in_=ui.top,side=side,fill=tk.X,pady=0)
     ttk.Label(g.root,text='File options').pack(in_=ui.top,side=side) 
     g.frame_xl = ttk.Frame(ui.top)
     g.frame_xl.pack(in_=ui.top,side=side,fill=tk.X,pady=2)
@@ -378,7 +418,7 @@ def build_buttons(ui,lines,vertical=True):
     g.bplotsza.pack(in_=g.frame_plot,side=tk.RIGHT)
     g.bplotaltmss = ttk.Button(g.root,text='MSS Profile',
                            command=g.gui_plotmss_profile)
-    g.bplotaltmss.pack(in_=g.frame_plot,side=tk.BOTTOM)
+    g.bplotaltmss.pack(in_=ui.top,side=side)
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
              ).pack(in_=ui.top,side=side,padx=8,pady=5)
     g.frame_select = tk.Frame(g.root,relief=tk.SUNKEN,bg='white')
@@ -401,6 +441,8 @@ def build_buttons(ui,lines,vertical=True):
     #g.removeflightpath = tk.Button(g.root,text='Remove flight path',
     #                               command = g.gui_removeflight)
     #g.removeflightpath.pack(in_=ui.top,padx=5,pady=5)
+    tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
+             ).pack(in_=ui.top,side=side,padx=8,pady=5)
     g.frame_points = ttk.Frame(ui.top)
     g.frame_points.pack(in_=ui.top,side=side,fill=tk.X,pady=2)
     ttk.Label(ui.top,text='Points:').pack(in_=g.frame_points,side=tk.LEFT)
@@ -417,66 +459,93 @@ def build_buttons(ui,lines,vertical=True):
     g.add_flt_module.pack(in_=ui.top)
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
              ).pack(in_=ui.top,side=side,padx=8,pady=5)
+    side_bar = g.root
+    side_bar2 = VerticalScrolledFrame(side_bar)
+    side_bar2.pack(in_=ui.top,expand = True, fill = tk.BOTH)
+    top_gui = side_bar2.interior
+    #top_gui = ui.top
     #tk.Label(g.root,text='Extra info:').pack(in_=ui.top,side=side)
-    g.baddsat = ttk.Button(g.root,text='Add Satellite tracks',
+    
+    g.baddsat = ttk.Button(side_bar,text='Satellite tracks',
                          command = g.dummy_func)
-    g.baddsat.pack(in_=ui.top)
+    #g.baddsat.pack(in_=top_gui)
+    g.baddsat.grid(in_=top_gui,row=0,column=0,  sticky='w'+'e'+'n'+'s')
     g.baddsat.config(command=g.gui_addsat_tle)
-    g.baddaeronet = ttk.Button(g.root,text='Add current\nAERONET AOD',
+    g.baddaeronet = ttk.Button(side_bar,text='current\nAERONET AOD',
                          command = g.dummy_func)
-    g.baddaeronet.pack(in_=ui.top)
+    #g.baddaeronet.pack(in_=top_gui)
+    g.baddaeronet.grid(in_=top_gui,row=0,  column=1,  sticky='w'+'e'+'n'+'s')
     g.baddaeronet.config(command=g.gui_addaeronet)
     #g.baddgeos = tk.Button(g.root,text='Add GEOS Forecast',
     #                     command = g.gui_addgeos)
-    #g.baddgeos.pack(in_=ui.top)
-    g.baddkml = ttk.Button(g.root,text='Add KML/KMZ',
-                         command = g.gui_add_kml)
-    g.baddkml.pack(in_=ui.top)
-    
-    g.baddfir = ttk.Button(g.root,text='Add FIR boundaries',
-                         command = g.gui_add_FIR)
-    g.baddfir.pack(in_=ui.top)
-    
-    g.baddsua = ttk.Button(g.root,text='Add Special Use Airspace',
-                         command = g.gui_add_SUA_WMS)
-    g.baddsua.pack(in_=ui.top)
-    g.baddwms = ttk.Button(g.root,text='Add WMS layer',
-                         command = g.gui_add_any_WMS)
-    g.baddwms.pack(in_=ui.top)
-    
-    tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
-             ).pack(in_=ui.top,side=side,padx=8,pady=5)
-    ttk.Label(g.root,text='from local images:').pack(in_=ui.top)
-    g.baddbocachica = ttk.Button(g.root,text='Add Forecast\nfrom Bocachica',
-                         command = g.gui_addbocachica)
-    g.baddbocachica.pack(in_=ui.top)
-    g.baddtrajectory = ttk.Button(g.root,text='Add trajectory\nImage',
-                         command = g.gui_addtrajectory)
-    g.baddtrajectory.pack(in_=ui.top)
-    g.baddfigure = ttk.Button(g.root,text='Add image',
-                         command = g.gui_addfigure)
-    g.baddfigure.pack(in_=ui.top)
-    g.baddtidbit = ttk.Button(g.root,text='Add Tropical tidbit',
-                         command = g.gui_addtidbit)
-    g.baddtidbit.pack(in_=ui.top)
-    
-    #g.bipython = tk.Button(g.root,text='open iPython',
-    #                     command = IPython.start_ipython([],user_ns=locals()))
-    #g.bipython.pack(in_=ui.top)
+    #g.baddgeos.pack(in_=top_gui)
 
-    #g.bpythoncmd = tk.Button(g.root,text='Python command line',
+   # g.frame_airspace = ttk.Frame(top_gui)
+   # g.frame_airspace.pack(in_=top_gui,side=side,fill=tk.X,pady=2)
+    
+    g.baddsua = ttk.Button(side_bar,text='Special Use Airspace',
+                         command = g.gui_add_SUA_WMS)
+    #g.baddsua.pack(in_=g.frame_airspace,padx=0,pady=0,side=tk.LEFT,anchor=tk.CENTER)
+    g.baddsua.grid(in_=top_gui,row=1,column=0,  sticky='w'+'e'+'n'+'s')
+    g.baddfir = ttk.Button(side_bar,text='FIR boundaries',
+                         command = g.gui_add_FIR)
+    #g.baddfir.pack(in_=g.frame_airspace,padx=0,pady=0,side=tk.LEFT,anchor=tk.CENTER)
+    g.baddfir.grid(in_=top_gui,padx=0,pady=0,row=1,column=1,  sticky='w'+'e'+'n'+'s')
+    #g.frame_wms = ttk.Frame(top_gui)
+    #g.frame_wms.pack(in_=top_gui,side=side,fill=tk.X,pady=2)
+    g.baddwms = ttk.Button(side_bar,text='WMS layer',
+                         command = g.gui_add_any_WMS)
+    #g.baddwms.pack(in_=g.frame_wms,side=tk.LEFT,anchor=tk.CENTER)
+    g.baddwms.grid(in_=top_gui,padx=0,pady=0,row=2,column=0,  sticky='w'+'e'+'n'+'s')
+    g.baddkml = ttk.Button(side_bar,text='KML/KMZ',
+                         command = g.gui_add_kml)
+    #g.baddkml.pack(in_=g.frame_wms,padx=0,pady=0,side=tk.LEFT,anchor=tk.CENTER)
+    g.baddkml.grid(in_=top_gui,padx=0,pady=0,row=2,column=1,  sticky='w'+'e'+'n'+'s')
+    
+    #tk.Frame(side_bar,height=h,width=w,bg='black',relief='sunken'
+    #         ).pack(in_=top_gui,side=side,padx=8,pady=5)
+    tk.Frame(side_bar,height=h,width=w,bg='black',relief='sunken'
+             ).grid(in_=top_gui,padx=8,pady=5,row=3,column=0,columnspan=2,sticky=tk.W+tk.E)
+    #ttk.Label(side_bar,text='from local images:').pack(in_=top_gui,side=tk.BOTTOM)
+    #g.frame_boc = ttk.Frame(top_gui)
+    #g.frame_boc.pack(in_=top_gui,side=side,fill=tk.X,pady=2)
+    g.baddbocachica = ttk.Button(side_bar,text='Forecast\nfrom Bocachica',
+                         command = g.gui_addbocachica)
+    #g.baddbocachica.pack(in_=g.frame_boc,padx=0,pady=0,side=tk.LEFT,anchor=tk.CENTER)
+    g.baddbocachica.grid(in_=top_gui,padx=0,pady=0,row=4,column=0,  sticky='w'+'e'+'n'+'s')
+    g.baddtrajectory = ttk.Button(side_bar,text='trajectory\nImage',
+                         command = g.gui_addtrajectory)
+    #g.baddtrajectory.pack(in_=g.frame_boc,padx=0,pady=0,side=tk.LEFT,anchor=tk.CENTER)
+    g.baddtrajectory.grid(in_=top_gui,padx=0,pady=0,row=4,column=1,  sticky='w'+'e'+'n'+'s')
+    g.baddfigure = ttk.Button(side_bar,text='image',
+                         command = g.gui_addfigure)
+    #g.baddfigure.pack(in_=top_gui)
+    g.baddfigure.grid(in_=top_gui,padx=0,pady=0,row=5,column=0,columnspan=2,  sticky='w'+'e'+'n'+'s')
+    g.baddtidbit = ttk.Button(side_bar,text='Tropical tidbit',
+                         command = g.gui_addtidbit)
+    #g.baddtidbit.pack(in_=top_gui)
+    g.baddtidbit.grid(in_=top_gui,padx=0,pady=0,row=6,column=0,columnspan=2,  sticky='w'+'e'+'n'+'s')
+    
+    
+    #g.bipython = tk.Button(side_bar,text='open iPython',
+    #                     command = IPython.start_ipython([],user_ns=locals()))
+    #g.bipython.pack(in_=top_gui)
+
+    #g.bpythoncmd = tk.Button(side_bar,text='Python command line',
     #                     command = g.gui_python)
-    #g.bpythoncmd.pack(in_=ui.top)
+    #g.bpythoncmd.pack(in_=top_gui)
     
-    #g.label = tk.Label(g.root,text='by Samuel LeBlanc\n NASA Ames')
-    #g.label.pack(in_=ui.top)
+    #g.label = tk.Label(side_bar,text='by Samuel LeBlanc\n NASA Ames')
+    #g.label.pack(in_=top_gui)
     
-    tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
-             ).pack(in_=ui.top,side=side,padx=8,pady=5)
+    #tk.Frame(side_bar,height=h,width=w,bg='black',relief='sunken'
+    #         ).pack(in_=top_gui,side=side,padx=8,pady=5)
+    tk.Frame(side_bar,height=h,width=w,bg='black',relief='sunken'
+             ).grid(in_=top_gui,padx=8,pady=5,row=7,column=0,columnspan=2,sticky=tk.W+tk.E)
     quit_style = ttk.Style()
     quit_style.configure('B3.TButton',background='lightcoral',foreground='darkred')
-    ttk.Button(g.root,text='Quit',command=g.stopandquit,style='B3.TButton'
-              ).pack(in_=ui.top,side=side)
+    ttk.Button(side_bar,text='Quit',command=g.stopandquit,style='B3.TButton'
+              ).grid(in_=top_gui,padx=8,pady=5,row=7,column=0,columnspan=2,sticky=tk.W+tk.E)
     g.active_style = ttk.Style()
     g.active_style.configure('Ba.TButton',background='grey',foreground='black')
     g.pressed_style = ttk.Style()

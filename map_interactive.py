@@ -817,6 +817,7 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj
             - added plotting of larger region, which is then resized, to have space to pan and zoom.
     """
     from map_interactive import pll
+    import os
     if profile:
         upper_right = [pll(profile['Lon_range'][1]),pll(profile['Lat_range'][1])]
         lower_left = [pll(profile['Lon_range'][0]),pll(profile['Lat_range'][0])]
@@ -831,38 +832,39 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj
         dp = 30
     else:
         dp = 0
-    try:
-        import pickle
-        m = pickle.load(open('map_{}.pkl'.format(profile['Campaign']),'rb'))
-        #print('doing it pickle style')
-        m.ax = ax
-    except:
-        if larger:
-            dp = 30
+    if not use_cartopy:
+        if os.path.isfile('map_{}.pkl'.format(profile['Campaign'])):
+            import pickle
+            m = pickle.load(open('map_{}.pkl'.format(profile['Campaign']),'rb'))
+            #print('doing it pickle style')
+            m.ax = ax
+                    
+    if larger:
+        dp = 30
+    else:
+        dp = 0
+    if use_cartopy:
+        #proj = ccrs.PlateCarree()
+        proj = ccrs.__dict__[profile.get('proj','PlateCarree')]() #central_longitude=profile.get('central_longitude',0),central_latitude=profile.get('central_latitude',30))
+        m = fig.add_subplot(111,projection=proj)
+        m.proj = proj
+        m.proj_name = profile.get('proj','PlateCarree')
+        m.use_cartopy = True
+    else:
+        if proj == 'cyl':
+            m = Basemap(projection=proj,lon_0=lon0,lat_0=lat0,
+                llcrnrlon=lower_left[0]-dp, llcrnrlat=(lower_left[1]-dp if lower_left[1]-dp>-90 else -90),
+                urcrnrlon=upper_right[0]+dp, urcrnrlat=(upper_right[1]+dp if upper_right[1]+dp<90 else 90),resolution='i',ax=ax)
         else:
             dp = 0
-        if use_cartopy:
-            #proj = ccrs.PlateCarree()
-            proj = ccrs.__dict__[profile.get('proj','PlateCarree')]() #central_longitude=profile.get('central_longitude',0),central_latitude=profile.get('central_latitude',30))
-            m = fig.add_subplot(111,projection=proj)
-            m.proj = proj
-            m.proj_name = profile.get('proj','PlateCarree')
-            m.use_cartopy = True
-        else:
-            if proj == 'cyl':
-                m = Basemap(projection=proj,lon_0=lon0,lat_0=lat0,
-                    llcrnrlon=lower_left[0]-dp, llcrnrlat=(lower_left[1]-dp if lower_left[1]-dp>-90 else -90),
-                    urcrnrlon=upper_right[0]+dp, urcrnrlat=(upper_right[1]+dp if upper_right[1]+dp<90 else 90),resolution='i',ax=ax)
-            else:
-                dp = 0
-                m = Basemap(projection=proj,lon_0=lon0,lat_0=lat0,
-                    llcrnrlon=lower_left[0]-dp, llcrnrlat=lower_left[1]-dp,
-                    urcrnrlon=upper_right[0]+dp, urcrnrlat=upper_right[1]+dp,
-                    resolution='l',ax=ax)
-                #m = Basemap(projection='npstere',lat_0=76.5,lon_0=-68.75,
-                #    boundinglat=55,resolution='l',ax=ax)
-            m.use_cartopy = False
-            m.proj_name = proj
+            m = Basemap(projection=proj,lon_0=lon0,lat_0=lat0,
+                llcrnrlon=lower_left[0]-dp, llcrnrlat=lower_left[1]-dp,
+                urcrnrlon=upper_right[0]+dp, urcrnrlat=upper_right[1]+dp,
+                resolution='l',ax=ax)
+            #m = Basemap(projection='npstere',lat_0=76.5,lon_0=-68.75,
+            #    boundinglat=55,resolution='l',ax=ax)
+        m.use_cartopy = False
+        m.proj_name = proj
                 
     m.artists = []
     if m.use_cartopy:
@@ -1207,7 +1209,7 @@ def get_sat_tracks(datestr,kml):
             print('Skipping %s; no points downloaded' %name)
     return sat
 
-def plot_sat_tracks(m,sat,label_every=6): 
+def plot_sat_tracks(m,sat,label_every=10,max_num=60): 
     """
     Program that goes through and plots the satellite tracks
     """
@@ -1242,7 +1244,7 @@ def plot_sat_tracks(m,sat,label_every=6):
             #urcrnr = m.invert_lonlat(lonrange[1],latrange[1])
             sat_text[k] = []
             for i,d in enumerate(sat[k]['d']):
-                if not i%label_every:
+                if (not i%label_every) & (i<max_num):
                     if ((lat[i]>=latrange[0])&(lat[i]<=latrange[1])&(lon[i]>=lonrange[0])&(lon[i]<=lonrange[1])):#((lat[i]>=llcrnr[1])&(lat[i]<=urcrnr[1])&(lon[i]>=llcrnr[0])&(lon[i]<=urcrnr[0])):
                         sat_obj.append(m.ax.text(x[i],y[i],'%02i:%02i' % (d.tuple()[3],d.tuple()[4]),color=co,transform=m.merc))
                         sat_text[k].append(sat_obj[-1])

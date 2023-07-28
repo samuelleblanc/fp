@@ -88,7 +88,7 @@ class gui:
         self.colors = ['red']
         self.colorcycle = ['red','blue','green','cyan','magenta','yellow','black','lightcoral','teal','darkviolet','orange']
         self.get_geometry()
-        self.geotiff_path = os.path.abspath('elevation_10KMmd_GMTEDmd.tif')
+        self.geotiff_path = os.path.relpath('elevation_10KMmd_GMTEDmd.tif')
         if not root:
             self.root = tk.Tk()
         else:
@@ -301,6 +301,7 @@ class gui:
         
     def gui_plotalttime(self,surf_alt=True,no_extra_axes=False):
         'gui function to run the plot of alt vs. time'
+        import os
         if self.noplt:
             from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
             from gui import custom_toolbar
@@ -327,13 +328,13 @@ class gui:
             try:
                 from map_interactive import get_elev
                 if not os.path.isfile(self.geotiff_path):
-                    filename = self.gui_file_select(ext='.tif',ftype=[('All files','*.*'),
+                    self.geotiff_path = self.gui_file_select(ext='.tif',ftype=[('All files','*.*'),
                                                              ('GeoTiff','*.tif')])
                 elev,lat_new,lon_new,utcs,geotiff_path = get_elev(self.line.ex.cumlegt,self.line.ex.lat,self.line.ex.lon,dt=60,geotiff_path=self.geotiff_path)
                 ax1.fill_between(utcs,elev,0,color='tab:brown',alpha=0.3,zorder=1,label='Surface\nElevation',edgecolor=None)
                 self.geotiff_path = geotiff_path
-            except:
-                print('Surface elevation not working')
+            except Exception as e:
+                print('Surface elevation not working'+e)
         ax1.set_title('Altitude vs time for %s on %s' %(self.line.ex.name,self.line.ex.datestr),y=1.08)
         fig.subplots_adjust(top=0.85,right=0.8)
         ax1.set_xlabel('Flight duration [Hours]')
@@ -1222,7 +1223,7 @@ class gui:
         from gui import Popup_list
         import tkinter.messagebox as tkMessageBox
         from map_interactive import convert_ccrs_to_epsg
-        from datetime import datetime
+        from datetime import datetime, timedelta
         if hires:
             res = (2160,1680)
         else:
@@ -1292,9 +1293,15 @@ class gui:
             srs = 'epsg:4326'
             
         try:
-            inittime_sel = [datetime.now().strftime('%Y-%m-%d')+'T12:00Z', 
+            inittime_sel = [datetime.now().strftime('%Y-%m-%d')+'T18:00Z',
+                            datetime.now().strftime('%Y-%m-%d')+'T12:00Z', 
                             datetime.now().strftime('%Y-%m-%d')+'T06:00Z',
-                            datetime.now().strftime('%Y-%m-%d')+'T00:00Z']
+                            datetime.now().strftime('%Y-%m-%d')+'T00:00Z',
+                            (datetime.now()- timedelta(days = 1)).strftime('%Y-%m-%d')+'T18:00Z',
+                            (datetime.now()- timedelta(days = 1)).strftime('%Y-%m-%d')+'T12:00Z',
+                            (datetime.now()- timedelta(days = 1)).strftime('%Y-%m-%d')+'T06:00Z',
+                            (datetime.now()- timedelta(days = 1)).strftime('%Y-%m-%d')+'T00:00Z',
+                            time_sel]
             #print('building the time_select')
             if not time_sel:
                 time_sel = datetime.now().strftime('%Y-%m-%d')+'T12:00'
@@ -1325,9 +1332,10 @@ class gui:
                                   dim_init_time=dim_init,
                                   CQL_filter=cql_filter,**kwargs)
                 if img:
+                    print('Init_time: '+dim_init)
                     break
             except Exception as ie:
-                if i_init>len(inittime_sel)-1:
+                if i_init>len(inittime_sel)-2:
                     print(ie)
                     self.root.config(cursor='')
                     self.root.update()
@@ -1340,7 +1348,7 @@ class gui:
             self.line.tb.set_message('legend image from WMS server problem')
             geos_legend = False
         if printurl:
-            print(img.geturl()        )
+            print(img.geturl())
         try:
             geos = Image.open(BytesIO(img.read()))
         except Exception as ie:
