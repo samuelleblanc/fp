@@ -9,12 +9,17 @@ To start the program, after import flight_planning do flight_planning.Start()
 By Samuel LeBlanc, samuel.leblanc@nasa.gov
 """
 
-__all__ = ['excel_interface','map_interactive','map_utils','gui','moving_lines_v3']
+__all__ = ['excel_interface','map_interactive','map_utils','gui','ml','aeronet','load_utils','write_utils']
 import excel_interface
 import map_interactive
 import map_utils
 import gui
-import moving_lines_v3
-Start = moving_lines_v3.Create_interaction
-__version__ = moving_lines_v3.__version__
+import aeronet
+import load_utils
+import write_utils
+import ml
+from ml import Create_interaction as main
+__version__ = ml.__version__
+#Start,ui = ml.Create_interaction(test=False)
+
 

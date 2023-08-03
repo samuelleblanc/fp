@@ -548,6 +548,8 @@ class LineBuilder:
         except AttributeError:
             self.m.figure_under = {}
         self.m.figure_under[name] = self.m.imshow(img,origin='upper',transform=self.m.proj,extent=[ll_lon,ur_lon,ll_lat,ur_lat])
+        import pdb; pdb.set_trace()
+
 
         if text:
             try: 
@@ -818,6 +820,8 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj
     """
     from map_interactive import pll
     import os
+    import cartopy.crs as ccrs
+    import cartopy.feature as cfeature
     if profile:
         upper_right = [pll(profile['Lon_range'][1]),pll(profile['Lat_range'][1])]
         lower_left = [pll(profile['Lon_range'][0]),pll(profile['Lat_range'][0])]
