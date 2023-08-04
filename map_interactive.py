@@ -17,8 +17,12 @@ import re
 import copy
 from matplotlib.colors import is_color_like
 
-import map_interactive as mi
-from map_utils import spherical_dist,equi,shoot,bearing
+try:
+    import map_interactive as mi
+    from map_utils import spherical_dist,equi,shoot,bearing
+except ModuleNotFoundError:
+    from . import map_interactive as mi
+    from .map_utils import spherical_dist,equi,shoot,bearing
 
 class LineBuilder:
     """
@@ -548,7 +552,7 @@ class LineBuilder:
         except AttributeError:
             self.m.figure_under = {}
         self.m.figure_under[name] = self.m.imshow(img,origin='upper',transform=self.m.proj,extent=[ll_lon,ur_lon,ll_lat,ur_lat])
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
 
 
         if text:
@@ -681,7 +685,10 @@ class LineBuilder:
         Added ability to defined either altitude in feet or meters, or the length in km or nm
         
         """
-        from gui import ask
+        try:
+            from gui import ask
+        except ModuleNotFoundError:
+            from .gui import ask
         import os
         # set up predefined values
         predef = ['azi','AZI','PP','pp']
@@ -818,7 +825,10 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj
     Modified: Samuel LeBlanc, 2016-07-17, Santa Cruz, CA
             - added plotting of larger region, which is then resized, to have space to pan and zoom.
     """
-    from map_interactive import pll
+    try:
+        from map_interactive import pll
+    except ModuleNotFoundError:
+        from .map_interactive import pll
     import os
     import cartopy.crs as ccrs
     import cartopy.feature as cfeature
@@ -870,7 +880,7 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj
         m.use_cartopy = False
         m.proj_name = proj
                 
-    m.artists = []
+        m.artists = []
     if m.use_cartopy:
         m.coastlines()
         land_50m = cfeature.NaturalEarthFeature('physical', 'land', '50m',edgecolor='k',
@@ -1189,7 +1199,10 @@ def get_sat_tracks(datestr,kml):
     For the day defined with datestr
     kml is the parsed kml structure with pykml
     """
-    from map_interactive import pll
+    try:
+        from map_interactive import pll
+    except ModuleNotFoundError:
+        from .map_interactive import pll
     sat = dict()
     # properly format datestr
     day = datestr.replace('-','')
@@ -1217,7 +1230,10 @@ def plot_sat_tracks(m,sat,label_every=10,max_num=60):
     """
     Program that goes through and plots the satellite tracks
     """
-    import map_utils as mu
+    try:
+        import map_utils as mu
+    except ModuleNotFoundError:
+        from . import map_utils as mu
     sat_obj = []
     sat_lines = {}
     sat_text = {}
@@ -1302,7 +1318,10 @@ def get_sat_tracks_from_tle(datestr,fraction_minute_interval=3):
     """
     import ephem
     import numpy as np
-    from map_interactive import get_tle_from_file
+    try:
+        from map_interactive import get_tle_from_file
+    except ModuleNotFoundError:
+        from .map_interactive import get_tle_from_file
     import os
     from datetime import datetime, timedelta
     import tkinter.messagebox as tkMessageBox
@@ -1311,7 +1330,10 @@ def get_sat_tracks_from_tle(datestr,fraction_minute_interval=3):
         sat = get_tle_from_file(fname)
     except:
         try:
-            from gui import gui_file_select_fx
+            try:
+                from gui import gui_file_select_fx
+            except ModuleNotFoundError:
+                from .gui import gui_file_select_fx
             fname = gui_file_select_fx(ext='*.tle',ftype=[('All files','*.*'),('Two Line element','*.tle')])
             sat = get_tle_from_file(fname)
         except:
@@ -1429,7 +1451,10 @@ def get_elev(utc,lat,lon,dt=60,geotiff_path='elevation_10KMmd_GMTEDmd.tif'):
     fname = os.path.join('.',geotiff_path)
     if not os.path.isfile(fname):
         try:
-            from gui import gui_file_select_fx
+            try:
+                from gui import gui_file_select_fx
+            except ModuleNotFoundError:
+                from .gui import gui_file_select_fx
             fname = gui_file_select_fx(ext='*.tif',ftype=[('All files','*.*'),('GEOTIFF','*.tif')])
         except:
             tkMessageBox.showerror('No GEOTIFF DEM surface Elevation','There was an error reading the DEM surface elevation file: {}'.format(fname))

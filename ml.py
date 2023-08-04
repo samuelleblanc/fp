@@ -100,6 +100,8 @@
                 - added extra selections options for the WMS loading.
         Modified: Samuel LeBlanc, v1.43, 2023-07-27, Hampton, VA 
                 - bugfix for Mac OS laoding of files, and pkl map files.
+        Modified: Samuel LeBlanc, v1.44, 2023-08-04, Snta Cruz, CA 
+                - Adding the loading and compatibility with setuptools for pip integration and reglar python modules
                 
                  
 """
@@ -135,11 +137,18 @@ except:
 import pykml, simplekml
 import gpxpy, gpxpy.gpx
 
-import map_utils as mu
-import excel_interface as ex
-import map_interactive as mi
-import gui
-import aeronet
+try:
+    import map_utils as mu
+    import excel_interface as ex
+    import map_interactive as mi
+    import gui
+    import aeronet
+except ModuleNotFoundError:
+    from . import map_utils as mu
+    from . import excel_interface as ex
+    from . import map_interactive as mi
+    from . import gui
+    from . import aeronet
 
 try:
     import tkSimpleDialog, tkFileDialog, tkMessageBox
@@ -154,7 +163,10 @@ except:
 #import six, six.moves
 import warnings
 
-from .version import __version__
+try:
+    from version import __version__
+except ModuleNotFoundError:
+    from .version import __version__
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'
@@ -337,7 +349,10 @@ class VerticalScrolledFrame(ttk.Frame):
 
 def build_buttons(ui,lines,vertical=True):
     'Program to set up the buttons'
-    import gui
+    try:
+        import gui
+    except ModuleNotFoundError:
+        from . import gui
     import tkinter as tk
     from matplotlib.colors import cnames
 

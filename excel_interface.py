@@ -5,14 +5,20 @@ import numpy as np
 from xlwings import Range
 from datetime import datetime
 from scipy import interpolate
-import write_utils as wu
+
 import sys
 #reload(sys)
 #sys.setdefaultencoding('utf8')
-
-import map_interactive as mi
-from map_interactive import pll
-import map_utils as mu
+try:
+    import map_interactive as mi
+    from map_interactive import pll
+    import map_utils as mu
+    import write_utils as wu
+except ModuleNotFoundError:
+    from . import map_interactive as mi
+    from .map_interactive import pll
+    from . import map_utils as mu
+    from . import write_utils as wu
 
 class dict_position:
     """
@@ -106,10 +112,14 @@ class dict_position:
         import xlwings as xw
         from datetime import datetime
 
-        import map_interactive as mi
-        from map_interactive import pll
-        import map_utils as mu
-
+        try:
+            import map_interactive as mi
+            from map_interactive import pll
+            import map_utils as mu
+        except ModuleNotFoundError:
+            from . import map_interactive as mi
+            from .map_interactive import pll
+            from . import map_utils as mu
         if profile:
             lon0,lat0,UTC_start = profile['Start_lon'],profile['Start_lat'],profile['UTC_start']
             UTC_conversion,alt0,name,campaign = profile['UTC_conversion'],profile['start_alt'],profile['Plane_name'],profile['Campaign']
@@ -176,7 +186,10 @@ class dict_position:
         If sucessfuly uses these info to prepare speeds, altitudes, climb time, turn time, and others
         
         """
-        from ml import read_prof_file
+        try:
+            from ml import read_prof_file
+        except ModuleNotFoundError:
+            from .ml import read_prof_file
         import tkinter.messagebox as tkMessageBox
         platform = None
         p_info = None
@@ -196,7 +209,10 @@ class dict_position:
         except IOError:
             print('** Error reading platform information file: {} **'.format(filename))
             try:
-                from gui import gui_file_select_fx
+                try:
+                    from gui import gui_file_select_fx
+                except ModuleNotFoundError:
+                    from .gui import gui_file_select_fx
                 filename_new = gui_file_select_fx(ext='platform.txt',ftype=[('All files','*.*'),('Platform file','*.txt')])
                 p = read_prof_file(filename_new)
                 for d in p:
@@ -937,7 +953,10 @@ class dict_position:
             
         """
         import xlwings as xw #from xlwings import Workbook, Sheet, Range, Chart
-        from excel_interface import freeze_top_pane
+        try:
+            from excel_interface import freeze_top_pane
+        except ModuleNotFoundError:
+            from .excel_interface import freeze_top_pane
         import numpy as np
         if newsheetonly:
             wb = xw.books.active
@@ -1064,7 +1083,10 @@ class dict_position:
         print the points saved in lat, lon
         """
         import simplekml
-        from excel_interface import get_curdir
+        try:
+            from excel_interface import get_curdir
+        except ModuleNotFoundError:
+            from .excel_interface import get_curdir
         if not self.kml:
             raise NameError('kml not initilaized')
             return
@@ -1255,7 +1277,10 @@ def populate_ex_arr(filename=None,colorcycle=['red','blue','green']):
         written: Samuel LeBlanc, NASA Ames, Santa Cruz, CA 2015-09-10
     """
     import xlwings as xw #from xlwings import Workbook,Sheet
-    import excel_interface as ex
+    try:
+        import excel_interface as ex
+    except ModuleNotFoundError:
+        from . import excel_interface as ex
     arr = []
     wb = xw.Book(filename)
     num = wb.sheets.count
@@ -1286,7 +1311,10 @@ def save2xl_for_pilots(filename,ex_arr):
                   - removed all formatting from xlxs
     """
     import xlwings as xw #from xlwings import Workbook,Sheet,Range
-    from excel_interface import format_lat_lon, freeze_top_pane
+    try:
+        from excel_interface import format_lat_lon, freeze_top_pane
+    except ModuleNotFoundError:
+        from .excel_interface import format_lat_lon, freeze_top_pane
     wb_pilot = xw.Book()
     sheet_one = True
     for a in ex_arr:

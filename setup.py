@@ -25,7 +25,7 @@ with open(ver_path) as ver_file:
 
 setup(
     name="ml",
-    version=main_ns['__version__'],  # noqa
+    version=main_ns['__version__'].strip('v'),  # noqa
     description="Moving Lines - Research flight planner",
     long_description=long_description,
     classifiers="Development Status :: 5 - Production/Stable",
@@ -37,20 +37,20 @@ setup(
     license="GPL-3.0",
     url="https://github.com/samuelleblanc/fp",
     platforms="any",
-    packages=find_packages(exclude=['tests*', 'tutorials*']),
+    packages=find_packages(convert_path('../'),exclude=['tests*', 'tutorials*']),
     namespace_packages=[],
     include_package_data=True,
     zip_safe=False,
-    install_requires=['numpy','geopy','scipy','pyephem','Pillow','cartopy','pykml','rasterio','gpxpy','bs4','xlwings','json_tricks','simplekkml'],
+    install_requires=['numpy','geopy','scipy','pyephem','Pillow','cartopy','pykml','rasterio','gpxpy','bs4','xlwings','json_tricks','simplekml'],
     #packages=find_namespace_packages(where=""),
-    package_dir={"": "","map_icons":"map_icons","flt_modules":"flt_modules","mpl_data":"mpl-data"},
-    package_data={
-        "": ["*.txt","*.tle","*.md","*.json","*.ico","*.tif"],
+    package_dir={"":"../".": ".","map_icons":"map_icons","flt_modules":"flt_modules","mpl_data":"mpl-data"},
+    package_data={"": ["*.txt","*.tle","*.md","*.json","*.ico","*.tif"],
+        ".": ["*.txt","*.tle","*.md","*.json","*.ico","*.tif"],
         "map_icons": ["*.png","*.txt"],
         "flt_modules": ["*.png","*.PNG","*.flt"],
         "mpl_data":["*.svg","*.ppm","*.xpm","*.gif","*.png","*.gz"]
     },
     entry_points=dict(
-        console_scripts=['ml = ml:main'],
+        console_scripts=['ml = fp:main'],
     ),
 )

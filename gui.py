@@ -226,7 +226,10 @@ class gui:
         
     def gui_save_xl_pilot(self):
         'gui wrapper for calling the save2xl_for_pilots excel_interface method'
-        from excel_interface import save2xl_for_pilots
+        try:
+            from excel_interface import save2xl_for_pilots
+        except ModuleNotFoundError:
+            from .excel_interface import save2xl_for_pilots
         filename = self.gui_file_save(ext='.xlsx',ftype=[('All files','*.*'),
                                                          ('Excel 1997-2003','*.xls'),
                                                          ('Excel','*.xlsx')])
@@ -236,6 +239,12 @@ class gui:
         self.line.ex.wb.sh.activate()
 
     def gui_open_xl(self):
+        'Function to load a excel spreadsheet that has been previously saved'
+        try:
+            import excel_interface as ex
+        except ModuleNotFoundError:
+            from . import excel_interface as ex
+        
         if not self.line:
             print('No line object')
             return
@@ -249,7 +258,8 @@ class gui:
         except:
             nul = 0
         self.line.tb.set_message('Opening Excel File:'+filename)
-        import excel_interface as ex
+        
+        
         self.flight_num = 0
         self.iactive.set(0)
         self.line.ex_arr = ex.populate_ex_arr(filename=filename,colorcycle=self.colorcycle)
@@ -304,7 +314,10 @@ class gui:
         import os
         if self.noplt:
             from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-            from gui import custom_toolbar
+            try:
+                from gui import custom_toolbar
+            except ModuleNotFoundError:
+                from .gui import custom_toolbar
             from matplotlib.figure import Figure
             import tkinter as tk
             root = tk.Toplevel()
@@ -326,7 +339,10 @@ class gui:
             ax1.annotate('{}'.format(w),(self.line.ex.cumlegt[i],self.line.ex.alt[i]),color='r')
         if surf_alt:
             try:
-                from map_interactive import get_elev
+                try:
+                    from map_interactive import get_elev
+                except ModuleNotFoundError:
+                    from .map_interactive import get_elev
                 if not os.path.isfile(self.geotiff_path):
                     self.geotiff_path = self.gui_file_select(ext='.tif',ftype=[('All files','*.*'),
                                                              ('GeoTiff','*.tif')])
@@ -365,7 +381,10 @@ class gui:
         
     def gui_plotmss_profile(self,filename='vert_WMS.txt',hires=False):
         'function to plot the alt vs time, with the addition oif the MSS (WMS) service with under figure profiles'
-        from map_interactive import alt2pres, load_WMS_file
+        try:
+            from map_interactive import alt2pres, load_WMS_file
+        except ModuleNotFoundError:
+            from .map_interactive import alt2pres, load_WMS_file
         fig = self.gui_plotalttime(surf_alt=False,no_extra_axes=True)
         
         #build the waypoints string
@@ -428,7 +447,10 @@ class gui:
         for i,w in enumerate(self.line.ex.WP):
             ax1.annotate('{}'.format(w),(self.line.ex.lat[i],self.line.ex.alt[i]),color='r')
         try:
-            from map_interactive import get_elev
+            try:
+                from map_interactive import get_elev
+            except ModuleNotFoundError:
+                from .map_interactive import get_elev
             elev,lat_new,lon_new,utcs,geotiff_path = get_elev(self.line.ex.cumlegt,self.line.ex.lat,self.line.ex.lon,dt=60,geotiff_path=self.geotiff_path)
             ax1.fill_between(lat_new,elev,0,color='tab:brown',alpha=0.3,zorder=1,label='Surface\nElevation',edgecolor=None)
             [ax1.fill_between([l,lat_new[i+1]],[elev[i],elev[i+1]],0,color='tab:brown',alpha=0.1,zorder=1,edgecolor=None) for i,l in list(enumerate(lat_new[:-1]))]
@@ -463,7 +485,10 @@ class gui:
              print('No figure handler, sorry will not work')
              return
         from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-        from gui import custom_toolbar
+        try:
+            from gui import custom_toolbar
+        except ModuleNotFoundError:
+            from .gui import custom_toolbar
         from matplotlib.figure import Figure
         import tkinter as tk
         root = tk.Toplevel()
@@ -536,7 +561,11 @@ class gui:
         'Program to call and create a new excel spreadsheet'
         import tkinter.simpledialog as tkSimpleDialog
         import tkinter.messagebox as tkMessageBox
-        import excel_interface as ex
+        try:
+            import excel_interface as ex
+        except ModuleNotFoundError:
+            from . import excel_interface as ex
+        
         import tkinter as tk
         if self.newflight_off:
             tkMessageBox.showwarning('Sorry','Feature not yet implemented')
@@ -577,9 +606,15 @@ class gui:
         import tkinter.messagebox as tkMessageBox
         tkMessageBox.showwarning('Sorry','Feature not yet implemented')
         return
-        import excel_interface as ex
+        try:
+            import excel_interface as ex
+        except ModuleNotFoundError:
+            from . import excel_interface as ex
         import tkinter as tk
-        from gui import Select_flights
+        try:
+            from gui import Select_flights
+        except ModuleNotFoundError:
+            from .gui import Select_flights
         self.name_arr = []
         for x in self.line.ex_arr:
             self.name_arr.append(x)
@@ -657,7 +692,10 @@ class gui:
     def gui_saveall(self):
         'gui program to run through and save all the file formats, without verbosity, for use in distribution'
         from os import path
-        from excel_interface import save2xl_for_pilots
+        try:
+            from excel_interface import save2xl_for_pilots
+        except ModuleNotFoundError:
+            from .excel_interface import save2xl_for_pilots
         import tkinter.messagebox as tkMessageBox
         filename = self.gui_file_save(ext='*',ftype=[('Excel','*.xlsx')])
         if not filename:
@@ -771,7 +809,10 @@ class gui:
 
     def gui_addpoint(self):
         'Gui button to add a point via a dialog'
-        from gui import Move_point, ask_option
+        try:
+            from gui import Move_point, ask_option
+        except ModuleNotFoundError:
+            from .gui import Move_point, ask_option
         r = ask_option(title='Select Option',Text='Select where to put the points',button1='At End',button2='In Between\nPoints')
         if r.out.get()==0:
             m = Move_point(speed=self.line.ex.speed[-1],pp=self.line.ex.azi[-1])
@@ -788,7 +829,10 @@ class gui:
 
     def gui_movepoints(self):
         'GUI button to move many points at once'
-        from gui import Select_flights,Move_point
+        try:
+            from gui import Select_flights,Move_point
+        except ModuleNotFoundError:
+            from .gui import Select_flights,Move_point
         wp_arr = []
         for w in self.line.ex.WP:
             wp_arr.append('WP #%i'%w)
@@ -808,7 +852,10 @@ class gui:
     def gui_rotatepoints(self):
         'GUI button to rotate many points at once'
         import tkinter.simpledialog as tkSimpleDialog
-        from gui import Select_flights
+        try:
+            from gui import Select_flights
+        except ModuleNotFoundError:
+            from .gui import Select_flights
         wp_arr = []
         for w in self.line.ex.WP:
             wp_arr.append('WP #%i'%w)
@@ -838,7 +885,10 @@ class gui:
         from tkinter.messagebox import askquestion
         answer = askquestion('Verify import satellite tracks','Do you want to get the satellite tracks from the internet?')
         if answer == 'yes':
-            from map_interactive import load_sat_from_net, get_sat_tracks, plot_sat_tracks
+            try:
+                from map_interactive import load_sat_from_net, get_sat_tracks, plot_sat_tracks
+            except ModuleNotFoundError:
+                from .map_interactive import load_sat_from_net, get_sat_tracks, plot_sat_tracks
             self.line.tb.set_message('Loading satellite kml File from internet')
             kml = load_sat_from_net()
             if kml:
@@ -847,7 +897,10 @@ class gui:
                 self.line.tb.set_message('Plotting satellite tracks')
                 self.sat_obj = plot_sat_tracks(self.line.m,sat)
         elif answer ==  'no':
-            from map_interactive import load_sat_from_file, get_sat_tracks, plot_sat_tracks
+            try:
+                from map_interactive import load_sat_from_file, get_sat_tracks, plot_sat_tracks
+            except ModuleNotFoundError:
+                from .map_interactive import load_sat_from_file, get_sat_tracks, plot_sat_tracks
             filename = self.gui_file_select(ext='.kml',ftype=[('All files','*.*'),
                                                          ('Google Earth','*.kml')])
             if not filename:
@@ -868,7 +921,10 @@ class gui:
 
     def gui_addsat_tle(self):
         'Gui button to add the satellite tracks'
-        from map_interactive import get_sat_tracks_from_tle, plot_sat_tracks
+        try:
+            from map_interactive import get_sat_tracks_from_tle, plot_sat_tracks
+        except ModuleNotFoundError:
+            from .map_interactive import get_sat_tracks_from_tle, plot_sat_tracks
         self.line.tb.set_message('Loading satellite info from sat.tle file')
         sat = get_sat_tracks_from_tle(self.line.ex.datestr)
         self.line.tb.set_message('Plotting Satellite tracks')
@@ -897,7 +953,10 @@ class gui:
         
     def gui_addaeronet(self):
         'Gui function to add the aeronet points on the map, with a colorbar'
-        import aeronet
+        try:
+            import aeronet
+        except ModuleNotFoundError:
+            from . import aeronet
         import tkinter.messagebox as tkMessageBox
         from datetime import datetime
         from dateutil.relativedelta import relativedelta
@@ -979,7 +1038,10 @@ class gui:
     def gui_addtidbit(self):
         'GUI handler for adding tropical tidbit foreacast maps to basemap plot'
         import tkinter.messagebox as tkMessageBox
-        from load_utils import load_from_json
+        try:
+            from load_utils import load_from_json
+        except ModuleNotFoundError:
+            from .load_utils import load_from_json
         import os
         try:
             filename = self.gui_file_select(ext='.png',ftype=[('All files','*.*'),
@@ -995,7 +1057,10 @@ class gui:
         try:
             regions = load_from_json(os.path.join('.','image_corners_tidbits.json'))
         except IOError:
-            from gui import gui_file_select_fx
+            try:
+                from gui import gui_file_select_fx
+            except ModuleNotFoundError:
+                from .gui import gui_file_select_fx
             fname = gui_file_select_fx(ext='*.json',ftype=[('All files','*.*'),('JSON corner for regions','*.json')])
             regions = load_from_json(fname)
         except Exception as ei:
@@ -1123,7 +1188,10 @@ class gui:
             
     def gui_add_any_WMS(self,filename='WMS.txt'):
         'Button to add any WMS layer defined in a WMS txt file, each line has name of server, then the website'
-        from map_interactive import load_WMS_file
+        try:
+            from map_interactive import load_WMS_file
+        except ModuleNotFoundError:
+            from .map_interactive import load_WMS_file
         out = load_WMS_file(filename)
         arr = ['{} : {}'.format(dict['name'],dict['website']) for dict in out]
         popup = Popup_list(arr,title='Select WMS server to load graphics capabilities')
@@ -1186,7 +1254,10 @@ class gui:
             
     def add_kml(self,fname=None,color='tab:pink',name='kmls'):
         'function to add kml'
-        from map_interactive import plot_kml
+        try:
+            from map_interactive import plot_kml
+        except ModuleNotFoundError:
+            from .map_interactive import plot_kml
         if not fname:
             fname = self.gui_file_select(ext='.kml',ftype=[('All files','*.*'),
                                                           ('KML','*.kml'),('KMZ','*.kmz')])
@@ -1220,9 +1291,15 @@ class gui:
                 printurl=False,notime=False,popup=False,cql_filter=None,hires=False,
                 vert_crs=False,xlim=None,ylim=None,bbox=None,**kwargs): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
         'GUI handler for adding the figures from WMS support of GEOS'
-        from gui import Popup_list
+        try:
+            from gui import Popup_list
+            from map_interactive import convert_ccrs_to_epsg
+        except ModuleNotFoundError:
+            from .gui import Popup_list
+            from .map_interactive import convert_ccrs_to_epsg
+        
         import tkinter.messagebox as tkMessageBox
-        from map_interactive import convert_ccrs_to_epsg
+        
         from datetime import datetime, timedelta
         if hires:
             res = (2160,1680)
@@ -1463,8 +1540,14 @@ class gui:
             
     def gui_flt_module(self):
         'Program to load the flt_module files and select'
-        from map_interactive import get_flt_modules
-        from gui import Select_flt_mod
+        try:
+            from map_interactive import get_flt_modules
+            from gui import Select_flt_mod
+        except ModuleNotFoundError:
+            from .map_interactive import get_flt_modules
+            from .gui import Select_flt_mod
+
+        
         flt_mods = get_flt_modules()
         select = Select_flt_mod(flt_mods,height=self.height)
         try:
