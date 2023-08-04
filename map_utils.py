@@ -68,7 +68,10 @@ def bearing(pos1,pos2):
 
 def map_ind(mod_lon,mod_lat,meas_lon,meas_lat,meas_good=None):
     """ Run to get indices in the measurement space of all the closest mod points. Assuming earth geometry."""
-    from map_utils import spherical_dist
+    try:
+        from map_utils import spherical_dist
+    except ModuleNotFoundError:
+        from .map_utils import spherical_dist
     from Sp_parameters import startprogress, progress, endprogress
     import numpy as np
     try:
@@ -152,7 +155,10 @@ def stats_within_radius(lat1,lon1,lat2,lon2,x2,radius,subset=True):
         'median': median values of x2 near lat1, lon1
     """
     from scipy.spatial import cKDTree
-    from map_utils import radius_m2deg
+    try:
+        from map_utils import radius_m2deg
+    except ModuleNotFoundError:
+        from .map_utils import radius_m2deg
     import numpy as np
     print('Setting up the lat, lon, localization')
     max_distance = radius_m2deg(lon1[0],lat1[0],radius) #transform to degrees
@@ -204,7 +210,10 @@ def equi(m, centerlon, centerlat, radius, *args, **kwargs):
     from: http://www.geophysique.be/2011/02/20/matplotlib-basemap-tutorial-09-drawing-circles/
     by: Thomas Lecocq
     """
-    from map_utils import shoot
+    try:
+        from map_utils import shoot
+    except ModuleNotFoundError:
+        from .map_utils import shoot
     glon1 = centerlon
     glat1 = centerlat
     X = []
@@ -373,7 +382,10 @@ def consecutive(data, stepsize=1):
 def mplot_spec(m,lon,lat,*args,**kwargs):
     'Program to plot lines on a map, wihtout the extra cross sides of lines because of the dateline problem'
     import numpy as np
-    from map_utils import consecutive
+    try:
+        from map_utils import consecutive
+    except ModuleNotFoundError:
+        from .map_utils import consecutive
     latrange = [m.llcrnrlat,m.urcrnrlat]
     lonrange = [m.llcrnrlon,m.urcrnrlon]
     lon = np.array(lon)

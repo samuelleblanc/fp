@@ -426,7 +426,10 @@ class gui:
         'gui function to run the plot of alt vs. latitude'
         if self.noplt:
             from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-            from gui import custom_toolbar
+            try:
+                from gui import custom_toolbar
+            except ModuleNotFoundError: 
+                from .gui import custom_toolbar
             from matplotlib.figure import Figure
             import tkinter as tk
             root = tk.Toplevel()

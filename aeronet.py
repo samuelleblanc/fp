@@ -46,7 +46,10 @@ def get_aeronet(daystr=None,lat_range=[],lon_range=[],lev='LEV15',avg=True,dayst
         from urllib.request import urlopen
         import ssl    
     from datetime import datetime, timedelta
-    from load_utils import recarray_to_dict
+    try:
+        from load_utils import recarray_to_dict
+    except ModuleNotFoundError:
+        from .load_utils import recarray_to_dict
     
     # validate input
     if avg:

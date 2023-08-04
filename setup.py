@@ -17,6 +17,7 @@
 from setuptools import setup, find_packages
 long_description = open('README.md').read()
 from distutils.util import convert_path
+import os
 
 main_ns = {}
 ver_path = convert_path('./version.py')
@@ -37,14 +38,18 @@ setup(
     license="GPL-3.0",
     url="https://github.com/samuelleblanc/fp",
     platforms="any",
-    packages=find_packages(convert_path('../'),exclude=['tests*', 'tutorials*']),
+    packages=find_packages(convert_path('..'),exclude=['tests*', 'tutorials*','flight_planning*']),
     namespace_packages=[],
     include_package_data=True,
     zip_safe=False,
     install_requires=['numpy','geopy','scipy','pyephem','Pillow','cartopy','pykml','rasterio','gpxpy','bs4','xlwings','json_tricks','simplekml'],
     #packages=find_namespace_packages(where=""),
-    package_dir={"":"../".": ".","map_icons":"map_icons","flt_modules":"flt_modules","mpl_data":"mpl-data"},
-    package_data={"": ["*.txt","*.tle","*.md","*.json","*.ico","*.tif"],
+    package_dir={"":convert_path('..'),".": ".","map_icons":convert_path("map_icons"),"flt_module":convert_path("flt_module"),"mpl_data":convert_path("mpl-data")},
+    package_data={"": ["*.txt","*.tle","*.md","*.json","*.ico","*.tif",
+                       os.path.join("map_icons","*.png"),os.path.join("map_icons","*.txt"),
+                       os.path.join("flt_module","*.png"),os.path.join("flt_module","*.PNG"),os.path.join("flt_module","*.flt"),
+                       os.path.join("mpl-data","*.svg"),os.path.join("mpl-data","*.ppm"),os.path.join("mpl-data","*.xpm"),os.path.join("mpl-data","*.gif"),
+                       os.path.join("mpl-data","*.png"),os.path.join("mpl-data","*.gz")],
         ".": ["*.txt","*.tle","*.md","*.json","*.ico","*.tif"],
         "map_icons": ["*.png","*.txt"],
         "flt_modules": ["*.png","*.PNG","*.flt"],
