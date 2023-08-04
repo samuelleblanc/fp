@@ -18,6 +18,8 @@ __all__ = ['excel_interface','map_interactive','map_utils','gui','ml','aeronet',
 #import load_utils
 #import write_utils
 from .version import __version__
+__author__ = 'Samuel LeBlanc'
+__credits__ = 'Bay Area Environmental Research Institute / NASA Ames Research Center'
 #import ml
 from .ml import Create_interaction as main
 

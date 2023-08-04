@@ -1,11 +1,11 @@
 # Name:
 
-Moving Lines, version 1.29
+Moving Lines, version 1.4
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1478125.svg)](https://doi.org/10.5281/zenodo.1478125)
 
 Get the compiled versions for MAC OS and Windows at:
-[https://github.com/samuelleblanc/fp/releases/tag/v1.25]
+[https://github.com/samuelleblanc/fp/releases/tag/v1.44]
     
 # Purpose:
     
@@ -14,22 +14,29 @@ Flight Planning software for creating flight plans for Airborne Science
 Creates a visual map interface and backend calculations to a spreadsheet flight planning tool
 Takes advantage of clickable map for creating a flight plan, and already existing Excel software
     
-# Quick Start (for compiled versions):
+# Quick Start:   
 
+## For compiled versions:
     1) Download appropriate zip file and extract to desired location
-    2) Requires Microsoft Excel
-    3) run the executable (ml for OSX, ml.exe for Win)
+    2) run the executable (ml for OSX, ml.exe for Win)
         for OSX:
             - run from command line, must cd to directory hosting the ml exectuable
         for Windows:
-            - double click the ml.exe icon
-    4) Select the mapping profile (defaults to ORACLES), can change the map boundaries, take-off time, utc offset
-    5) wait about 30seconds
-    6) Enter date of planned flight in dialog in format yyyy-mm-dd
-    7) wait for map to initialize and excel to load
-    8) move cursor over map to refresh map
-    9) create points, move points by clicking or by manually entering in excel spreadsheet
-    10) Once happy save all the figures, files, excel files, kml files by either selecting each point, or by pressing the 'saveall' button
+            - double click the ml.exe icon  
+
+   *or*  
+## For python installs:
+	1) pip install ml
+	2) at a command line, start the moving lines software by typing 'ml'  
+	
+## consecutive steps:
+    3) Select the mapping profile (defaults to ORACLES), can change the map boundaries, take-off time, utc offset
+    4) wait about 30seconds
+    5) Enter date of planned flight in dialog in format yyyy-mm-dd
+    6) wait for map to initialize and excel to load
+	7) move cursor over map to refresh map
+    8) create points, move points by clicking, or by manually entering in excel spreadsheet
+    9) Once happy save all the figures, files, excel files, kml files by either selecting each point, or by pressing the 'saveall' button
     
 ## Adding points:
     1) click and drag on map to create new point 
@@ -42,6 +49,10 @@ Takes advantage of clickable map for creating a flight plan, and already existin
   
     1) Press the 'add' button next to 'points:'
     2) Follow the dialog
+  *or*
+	
+	1) add a flight module with the button 'flt_module'
+	2) see below or follow dialogs
     
 ## Moving points
     1) Click on point on map, and then drag
@@ -79,6 +90,11 @@ Takes advantage of clickable map for creating a flight plan, and already existin
     1) Press the 'New Flight Path' button
     2) Enter name of new flight path. If it contains the name of a plane (e.g. p3, er2, dc8, c130,baer), will use the predefined speeds for that plane
     3) New flight path will have different color
+
+## Adding figures and model maps:
+	1) select add WMS
+	2) choose which website to load the web map service. For MSS select that one which has the corresponding title
+	3) follow dialogs for selecting the right times, layer, level, etc.
     
 ## Adding platform default information:
     1) locate the platform.txt file.
@@ -120,7 +136,7 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 # Notes and tips about usage:
 
     - clicking on the first point will create a waypoint to it
-    - second point to be added will have the default transit altitude for that plane (if available)
+    - second point to be added will have the default transit altitude for that aircraft (if available)
     - when holding down the mouse button, range circles will appear, along with the sun's azimuthal location at that time denoted by the yellow star and dashed lines
     - Saving to: ICT button will create a sample ict file with 60 seconds points interpolated between each waypoint
     - plots of solar angle and altitude profiles is created with the Plots buttons
@@ -186,6 +202,7 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 # Known Bugs:
 
     - Sometime slow starting up, especiallly when excel is not open 
+	- Adding figures when not in platecaree / cylindrical / mercator projections is buggy
     
 # Modification History:
 
@@ -245,18 +262,36 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 						- bug fix for saving multiple excel sheets
 						- adding scroll to zoom 
 						- adding custom color to labels.txt points
+	Modified: Samuel LeBlanc, v1.30, 2022-02-03, Santa Cruz, CA
+			- bug fix to for_pilots excel spreadsheet
+	Modified: Samuel LeBlanc, v1.40, 2023-05-30, Santa Cruz, CA
+			- added new projections
+			- added new variables to the profiles.txt format
+	Modified: Samuel LeBlanc, v1.41, 2023-06-08, Santa Cruz, CA
+			- added surface elevation to elevation plots
+			- added plotting of select kml files
+			- added FIR boundaries plotting.
+			- added the AERONET v3 debugging and defaults
+			- modified plotting of satellite tracks for esthetics
+	Modified: Samuel LeBlanc, v1.42, 2023-07-20, Santa Cruz, CA 
+			- added support for the MSWMS from MSS
+			- added extra selections options for the WMS loading.
+	Modified: Samuel LeBlanc, v1.43, 2023-07-27, Hampton, VA 
+			- bugfix for Mac OS laoding of files, and pkl map files.
+	Modified: Samuel LeBlanc, v1.44, 2023-08-04, Snta Cruz, CA 
+			- Adding the loading and compatibility with setuptools for pip integration and reglar python modules
 # To cite:
 
 Cite as:
 
-Samuel LeBlanc (2021). samuelleblanc/fp: v1.28 New release with minor deleted point bug fix (v1.28). Zenodo. https://doi.org/10.5281/zenodo.5655342
+Samuel LeBlanc (2023). samuelleblanc/fp: Moving Lines: NASA airborne research flight planning tool release (v1.44). Zenodo. https://doi.org/10.5281/zenodo.1478125
 
 BibTex:
-@misc{samuel_leblanc_2021_5655342,
+@misc{samuel_leblanc_2023_1478125,
 author = {LeBlanc, Samuel},
-doi = {10.5281/zenodo.5655342},
+doi = {10.5281/zenodo.1478125},
 publisher = {Zenodo},
-title = {{samuelleblanc/fp: v1.28 New release with minor deleted point bug fix}},
-url = {https://doi.org/10.5281/zenodo.5655342},
-year = {2021}
+title = {{samuelleblanc/fp: Moving Lines: NASA airborne research flight planning tool release (v1.44)}},
+url = {https://doi.org/10.5281/zenodo.1478125},
+year = {2023}
 }

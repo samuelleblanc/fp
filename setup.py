@@ -29,7 +29,11 @@ setup(
     version=main_ns['__version__'].strip('v'),  # noqa
     description="Moving Lines - Research flight planner",
     long_description=long_description,
-    classifiers="Development Status :: 5 - Production/Stable",
+    classifiers=['Intended Audience :: Science/Research',
+                 "Development Status :: 5 - Production/Stable",
+                 'Programming Language :: Python :: 2',
+                 'Programming Language :: Python :: 2.7',
+                 'Programming Language :: Python :: 3'],
     keywords="ml",
     maintainer="Samuel LeBlanc",
     maintainer_email="samuel.leblanc@nasa.gov",
