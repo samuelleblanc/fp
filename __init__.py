@@ -17,9 +17,10 @@ import gui
 import aeronet
 import load_utils
 import write_utils
+from .version import __version__
 import ml
 from ml import Create_interaction as main
-__version__ = ml.__version__
+
 #Start,ui = ml.Create_interaction(test=False)
 
 

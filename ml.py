@@ -132,7 +132,7 @@ try:
     import urllib2, socket, _socket, _ssl, _elementtree
 except:
     import urllib, socket, _socket, _ssl, _elementtree
-import pykml, simplekml, pyexpat
+import pykml, simplekml
 import gpxpy, gpxpy.gpx
 
 import map_utils as mu
@@ -154,7 +154,7 @@ except:
 #import six, six.moves
 import warnings
 
-__version__ = 'v1.43'
+from .version import __version__
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'
