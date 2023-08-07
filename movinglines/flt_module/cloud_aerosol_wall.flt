@@ -1,0 +1,25 @@
+# module that follows makes multiple pass along a cloud area, above below then sawtooth
+%length, angle, sawtooth_top, aerosol_top,mid_cloud_alt,mid_aero_alt
+angle, 0, 7500
+angle, length, 7500
+angle-180, 0, 200
+angle-180,length,200
+angle,0,mid_cloud_alt
+angle,length,mid_cloud_alt
+angle-180,0,mid_cloud_alt+500
+angle-180,length,mid_cloud_alt+500
+angle-180,0,mid_aero_alt
+angle,length,mid_aero_alt
+angle,0,aerosol_top
+angle-180,length,aerosol_top
+angle,length,200
+angle-180,length/10,sawtooth_top
+angle-180,length/10,200
+angle-180,length/10,sawtooth_top
+angle-180,length/10,200
+angle-180,length/10,sawtooth_top
+angle-180,length/10,200
+angle-180,length/10,sawtooth_top
+angle-180,length/10,200
+angle-180,length/10,sawtooth_top
+angle-180,length/10,200

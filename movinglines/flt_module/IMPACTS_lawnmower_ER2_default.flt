@@ -1,0 +1,13 @@
+#IMPACTS lawmower pattern ER2 portion, with default distances in km
+%angle
+angle, 220
+angle+90,55
+angle+180,220
+angle+90,55
+angle,220
+angle+90,50
+angle+180,220
+angle+90,55
+angle,220
+angle+90,55
+angle+180,220

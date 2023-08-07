@@ -1,0 +1,22 @@
+#IMPACTS racetrack pattern P3 portion, with stacked legs (5x) and defaults
+%angle
+angle,140,9000
+angle+90,22.6,9000
+angle+180,140,9000
+angle-90,22.6,7000
+angle,140,7000
+angle+90,22.6,7000
+angle+180,140,7000
+angle-90,22.6,5000
+angle,140,5000
+angle+90,22.6,5000
+angle+180,140,5000
+angle-90,22.6,3000
+angle,140,3000
+angle+90,22.6,3000
+angle+180,140,3000
+angle-90,22.6,2000
+angle,140,2000
+angle+90,22.6,2000
+angle+180,140,2000
+angle-90,22.6,2000

@@ -1,0 +1,12 @@
+GEOS,http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx
+GEOS_weather,http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst3_2d_met_Nx
+Public_ECMWF,http://apps.ecmwf.int/wms/?token=MetOceanIE
+GEFS,http://motherlode.ucar.edu:8080/thredds/wms/fmrc/NCEP/GEFS/Global_1p0deg_Ensemble/derived/NCEP-GEFS-Global_1p0deg_Ensemble-derived_best.ncd?service=WMS
+GFS,http://oos.soest.hawaii.edu/erddap/wms/NCEP_Global_Best
+GFS_NCEP,http://oos.soest.hawaii.edu/thredds/wms/hioos/model/atm/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd?
+SUA,https://sua.faa.gov/geoserver/wms?LAYERS=SUA
+RealEarth,http://realearth.ssec.wisc.edu/cgi-bin/mapserv?service=WMS&version=1.1.1&request=GetCapabilities&map=globalvis.map
+NEO_GFSC,https://neo.sci.gsfc.nasa.gov/wms/wms
+NOWCOAST_radar,https://nowcoast.noaa.gov/arcgis/services/nowcoast/radar_meteo_imagery_nexrad_time/MapServer/WmsServer?,True
+World_View,https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?
+MSS,http://mss.colorsof.cloud/wms/?

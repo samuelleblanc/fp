@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="169.60001pt"
+   height="18.192968pt"
+   viewBox="0 0 212.00001 22.74121"
+   id="svg7267"
+   version="1.1"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="icons.svg">
+  <defs
+     id="defs7269" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="2.1435469"
+     inkscape:cx="-37.42857"
+     inkscape:cy="-103.71908"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1920"
+     inkscape:window-height="1005"
+     inkscape:window-x="1911"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1"
+     inkscape:snap-nodes="false"
+     units="pt"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0" />
+  <metadata
+     id="metadata7272">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-245.42857,-115.27731)">
+    <path
+       inkscape:connector-curvature="0"
+       style="fill:#1c1c19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       d="m 374.24787,132.18648 -3.4472,-3.44237 c 0.874,-1.36232 1.3867,-2.97851 1.3867,-4.7168 0,-4.8291 -3.916,-8.75 -8.75,-8.75 -4.834,0 -8.75,3.9209 -8.75,8.75 0,4.83398 3.916,8.75 8.75,8.75 1.7383,0 3.3545,-0.5127 4.7119,-1.38184 l 3.4424,3.44239 c 0.2441,0.24414 0.6445,0.24414 0.8838,0 l 1.7724,-1.76758 c 0.2393,-0.24415 0.2393,-0.64453 0,-0.8838 z m -10.8105,-1.90917 c -3.4473,0 -6.25,-2.80274 -6.25,-6.25 0,-3.44727 2.8027,-6.25 6.25,-6.25 3.4472,0 6.25,2.80273 6.25,6.25 0,3.44726 -2.8028,6.25 -6.25,6.25"
+       id="path3666"
+       inkscape:export-xdpi="82.051689"
+       inkscape:export-ydpi="82.051689"
+       inkscape:export-filename="C:\fp\map_icons\ml_zoom.png" />
+    <path
+       inkscape:connector-curvature="0"
+       style="fill:#1c1c19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       d="m 406.42857,126.01852 -5,-3.75 0,2.5 -3.75,0 0,-3.75 2.5439,0 -3.75,-5 -3.75,5 2.4561,0 0,3.75 -3.75,0 0,-2.5 -5,3.75 5,3.75 0,-2.5 3.75,0 0,3.75 -2.4561,0 3.75,5 3.75,-5 -2.5439,0 0,-3.75 3.75,0 0,2.5 5,-3.75"
+       id="path3668"
+       inkscape:export-xdpi="81"
+       inkscape:export-ydpi="81"
+       inkscape:export-filename="C:\fp\map_icons\ml_pan.png" />
+    <path
+       inkscape:connector-curvature="0"
+       style="fill:#1c1c19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       d="m 261.24397,125.01071 0,-4.42383 -2.5,0 0,2.50976 -3.6523,-2.78808 -9.6631,7.37305 1.5185,1.99218 1.0401,-0.7959 0,9.14063 14.2041,0 0,-9.14063 1.04,0.7959 1.5186,-1.99218 z m -0.4443,11.61621 -3.208,0 0,-5.28809 -5.0049,0 0,5.28809 -3.208,0 0,-8.63281 5.7129,-4.36035 5.708,4.36035 0,8.63281"
+       id="path3958"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90"
+       inkscape:export-filename="C:\fp\map_icons\ml_home.png" />
+    <path
+       inkscape:connector-curvature="0"
+       style="fill:#1c1c19;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       d="m 454.92857,117.01852 -17.5,0 0,20 20,0 0,-17.5 z m -12.5,0 10,0 0,6.25 -10,0 z m -2.5,18.75 0,-7.5 13.75,0 0,7.5 z m 16.25,-1.25 -1.25,0 0,-1.25 1.25,0 0,1.25"
+       id="path4284"
+       inkscape:export-xdpi="81"
+       inkscape:export-ydpi="81"
+       inkscape:export-filename="C:\fp\map_icons\ml_save.png" />
+    <path
+       inkscape:connector-curvature="0"
+       style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       d="m 302.73907,137.71578 9.8584,-8.44726 -9.8584,-8.44726 -1.6211,1.89452 7.6416,6.55274 -7.6416,6.55274 1.6211,1.89452"
+       id="path5286"
+       inkscape:export-xdpi="95.889084"
+       inkscape:export-ydpi="95.889084"
+       inkscape:export-filename="C:\fp\map_icons\ml_forward.png" />
+    <path
+       inkscape:connector-curvature="0"
+       style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       d="m 287.36797,137.71578 1.6211,-1.89452 -7.6416,-6.55274 7.6416,-6.55274 -1.6211,-1.89452 -9.8584,8.44726 9.8584,8.44726"
+       id="path5288"
+       inkscape:export-xdpi="95.889084"
+       inkscape:export-ydpi="95.889084"
+       inkscape:export-filename="C:\fp\map_icons\ml_back.png" />
+  </g>
+</svg>

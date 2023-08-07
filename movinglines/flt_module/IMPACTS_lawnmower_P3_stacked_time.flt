@@ -1,0 +1,24 @@
+%spacing=55,angle=90,top_alt=8000,bot_alt=1000,leg_time_min=15
+angle, leg_time_min,top_alt
+angle+90,spacing,top_alt
+angle+180,leg_time_min,top_alt
+angle+90,spacing,top_alt
+angle,leg_time_min,top_alt
+angle+90,spacing,top_alt
+angle+180,leg_time_min,top_alt
+angle+90,spacing,top_alt
+angle,leg_time_min,top_alt
+angle+90,spacing,top_alt
+angle+180,leg_time_min,top_alt
+angle+180,20,bot_alt
+angle,leg_time_min+20,bot_alt
+angle-90,spacing,bot_alt
+angle-180,leg_time_min,bot_alt
+angle-90,spacing,bot_alt
+angle,leg_time_min,bot_alt
+angle-90,spacing,bot_alt
+angle-180,leg_time_min,bot_alt
+angle-90,spacing,bot_alt
+angle,leg_time_min,bot_alt
+angle-90,spacing,bot_alt
+angle-180,leg_time_min,bot_alt

@@ -1,0 +1,13 @@
+% length, angle, cloud_top_alt
+angle,0,7500
+angle,length,7500
+angle-180,0,cloud_top_alt
+angle-180,length,cloud_top_alt
+angle,length/7,200
+angle,length/7,cloud_top_alt
+angle,length/7,200
+angle,length/7,cloud_top_alt
+angle,length/7,200
+angle,length/7,cloud_top_alt
+angle,length/7,200
+angle-180,length,200

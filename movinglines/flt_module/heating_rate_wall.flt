@@ -1,0 +1,9 @@
+% length, angle, cloud_top_alt, aerosol_top,mid_aero_alt
+angle,0,aerosol_top
+angle,length,aerosol_top
+angle-180, length,cloud_top_alt
+angle,length,cloud_top_alt
+angle,0,mid_aero_alt
+angle-180,length,mid_aero_alt
+angle-180,0,200
+angle,length,200

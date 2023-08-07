@@ -1,0 +1,5 @@
+%length,heading,angle_offset
+heading,length
+heading-(180-((180-angle_offset)/2)),(length)*((4*(angle_offset/2)*(180-(angle_offset/2)))/(40500-(angle_offset/2)*(180-(angle_offset/2))))
+heading+(180-angle_offset),length
+heading-(180-((180-angle_offset)/2)),(length)*((4*(angle_offset/2)*(180-(angle_offset/2)))/(40500-(angle_offset/2)*(180-(angle_offset/2))))

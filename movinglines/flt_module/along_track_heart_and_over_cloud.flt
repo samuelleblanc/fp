@@ -1,0 +1,9 @@
+# Along flight track go down to right above cloud, then middle of layer
+%length, angle, cloud_top,mid_aero_alt
+angle, 0, 7000
+angle, 50, cloud_top
+angle, length, cloud_top
+angle, 50,mid_aero_alt
+angle,length,mid_aero_alt
+angle,50,cloud_top
+angle,length,cloud_top

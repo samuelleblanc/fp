@@ -1,0 +1,112 @@
+{'Profile':'ARCSIX','Plane_name':'P3',
+                 'Start_lon':'68 42 11W','Start_lat':'76 31 52N', 
+                 'Lon_range':[-100,20],'Lat_range':[72,73],
+                 'UTC_start':10.5,'UTC_conversion':-2.0,
+                 'start_alt':76.5,
+				 'proj':'NorthPolarStereo','lat_0':76.0,'lon_0':68.0}
+{'Profile':'ALOFT','Plane_name':'ER2',
+                 'Start_lon':'82.52111W','Start_lat':'27.84944N',
+                 'Lon_range':[-95,-75],'Lat_range':[22,36],
+                 'UTC_start':16.00,'UTC_conversion':-5.0,
+                 'start_alt':10.0}
+{'Profile':'PACE-PAX','Plane_name':'ER2',
+                 'Start_lon':'118 05 04W','Start_lat':'34 37 46N',
+                 'Lon_range':[-126,-114],'Lat_range':[32,43],
+                 'UTC_start':16.0,'UTC_conversion':-7.0,
+                 'start_alt':775.0}
+{'Profile':'IMPACTS-WFF','Plane_name':'P3',
+                 'Start_lon':'75.466389W','Start_lat':'37.940194N',
+                 'Lon_range':[-92,-65],'Lat_range':[30,50],
+                 'UTC_start':22.25,'UTC_conversion':-5.0,
+                 'start_alt':10.0}
+{'Profile':'IMPACTS-ER2','Plane_name':'ER2',
+                 'Start_lon':' -79.014444','Start_lat':'35.170833',
+                 'Lon_range':[-92,-65],'Lat_range':[30,50],  
+                 'UTC_start':13.5,'UTC_conversion':-5.0,
+                 'start_alt':12.8}
+{'Profile':'TRACER-AQ','Plane_name':'GV',
+                 'Start_lon':'95 09 32W','Start_lat':'29 36 26N',
+                 'Lon_range':[-105,-77],'Lat_range':[21,34],
+                 'UTC_start':13.5,'UTC_conversion':-5.0,
+                 'start_alt':10.0}
+{'Profile':'CAMP2Ex','Plane_name':'P3',
+                 'Start_lon':'120.5597','Start_lat':'15.18583',
+                 'Lon_range':[110,135],'Lat_range':[0,30],
+                 'UTC_start':22.25,'UTC_conversion':+8.0,
+                 'start_alt':0.0}
+{'Profile':'ACEPOL','Plane_name':'ER2',
+                 'Start_lon':'118 05 04W','Start_lat':'34 37 46N',
+                 'Lon_range':[-135,-100],'Lat_range':[27,50],
+                 'UTC_start':16.0,'UTC_conversion':-7.0,
+                 'start_alt':775.0}
+{'Profile':'ACTIVATE Low','Plane_name':'Falcon',
+                 'Start_lon':'-76.36','Start_lat':'37.0833',
+                 'Lon_range':[-80,-60],'Lat_range ':[25,45],
+                 'UTC_start':12.0,'UTC_conversion':-4.0,
+                 'start_alt':1.0}
+{'Profile':'ACTIVATE High','Plane_name':'KingAir',
+                 'Start_lon':'-76.36','Start_lat':'37.0833',
+                 'Lon_range':[-85,-60],'Lat_range':[25,45],
+                 'UTC_start':12.0,'UTC_conversion':-4.0,
+                 'start_alt':5.0}
+{'Profile':'ORACLES-2018-CaboVerde','Plane_name':'P3',
+                 'Start_lon':'-22.945994','Start_lat':'16.735668',
+                 'Lon_range':[-25,15],'Lat_range':[-10,20],
+                 'UTC_start':8.0,'UTC_conversion':-1.0,
+                 'start_alt':95.0}
+{'Profile':'ORACLES-2018-Barbados','Plane_name':'P3',
+                 'Start_lon':'-59.4832','Start_lat':'13.0797',
+                 'Lon_range':[-80,-57],'Lat_range':[10,40],
+                 'UTC_start':13.0,'UTC_conversion':-4.0,
+                 'start_alt':95.0}
+{'Profile':'ORACLES-2018','Plane_name':'P3',
+                 'Start_lon':'6.70820','Start_lat':'0.378006',
+                 'Lon_range':[-20,20],'Lat_range':[-30,10],
+                 'UTC_start':7.0,'UTC_conversion':+1.0,
+                 'start_alt':95.0}
+{'Profile':'ORACLES-2017','Plane_name':'P3',
+                 'Start_lon':'6.70820','Start_lat':'0.378006',
+                 'Lon_range':[-20,20],'Lat_range':[-30,10],
+                 'UTC_start':8.0,'UTC_conversion':+0.0,
+                 'start_alt':95.0}
+{'Profile':'ORACLES-2016','Plane_name':'P3',
+                 'Start_lon':'14 38.717E','Start_lat':'22 58.783S',
+                 'Lon_range':[-20,20],'Lat_range':[-30,10],
+                 'UTC_start':7.0,'UTC_conversion':+2.0,
+                 'start_alt':95.0}
+{'Profile':'NAAMES','Plane_name':'C130',
+                 'Start_lon':'52 44.547W','Start_lat':'47 37.273N',
+                 'Lon_range':[-60,-30],'Lat_range':[40,60],
+                 'UTC_start':8.5,'UTC_conversion':-2.5,
+                 'start_alt':110.0}
+{'Profile':'KORUS-AQ','Plane_name':'DC8',
+                 'Start_lon':'126 47.663E','Start_lat':'37 33.489N',
+                 'Lon_range':[120,135],'Lat_range':[20,40],
+                 'UTC_start':23,'UTC_conversion':+9,
+                 'start_alt':20.0}
+{'Profile':'AJAX','Plane_name':'Alpha-jet',
+                 'Start_lon':'122 3.489W','Start_lat':'37 24.387N',
+                 'Lon_range':[-125,-115],'Lat_range':[30,40],
+                 'UTC_start':20.0,'UTC_conversion':-7,
+                 'start_alt':95.0}
+{'Profile':'ORACLES-Palmdale','Plane_name':'ER2',
+                 'Start_lon':'118 05 04W','Start_lat':'34 37 46N',
+                 'Lon_range':[-125,-115],'Lat_range':[30,40],
+                 'UTC_start':17.0,'UTC_conversion':-8.0,
+                 'start_alt':775.0}
+{'Profile':'ORACLES-WFF','Plane_name':'P3',
+                 'Start_lon':'75.466389W','Start_lat':'37.940194N ',
+                 'Lon_range':[-80,-60],'Lat_range':[30,45],
+                 'UTC_start':12.0,'UTC_conversion':-5.0,
+                 'start_alt':10.0}
+{'Profile':'ORACLES-Ascension','Plane_name':'P3',
+                 'Start_lon':'14 22.260W','Start_lat':'7 56.343S',
+                 'Lon_range':[-18,15],'Lat_range':[-25,5],
+                 'UTC_start':8.0,'UTC_conversion':0.0,
+                 'start_alt':85.0}
+{'Profile':'CLARIFY','Plane_name':'BAE146',
+                 'Start_lon':'14 22.260W','Start_lat':'7 56.343S',
+                 'Lon_range':[-18,15],'Lat_range':[-25,5],
+                 'UTC_start':8.0,'UTC_conversion':0.0,
+                 'start_alt':10.0}
+				 

@@ -1,0 +1,7 @@
+# Box
+%box_width,box_length,starting_bearring,alt,
+starting_bearring, 0, alt
+starting_bearring, box_width, alt
+starting_bearring+90, box_length, alt
+starting_bearring+180, box_width, alt
+starting_bearring+270, box_length, alt
