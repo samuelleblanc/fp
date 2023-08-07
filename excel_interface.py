@@ -111,6 +111,7 @@ class dict_position:
         import numpy as np
         import xlwings as xw
         from datetime import datetime
+        import os
 
         try:
             import map_interactive as mi
@@ -157,7 +158,7 @@ class dict_position:
         self.platform, self.p_info,use_file = self.get_platform_info(name,platform_file)
         self.pilot_format = self.p_info.get('pilot_format','DD MM SS')
         if use_file:
-            print('Using platform data for: {} from platform file: {}'.format(self.platform,platform_file))
+            print('Using platform data for: {} from platform file: {}'.format(self.platform,os.path.abspath(platform_file)))
         else:
             print('Using platform data for: {} from internal defaults'.format(self.platform))
 
@@ -191,6 +192,7 @@ class dict_position:
         except ModuleNotFoundError:
             from .ml import read_prof_file
         import tkinter.messagebox as tkMessageBox
+        import os 
         platform = None
         p_info = None
         use_file = False
@@ -207,7 +209,7 @@ class dict_position:
                 platform = self.check_platform(name)
                 p_info = self.default_p_info(platform)
         except IOError:
-            print('** Error reading platform information file: {} **'.format(filename))
+            print('** Error reading platform information file: {} **'.format(os.path.abspath(filename)))
             try:
                 try:
                     from gui import gui_file_select_fx
@@ -222,7 +224,7 @@ class dict_position:
                         use_file = True
                         break
             except IOError:
-                print('** Error reading platform information file: {} **'.format(filename))
+                print('** Error reading platform information file: {} **'.format(os.path.abspath(filename)))
                 print('** Using default platform profiles **')
                 platform = self.check_platform(name)
                 p_info = self.default_p_info(platform)

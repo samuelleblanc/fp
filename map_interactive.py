@@ -1312,7 +1312,7 @@ def plot_sat_tracks(m,sat,label_every=10,max_num=60):
     #sat_obj.append(leg_onpick)
     return sat_obj
 
-def get_sat_tracks_from_tle(datestr,fraction_minute_interval=3):
+def get_sat_tracks_from_tle(datestr,fraction_minute_interval=3,sat_filename='sat.tle'):
     """
     Program to build the satellite tracks from the two line element file
     """
@@ -1326,7 +1326,7 @@ def get_sat_tracks_from_tle(datestr,fraction_minute_interval=3):
     from datetime import datetime, timedelta
     import tkinter.messagebox as tkMessageBox
     try:
-        fname = os.path.join('.','sat.tle')
+        fname = os.path.join('.',sat_filename)
         sat = get_tle_from_file(fname)
     except:
         try:
@@ -1343,7 +1343,7 @@ def get_sat_tracks_from_tle(datestr,fraction_minute_interval=3):
     if dt>timedelta(days=14):
         tkMessageBox.showerror('Old TLEs','The file {} has been modified more than 14 days ago. Satellite tracks may be innacurate. Please update.'.format(fname))
     else:
-        print('... Imported the sat.tle file, now plotting')
+        print('... Imported the {} file, now plotting'.format(os.path.abspath(fname)))
     for k in sat.keys():
         try:
             sat[k]['ephem'] = ephem.readtle(k,sat[k]['tle1'],sat[k]['tle2'])
@@ -1501,7 +1501,8 @@ def parse_and_plot_kml(kml_content, ax,color='tab:pink'):
 def plot_kml(kml_file, ax,color='tab:pink'):
     'function to plot the insides of the kml file'
     import zipfile
-    print('...opening KML/KMZ: {}'.format(kml_file))
+    import os
+    print('...opening KML/KMZ: {}'.format(os.path.abspath(kml_file)))
     
     # Extract the contents of KMZ file if provided
     if kml_file.endswith('.kmz'):
