@@ -1,6 +1,0 @@
-#IMPACTS racetrack pattern P3 portion, 1 loop
-%leg_length,angle,alt1
-angle,leg_length,alt1
-angle+90,22.6,alt1
-angle+180,leg_length,alt1
-angle-90,22.6,alt1

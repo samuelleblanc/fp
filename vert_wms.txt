@@ -1,1 +1,0 @@
-MSS,http://mss.colorsof.cloud/wms/?
