@@ -5,7 +5,7 @@ block_cipher = None
 
 
 a = Analysis(['ml.py'],
-             pathex=['C:\\Users\\sleblanc\\Research\\py\\pysolar-0.6', 'C:\\Users\\lebla\\Research\\fp'],
+             pathex=['C:\\Users\\sleblanc\\Research\\py\\pysolar-0.6', 'c:\\Users\\lebla\\Research\\fp\\movinglines'],
              binaries=[],
              datas=[],
              hiddenimports=['Tkinter', 'numpy.fft.fftpack_lite', 'Pysolar', 'dateutil.zoneinfo', 'scipy.integrate', 'scipy.integrate._odepack', 'scipy.interpolate', 'scipy.integrate._quadpack'],

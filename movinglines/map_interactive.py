@@ -1226,7 +1226,7 @@ def get_sat_tracks(datestr,kml):
             print('Skipping %s; no points downloaded' %name)
     return sat
 
-def plot_sat_tracks(m,sat,label_every=10,max_num=60): 
+def plot_sat_tracks(m,sat,label_every=5,max_num=60): 
     """
     Program that goes through and plots the satellite tracks
     """
@@ -1263,11 +1263,27 @@ def plot_sat_tracks(m,sat,label_every=10,max_num=60):
             #llcrnr = m.invert_lonlat(lonrange[0],latrange[0])
             #urcrnr = m.invert_lonlat(lonrange[1],latrange[1])
             sat_text[k] = []
-            for i,d in enumerate(sat[k]['d']):
-                if (not i%label_every) & (i<max_num):
-                    if ((lat[i]>=latrange[0])&(lat[i]<=latrange[1])&(lon[i]>=lonrange[0])&(lon[i]<=lonrange[1])):#((lat[i]>=llcrnr[1])&(lat[i]<=urcrnr[1])&(lon[i]>=llcrnr[0])&(lon[i]<=urcrnr[0])):
-                        sat_obj.append(m.ax.text(x[i],y[i],'%02i:%02i' % (d.tuple()[3],d.tuple()[4]),color=co,transform=m.merc))
-                        sat_text[k].append(sat_obj[-1])
+            #print('length of sat labels {}, every {} with max of {}'.format(len(sat[k]['d']),label_every,max_num))
+            if m.use_cartopy:
+                [x0, x1, y0, y1] = m.ax.get_extent()
+                transformed_points = m.proj.transform_points(m.merc,np.array(lon[::label_every]), np.array(lat[::label_every]))                   
+                j=0
+                for i,d in enumerate(sat[k]['d']):
+                    if not i%label_every:
+                        #transformed_point = m.proj.transform_point(lon[i], lat[i], m.merc)
+                        transformed_point = transformed_points[j,:]
+                        j = j+1
+                        if (transformed_point[0]>x0) & (transformed_point[0]<x1) & (transformed_point[1]>y0) & (transformed_point[1]<y1):
+                            sat_obj.append(m.ax.text(x[i],y[i],'%02i:%02i' % (d.tuple()[3],d.tuple()[4]),color=co,transform=m.merc))
+                            sat_text[k].append(sat_obj[-1])
+            else:
+                if (len(sat[k]['d'])/label_every) < (max_num/2):
+                    label_every = int(len(sat[k]['d'])/max_num/2)
+                for i,d in enumerate(sat[k]['d']):
+                    if (not i%label_every) & (i<max_num):
+                        if ((lat[i]>=latrange[0])&(lat[i]<=latrange[1])&(lon[i]>=lonrange[0])&(lon[i]<=lonrange[1])):#((lat[i]>=llcrnr[1])&(lat[i]<=urcrnr[1])&(lon[i]>=llcrnr[0])&(lon[i]<=urcrnr[0])):
+                            sat_obj.append(m.ax.text(x[i],y[i],'%02i:%02i' % (d.tuple()[3],d.tuple()[4]),color=co,transform=m.merc))
+                            sat_text[k].append(sat_obj[-1])
     if len(sat.keys())>4:
         ncol = 2
     else:
@@ -1312,7 +1328,7 @@ def plot_sat_tracks(m,sat,label_every=10,max_num=60):
     #sat_obj.append(leg_onpick)
     return sat_obj
 
-def get_sat_tracks_from_tle(datestr,fraction_minute_interval=3,sat_filename='sat.tle'):
+def get_sat_tracks_from_tle(datestr,fraction_minute_interval=2,sat_filename='sat.tle'):
     """
     Program to build the satellite tracks from the two line element file
     """
