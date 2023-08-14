@@ -96,7 +96,10 @@ class gui:
 
         self.noplt = noplt
         self.newflight_off = True
-        self.line.line.figure.canvas.mpl_connect('home_event', self.refresh)
+        try:
+            self.line.line.figure.canvas.mpl_connect('home_event', self.refresh)
+        except ValueError:
+            print('problem with Home button')
         self.line.line.figure.canvas.mpl_connect('pan_event', self.refresh)
         self.line.line.figure.canvas.mpl_connect('zoom_event', self.refresh)
         self.line.line.figure.canvas.mpl_connect('back_event', self.refresh)
@@ -1413,10 +1416,13 @@ class gui:
                                   CQL_filter=cql_filter,**kwargs)
                 if img:
                     print('Init_time: '+dim_init)
+                    if printurl:
+                        print(img.geturl())
                     break
             except Exception as ie:
                 if i_init>len(inittime_sel)-2:
                     print(ie)
+                    print(img.geturl())
                     self.root.config(cursor='')
                     self.root.update()
                     tkMessageBox.showwarning('Sorry','Problem getting the image from WMS server')
@@ -1427,8 +1433,7 @@ class gui:
         except:
             self.line.tb.set_message('legend image from WMS server problem')
             geos_legend = False
-        if printurl:
-            print(img.geturl())
+        
         try:
             geos = Image.open(BytesIO(img.read()))
         except Exception as ie:
@@ -2192,7 +2197,10 @@ class custom_toolbar(NavigationToolbar2TkAgg):
         super(custom_toolbar,self).home(*args)
         s = 'home_event'
         event = Event(s, self)
-        self.canvas.callbacks.process(s, event)
+        try:
+            self.canvas.callbacks.process(s, event)
+        except:
+            print('Problem with home button')
 
 def gui_file_select_fx(ext='*',
                        ftype=[('Excel 1997-2003','*.xls'),('Excel','*.xlsx'),

@@ -1,6 +1,6 @@
 # Name:
 
-Moving Lines, version 1.45
+Moving Lines, version 1.46
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1478125.svg)](https://doi.org/10.5281/zenodo.1478125)
 
@@ -280,6 +280,11 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 			- bugfix for Mac OS laoding of files, and pkl map files.
 	Modified: Samuel LeBlanc, v1.44, 2023-08-04, Snta Cruz, CA 
 			- Adding the loading and compatibility with setuptools for pip integration and reglar python modules
+    Modified: Samuel LeBlanc, v1.45, 2023-08-10, Santa Cruz, CA
+                - Debugging and change of folder systems for pip install
+    Modified: Samuel LeBlanc, v1.46, 2023-08-15, Santa Cruz, CA
+                - Debugging for MACos and newer matplotlibs
+			
 # To cite:
 
 Cite as:

@@ -102,6 +102,11 @@
                 - bugfix for Mac OS laoding of files, and pkl map files.
         Modified: Samuel LeBlanc, v1.44, 2023-08-04, Snta Cruz, CA 
                 - Adding the loading and compatibility with setuptools for pip integration and reglar python modules
+        Modified: Samuel LeBlanc, v1.45, 2023-08-10, Santa Cruz, CA
+                - Debugging and change of folder systems for pip install
+        Modified: Samuel LeBlanc, v1.46, 2023-08-15, Santa Cruz, CA
+                - Debugging for MACos and newer matplotlibs
+        
                 
                  
 """

@@ -1481,6 +1481,7 @@ def get_elev(utc,lat,lon,dt=60,geotiff_path='elevation_10KMmd_GMTEDmd.tif'):
 def parse_and_plot_kml(kml_content, ax,color='tab:pink'):
     'function to plot the kml content (either kml file or as part of kmz'
     import xml.etree.ElementTree as ET
+    import cartopy.crs as ccrs
     # Parse the KML content
     root = ET.fromstring(kml_content)
         # Define the namespaces
