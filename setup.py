@@ -26,7 +26,7 @@ with open(ver_path) as ver_file:
 
 setup(
     name="movinglines",
-    version=main_ns['__version__'].strip('v'),  # noqa
+    version=main_ns['__version__'].strip('v')+'.1',  # noqa
     description="Moving Lines - Research flight planner",
     long_description_content_type = 'text/markdown',
     long_description=long_description,
@@ -47,7 +47,7 @@ setup(
     namespace_packages=[],
     include_package_data=True,
     zip_safe=False,
-    install_requires=['numpy','geopy','scipy','pyephem','Pillow','cartopy','pykml','rasterio','gpxpy','bs4','xlwings','json_tricks','simplekml'],
+    install_requires=['numpy','geopy','scipy','pyephem','Pillow','cartopy<0.20.1','shapely<2.0.0','pykml','rasterio','gpxpy','bs4','xlwings','json_tricks','simplekml','matplotlib<3.6.0','owslib'],
     #packages=find_namespace_packages(where=""),
     package_dir={"":convert_path('.'),".": ".","movinglines.map_icons":convert_path("movinglines/map_icons"),"movinglines.flt_module":convert_path("movinglines/flt_module"),
                  "movinglines.mpl-data":convert_path("movinglines/mpl-data")},
