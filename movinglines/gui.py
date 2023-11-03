@@ -1146,6 +1146,10 @@ class gui:
         import tkinter.simpledialog as tkSimpleDialog
         import os
         try:
+            from load_utils import load_from_json
+        except ModuleNotFoundError:
+            from .load_utils import load_from_json
+        try:
             import PIL
             filename = self.gui_file_select(ext='.png',ftype=[('All files','*.*'),
                                                           ('PNG','*.png'),
@@ -1161,6 +1165,31 @@ class gui:
             import tkinter.messagebox as tkMessageBox
             tkMessageBox.showwarning('Sorry','Error occurred unable to load file')
             return
+            
+            
+        try:
+            regions = load_from_json(os.path.join('.','image_corners.json'))
+        except IOError:
+            try:
+                from gui import gui_file_select_fx
+            except ModuleNotFoundError:
+                from .gui import gui_file_select_fx
+            fname = gui_file_select_fx(ext='*.json',ftype=[('All files','*.*'),('JSON corner for regions','*.json')])
+            regions = load_from_json(fname)
+        try:
+            reg_list = list(regions.keys())
+            reg_list.append('manual')
+            p0 = Popup_list(reg_list,title='Which Region?',Text='Select the region of the figure:',multi=False)
+            print('... Selected image corners for: {}'.format(reg_list[p0.result]))
+            if not reg_list[p0.result] in list(regions.keys()):
+                ll_lat = None
+            else:
+                ll_lat,ll_lon,ur_lat,ur_lon = regions[reg_list[p0.result]]
+        except Exception as ei:
+            print(' ...error with image_corners.json, using the manual image selection')
+            print(ei)
+            ll_lat = None
+
 	# get the corners
         if not ll_lat:
             ll_lat = tkSimpleDialog.askfloat('Lower left lat','Lower left lat? [deg]')
@@ -1357,6 +1386,7 @@ class gui:
             elevations = wms[cont[i]].elevations
             jpop = Popup_list(elevations,title='Select Valid Elevations')
             elev_sel = elevations[jpop.var.get()]
+            kwargs['elevation'] = elev_sel
         else:
             elev_sel = None
             
@@ -1374,6 +1404,13 @@ class gui:
                 srs = crss[kpop.var.get()]
         else:
             srs = 'epsg:4326'
+            
+        if wms[cont[i]].styles:
+            style = [k+':'+wms[cont[i]].styles[k]['title'] for k in wms[cont[i]].styles]
+            style_list = [k for k in wms[cont[i]].styles]
+            jpop = Popup_list(style,title='Select Style')
+            style_sel = style_list[jpop.var.get()].strip()
+            kwargs['styles'] = [style_sel]
             
         try:
             inittime_sel = [datetime.now().strftime('%Y-%m-%d')+'T18:00Z',
@@ -1401,6 +1438,7 @@ class gui:
             tkMessageBox.showwarning('Sorry','Problem getting the limits and time of the image')
             return False, None, False
         if not bbox: bbox = (xlim[0],ylim[0],xlim[1],ylim[1])
+        #import ipdb; ipdb.set_trace()
         for i_init, dim_init in enumerate(inittime_sel):
             try:
                 #print('trying the wms get map')
@@ -1409,7 +1447,6 @@ class gui:
                                   size=res,
                                   transparent=True,
                                   time=time_sel,
-                                  elevation=elev_sel,
                                   srs=srs,
                                   format='image/png',
                                   dim_init_time=dim_init,

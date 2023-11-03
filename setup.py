@@ -26,7 +26,7 @@ with open(ver_path) as ver_file:
 
 setup(
     name="movinglines",
-    version=main_ns['__version__'].strip('v')+'.1',  # noqa
+    version=main_ns['__version__'].strip('v'),  # noqa
     description="Moving Lines - Research flight planner",
     long_description_content_type = 'text/markdown',
     long_description=long_description,
