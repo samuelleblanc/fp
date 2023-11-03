@@ -106,6 +106,8 @@
                 - Debugging and change of folder systems for pip install
         Modified: Samuel LeBlanc, v1.46, 2023-08-15, Santa Cruz, CA
                 - Debugging for MACos and newer matplotlibs
+        Modified: Samuel LeBlanc, v1.47, 2023-11-03, Santa Cruz, CA 
+                - adding simple version output from command line (used for testing on conda deployments)
         
                 
                  
@@ -172,6 +174,8 @@ try:
     from version import __version__
 except ModuleNotFoundError:
     from .version import __version__
+
+import argparse
 
 profile_filename = 'profiles.txt'
 platform_filename = 'platform.txt'
@@ -638,8 +642,46 @@ def Create_interaction(test=False,profile=None,**kwargs):
     'Main program to start the moving lines and set up all the map and interactions'
     
     warnings.simplefilter(action = "ignore", category = FutureWarning)
-    
+     
     goto_cwd()
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-d", "--details", help="show help details", action="store_true", default=False)
+    parser.add_argument("-v", "--verbose", help="show verbose print outs, for debugging", action="store_true", default=False)
+
+    args = parser.parse_args()
+    
+    flabels = 'labels.txt'
+    faero = 'aeronet_locations.txt' 
+    
+    if args.details:
+        from os.path import isfile
+        print("***********************************************************************")
+        print("\n            Moving Lines, Research flight planning software\n")
+        print("***********************************************************************")
+        print("DOI: https://zenodo.org/doi/10.5281/zenodo.1478125")
+        print("Version:", __version__)
+        print("***********************************************************************")
+        print("\n            Checking files\n")
+        print("Profile file:",profile_filename)
+        print(" ... exists: ",isfile(profile_filename))
+        print("Platform file:",platform_filename)
+        print(" ... exists: ",isfile(platform_filename))
+        print("Icon file:",icon_filename)
+        print(" ... exists: ",isfile(icon_filename))
+        print("Labels file:",flabels)
+        print(" ... exists: ",isfile(flabels))
+        print("aeronet location file:",faero)
+        print(" ... exists: ",isfile(faero))
+        print("satellite TLE file:",'sat.tle')
+        print(" ... exists: ",isfile('sat.tle'))
+        print("WMS list file:",'WMS.txt')
+        print(" ... exists: ",isfile('WMS.txt'))
+        
+        from sys import exit
+        exit()
+    
+    
     ui = window(tk.Tk()) #Create_gui()
     ui.tb.set_message('Creating basemap')
     profile = Get_basemap_profile()
@@ -651,8 +693,6 @@ def Create_interaction(test=False,profile=None,**kwargs):
         sla,slo = None,None
     line = init_plot(m,start_lat=sla,start_lon=slo,color='red')
 
-    flabels = 'labels.txt'
-    faero = 'aeronet_locations.txt'
     try:
         ui.tb.set_message('putting labels and aeronet')
         line.labels_points = mi.plot_map_labels(m,flabels,alpha=0.4)
@@ -664,7 +704,7 @@ def Create_interaction(test=False,profile=None,**kwargs):
     wb = ex.dict_position(datestr=ui.datestr,color=line.get_color(),profile=profile,
          version=__version__,platform_file=platform_filename,**kwargs)
     ui.tb.set_message('Building the interactivity on the map')
-    lines = mi.LineBuilder(line,m=m,ex=wb,tb=ui.tb,blit=True)
+    lines = mi.LineBuilder(line,m=m,ex=wb,tb=ui.tb,blit=True,verbose=args.verbose)
     ui.tb.set_message('Saving temporary excel file')
     savetmp(ui,wb)
     

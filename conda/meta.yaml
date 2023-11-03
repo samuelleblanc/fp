@@ -56,9 +56,8 @@ requirements:
     - matplotlib<3.6.0
 
 test:
-  imports:
-    - ml
   commands:
+    - ml -d
 
 about:
   summary: 'Moving Lines - Research flight planner'
