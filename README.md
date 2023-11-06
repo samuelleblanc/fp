@@ -14,7 +14,21 @@ Flight Planning software for creating flight plans for Airborne Science
 Creates a visual map interface and backend calculations to a spreadsheet flight planning tool
 Takes advantage of clickable map for creating a flight plan, and already existing Excel software
     
-# Quick Start:   
+# Install: 
+
+## Install code from the anaconda package manager (recomended):
+	1)  If you don't have a anaconda / miniconda / mamba install, please do so. Recommendation to install miniconda following this link [https://www.rho-signal-effective-analytics.com/modules/pre-course/miniconda-installation/].  
+		Ensure that the base environment is activated: `conda activate`  
+	2)  From the command line, create a new environment based on python 3.9, activate it, then install the movinglines package (using mamba is faster than conda).
+	```
+	conda create -n ml python=3.9
+	conda activate ml
+	mamba install -c samuelleblanc movinglines
+	```  
+	3)  Go through and accept the install of the required packages
+	4)  at the command line, start the lines software by typing `ml`
+	
+	*or*
 
 ## For compiled versions:
     1) Download appropriate zip file and extract to desired location
@@ -29,14 +43,14 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 	1) pip install ml
 	2) at a command line, start the moving lines software by typing 'ml'  
 	
-## consecutive steps:
-    3) Select the mapping profile (defaults to ORACLES), can change the map boundaries, take-off time, utc offset
-    4) wait about 30seconds
-    5) Enter date of planned flight in dialog in format yyyy-mm-dd
-    6) wait for map to initialize and excel to load
-	7) move cursor over map to refresh map
-    8) create points, move points by clicking, or by manually entering in excel spreadsheet
-    9) Once happy save all the figures, files, excel files, kml files by either selecting each point, or by pressing the 'saveall' button
+# Quick Start: 
+    1) Select the mapping profile (defaults to ORACLES), can change the map boundaries, take-off time, utc offset
+    2) wait about 30seconds
+    3) Enter date of planned flight in dialog in format yyyy-mm-dd
+    4) wait for map to initialize and excel to load
+	5) move cursor over map to refresh map
+    6) create points, move points by clicking, or by manually entering in excel spreadsheet
+    7) Once happy save all the figures, files, excel files, kml files by either selecting each point, or by pressing the 'saveall' button
     
 ## Adding points:
     1) click and drag on map to create new point 
@@ -284,6 +298,7 @@ Takes advantage of clickable map for creating a flight plan, and already existin
                 - Debugging and change of folder systems for pip install
     Modified: Samuel LeBlanc, v1.46, 2023-08-15, Santa Cruz, CA
                 - Debugging for MACos and newer matplotlibs
+				- Added conda deployment
 			
 # To cite:
 
