@@ -40,8 +40,8 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 
    *or*  
 ## For python installs:
-1) pip install ml
-2) at a command line, start the moving lines software by typing 'ml'  
+1) `pip install ml`
+2) at a command line, start the moving lines software by typing `ml`  
 	
 # Quick Start: 
     1) Select the mapping profile (defaults to ORACLES), can change the map boundaries, take-off time, utc offset
