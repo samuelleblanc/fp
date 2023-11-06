@@ -17,22 +17,22 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 # Install: 
 
 ## Install code from the anaconda package manager (recomended):
-	1)  If you don't have a anaconda / miniconda / mamba install, please do so. Recommendation to install miniconda following this link [https://www.rho-signal-effective-analytics.com/modules/pre-course/miniconda-installation/].  
-		Ensure that the base environment is activated: `conda activate`  
-	2)  From the command line, create a new environment based on python 3.9, activate it, then install the movinglines package (using mamba is faster than conda).
+1)  If you don't have a anaconda / miniconda / mamba install, please do so. Recommendation to install miniconda following this link [https://www.rho-signal-effective-analytics.com/modules/pre-course/miniconda-installation/].  
+    Ensure that the base environment is activated: `conda activate`  
+2)  From the command line, create a new environment based on python 3.9, activate it, then install the movinglines package (using mamba is faster than conda).
 	```
 	conda create -n ml python=3.9
 	conda activate ml
 	mamba install -c samuelleblanc movinglines
 	```  
-	3)  Go through and accept the install of the required packages
-	4)  at the command line, start the lines software by typing `ml`
+3)  Go through and accept the install of the required packages
+4)  at the command line, start the lines software by typing `ml`
 	
-	*or*
+*or*
 
 ## For compiled versions:
-    1) Download appropriate zip file and extract to desired location
-    2) run the executable (ml for OSX, ml.exe for Win)
+1) Download appropriate zip file and extract to desired location
+2) run the executable (ml for OSX, ml.exe for Win)
         for OSX:
             - run from command line, must cd to directory hosting the ml exectuable
         for Windows:
@@ -40,8 +40,8 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 
    *or*  
 ## For python installs:
-	1) pip install ml
-	2) at a command line, start the moving lines software by typing 'ml'  
+1) pip install ml
+2) at a command line, start the moving lines software by typing 'ml'  
 	
 # Quick Start: 
     1) Select the mapping profile (defaults to ORACLES), can change the map boundaries, take-off time, utc offset
