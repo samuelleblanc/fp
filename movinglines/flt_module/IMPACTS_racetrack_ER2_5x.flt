@@ -1,0 +1,22 @@
+#IMPACTS racetrack pattern ER2 portion, with 5x times 
+%leg_length,angle
+angle,leg_length
+angle+90,22.6
+angle+180,leg_length
+angle-90,22.6
+angle,leg_length
+angle+90,22.6
+angle+180,leg_length
+angle-90,22.6
+angle,leg_length
+angle+90,22.6
+angle+180,leg_length
+angle-90,22.6
+angle,leg_length
+angle+90,22.6
+angle+180,leg_length
+angle-90,22.6
+angle,leg_length
+angle+90,22.6
+angle+180,leg_length
+angle-90,22.6

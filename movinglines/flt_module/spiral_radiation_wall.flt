@@ -1,0 +1,15 @@
+# Along flight track go down to right above cloud, then middle of layer
+%angle, top_leg_alt, cloud_top_alt,mid_aero_alt,mid_cloud_alt
+angle, 0, top_leg_alt
+angle, 100.0*0.75, top_leg_alt
+angle-180, 100.0*0.25, top_leg_alt
+angle, 0, cloud_top_alt
+angle, 100.0/2, cloud_top_alt
+angle, 0,mid_aero_alt
+angle-180,100.0/2,mid_aero_alt
+angle-180,0,cloud_top_alt
+angle-180,100.0/2,cloud_top_alt
+angle,0,100
+angle, 100.0, 100
+angle,0,mid_cloud_alt
+angle-180,100.0,mid_cloud_alt

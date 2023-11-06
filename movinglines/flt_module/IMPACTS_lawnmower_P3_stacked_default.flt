@@ -1,0 +1,25 @@
+#IMPACTS lawmower pattern P3 portion, with stacked legs and default distances in km
+%angle,top_alt,bot_alt
+angle, 112,top_alt
+angle+90,55,top_alt
+angle+180,112,top_alt
+angle+90,55,top_alt
+angle,112,top_alt
+angle+90,55,top_alt
+angle+180,112,top_alt
+angle+90,55,top_alt
+angle,112,top_alt
+angle+90,55,top_alt
+angle+180,112,top_alt
+angle+180,20,bot_alt
+angle,112+20,bot_alt
+angle-90,55,bot_alt
+angle-180,112,bot_alt
+angle-90,55,bot_alt
+angle,112,bot_alt
+angle-90,55,bot_alt
+angle-180,112,bot_alt
+angle-90,55,bot_alt
+angle,112,bot_alt
+angle-90,55,bot_alt
+angle-180,112,bot_alt

@@ -1,0 +1,22 @@
+#IMPACTS racetrack pattern P3 portion, with stacked legs (5x)
+%leg_length,angle,alt1,alt2,alt3,alt4,alt5
+angle,leg_length,alt1
+angle+90,22.6,alt1
+angle+180,leg_length,alt1
+angle-90,22.6,alt2
+angle,leg_length,alt2
+angle+90,22.6,alt2
+angle+180,leg_length,alt2
+angle-90,22.6,alt3
+angle,leg_length,alt3
+angle+90,22.6,alt3
+angle+180,leg_length,alt3
+angle-90,22.6,alt4
+angle,leg_length,alt4
+angle+90,22.6,alt4
+angle+180,leg_length,alt4
+angle-90,22.6,alt5
+angle,leg_length,alt5
+angle+90,22.6,alt5
+angle+180,leg_length,alt5
+angle-90,22.6,alt5

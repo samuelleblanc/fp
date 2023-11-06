@@ -1,8 +1,0 @@
-%length,angle
-angle,length/2
-angle+120,length/2
-angle-120,length
-angle,length/2
-angle+120,length
-angle-120,length/2
-angle,length/2

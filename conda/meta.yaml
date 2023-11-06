@@ -1,0 +1,77 @@
+{% set data = load_setup_py_data() %}
+
+package:
+  name: movinglines
+  version: {{ data.get('version') }}
+
+source:
+  path: ../
+
+build:
+  skip: true  # [py<38]
+  number: 1000
+  script: "{{ PYTHON }} -m pip install . --no-deps -vv"  # [not win]
+  entry_points:
+    - ml = movinglines:main
+
+requirements:
+  build:
+    - python
+    - pip
+    - setuptools
+  host:
+    - python
+    - setuptools
+    - pip
+    - future
+  run:
+    - python
+    - gdal
+    - shapely <2.0.0
+    - lxml
+    - netcdf4
+    - hdf4
+    - pillow
+    - pytz
+    - requests >=2.31.0
+    - scipy
+    - tk
+    - owslib >=0.24
+    - cftime >=1.0.1
+    - gpxpy >=1.4.2
+    - numpy
+    - geopy
+    - ephem
+    - cartopy =0.20.0
+    - pyproj
+    - GEOS
+    - pykml
+    - rasterio
+    - bs4
+    - xlwings
+    - json_tricks
+    - simplekml
+    - matplotlib<3.6.0
+
+test:
+  commands:
+    - ml -d
+
+about:
+  summary: 'Moving Lines - Research flight planner'
+  home: https://github.com/samuelleblanc/fp
+  license: "GPL-3.0"
+  license_family: "GPL"
+  license_file: license.txt
+  description: |
+    Moving Lines - Research flight planner
+
+    DOI:https://zenodo.org/doi/10.5281/zenodo.1478125
+
+    Flight Planning software for creating flight plans for NASA Research Airborne Science
+
+    Creates a visual map interface and backend calculations to a spreadsheet flight planning tool Takes advantage of clickable map for creating a flight plan, and already existing Excel software
+
+extra:
+  recipe-maintainers:
+    - SamuelLeBlanc

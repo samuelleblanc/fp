@@ -1,0 +1,12 @@
+%leg_length,spacing,angle
+angle, leg_length
+angle+90,spacing
+angle+180,leg_length
+angle+90,spacing
+angle,leg_length
+angle+90,spacing
+angle+180,leg_length
+angle+90,spacing
+angle,leg_length
+angle+90,spacing
+angle+180,leg_length
