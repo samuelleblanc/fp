@@ -46,7 +46,7 @@ pure-eval==0.2.2
 pyee==8.2.2
 pyephem==9.99
 pygeos==0.10.2
-Pygments==2.10.0
+Pygments==2.15.0
 pyinstaller==4.5.1
 pyinstaller-hooks-contrib==2021.3
 pykml==0.2.0
