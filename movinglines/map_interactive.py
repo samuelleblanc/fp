@@ -551,7 +551,7 @@ class LineBuilder:
             self.m.figure_under
         except AttributeError:
             self.m.figure_under = {}
-        self.m.figure_under[name] = self.m.imshow(img,origin='upper',transform=self.m.proj,extent=[ll_lon,ur_lon,ll_lat,ur_lat])
+        self.m.figure_under[name] = self.m.imshow(img,origin='upper',transform=kwargs.get('transform',self.m.proj),extent=[ll_lon,ur_lon,ll_lat,ur_lat])
         #import pdb; pdb.set_trace()
 
 

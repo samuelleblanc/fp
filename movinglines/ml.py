@@ -526,29 +526,32 @@ def build_buttons(ui,lines,vertical=True):
     #g.baddkml.pack(in_=g.frame_wms,padx=0,pady=0,side=tk.LEFT,anchor=tk.CENTER)
     g.baddkml.grid(in_=top_gui,padx=0,pady=0,row=2,column=1,  sticky='w'+'e'+'n'+'s')
     
+    g.baddmss = ttk.Button(side_bar,text='MSS models',
+                         command = g.gui_add_MSS)
+    g.baddmss.grid(in_=top_gui,padx=0,pady=0,row=3,column=0,columnspan=2,sticky='w'+'e'+'n'+'s')
     #tk.Frame(side_bar,height=h,width=w,bg='black',relief='sunken'
     #         ).pack(in_=top_gui,side=side,padx=8,pady=5)
     tk.Frame(side_bar,height=h,width=w,bg='black',relief='sunken'
-             ).grid(in_=top_gui,padx=8,pady=5,row=3,column=0,columnspan=2,sticky=tk.W+tk.E)
+             ).grid(in_=top_gui,padx=8,pady=5,row=4,column=0,columnspan=2,sticky=tk.W+tk.E)
     #ttk.Label(side_bar,text='from local images:').pack(in_=top_gui,side=tk.BOTTOM)
     #g.frame_boc = ttk.Frame(top_gui)
     #g.frame_boc.pack(in_=top_gui,side=side,fill=tk.X,pady=2)
     g.baddbocachica = ttk.Button(side_bar,text='Forecast\nfrom Bocachica',
                          command = g.gui_addbocachica)
     #g.baddbocachica.pack(in_=g.frame_boc,padx=0,pady=0,side=tk.LEFT,anchor=tk.CENTER)
-    g.baddbocachica.grid(in_=top_gui,padx=0,pady=0,row=4,column=0,  sticky='w'+'e'+'n'+'s')
+    g.baddbocachica.grid(in_=top_gui,padx=0,pady=0,row=5,column=0,  sticky='w'+'e'+'n'+'s')
     g.baddtrajectory = ttk.Button(side_bar,text='trajectory\nImage',
                          command = g.gui_addtrajectory)
     #g.baddtrajectory.pack(in_=g.frame_boc,padx=0,pady=0,side=tk.LEFT,anchor=tk.CENTER)
-    g.baddtrajectory.grid(in_=top_gui,padx=0,pady=0,row=4,column=1,  sticky='w'+'e'+'n'+'s')
+    g.baddtrajectory.grid(in_=top_gui,padx=0,pady=0,row=5,column=1,  sticky='w'+'e'+'n'+'s')
     g.baddfigure = ttk.Button(side_bar,text='image',
                          command = g.gui_addfigure)
     #g.baddfigure.pack(in_=top_gui)
-    g.baddfigure.grid(in_=top_gui,padx=0,pady=0,row=5,column=0,columnspan=2,  sticky='w'+'e'+'n'+'s')
+    g.baddfigure.grid(in_=top_gui,padx=0,pady=0,row=6,column=0,columnspan=2,  sticky='w'+'e'+'n'+'s')
     g.baddtidbit = ttk.Button(side_bar,text='Tropical tidbit',
                          command = g.gui_addtidbit)
     #g.baddtidbit.pack(in_=top_gui)
-    g.baddtidbit.grid(in_=top_gui,padx=0,pady=0,row=6,column=0,columnspan=2,  sticky='w'+'e'+'n'+'s')
+    g.baddtidbit.grid(in_=top_gui,padx=0,pady=0,row=7,column=0,columnspan=2,  sticky='w'+'e'+'n'+'s')
     
     
     #g.bipython = tk.Button(side_bar,text='open iPython',
@@ -565,11 +568,11 @@ def build_buttons(ui,lines,vertical=True):
     #tk.Frame(side_bar,height=h,width=w,bg='black',relief='sunken'
     #         ).pack(in_=top_gui,side=side,padx=8,pady=5)
     tk.Frame(side_bar,height=h,width=w,bg='black',relief='sunken'
-             ).grid(in_=top_gui,padx=8,pady=5,row=7,column=0,columnspan=2,sticky=tk.W+tk.E)
+             ).grid(in_=top_gui,padx=8,pady=5,row=8,column=0,columnspan=2,sticky=tk.W+tk.E)
     quit_style = ttk.Style()
     quit_style.configure('B3.TButton',background='lightcoral',foreground='darkred')
     ttk.Button(side_bar,text='Quit',command=g.stopandquit,style='B3.TButton'
-              ).grid(in_=top_gui,padx=8,pady=5,row=7,column=0,columnspan=2,sticky=tk.W+tk.E)
+              ).grid(in_=top_gui,padx=8,pady=5,row=8,column=0,columnspan=2,sticky=tk.W+tk.E)
     g.active_style = ttk.Style()
     g.active_style.configure('Ba.TButton',background='grey',foreground='black')
     g.pressed_style = ttk.Style()

@@ -1,0 +1,2 @@
+MSS,http://mss.colorsof.cloud/wms/?
+MSS_Leipzig,http://tornado.meteo.uni-leipzig.de/

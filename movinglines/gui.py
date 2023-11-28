@@ -1234,11 +1234,38 @@ class gui:
         self.line.tb.set_message('Selected WMS server: {}'.format(out[i]['name']))
         img,label,img_leg = self.add_WMS(website=out[i]['website'],printurl=True,notime=out[i]['notime'])
         if img:
-            r = self.add_wms_images(img,img_leg,name='WMS',text=label)
+            if 'epsg3413' in out[i]['website']:
+                import cartopy.crs as ccrs
+                tr = ccrs.epsg(3413)
+            else:
+                tr = None
+            r = self.add_wms_images(img,img_leg,name='WMS',text=label,transform=tr)
             if r:
                 self.wmsname = out[i]['name']
                 self.baddwms.config(text='Remove WMS: {}'.format(out[i]['name']))
                 self.baddwms.config(command=lambda: self.gui_rm_wms('WMS'),style='Bp.TButton')
+                
+    def gui_add_MSS(self,filename='MSS.txt'):
+        'Button to add MSS model layers defined in a MSS txt file, each line has name of server, then the website, nearly same as WMS, but with mss projections'
+        try:
+            from map_interactive import load_WMS_file
+        except ModuleNotFoundError:
+            from .map_interactive import load_WMS_file
+        out = load_WMS_file(filename)
+        arr = ['{} : {}'.format(dict['name'],dict['website']) for dict in out]
+        popup = Popup_list(arr,title='Select WMS server to load graphics capabilities')
+        i = popup.var.get()
+        self.line.tb.set_message('Selected WMS server: {}'.format(out[i]['name']))
+        bbo0 = self.line.m.convert_latlon(self.line.m.llcrnrlon,self.line.m.llcrnrlat)
+        bbo1 = self.line.m.convert_latlon(self.line.m.urcrnrlon,self.line.m.urcrnrlat)      
+        bbox = (bbo0[0],bbo0[1],bbo1[0],bbo1[1])
+        img,label,img_leg = self.add_WMS(website=out[i]['website'],printurl=True,notime=out[i]['notime'],mss_crs=True,bbox=bbox)
+        if img:
+            r = self.add_wms_images(img,img_leg,name='MSS',text=label)
+            if r:
+                self.wmsname = out[i]['name']
+                self.baddmss.config(text='Remove MSS: {}'.format(out[i]['name']))
+                self.baddmss.config(command=self.gui_rm_mss,style='Bp.TButton')
             
     def gui_add_SUA_WMS(self):
         'Button to add Special Use Airspace WMS layer'
@@ -1324,7 +1351,7 @@ class gui:
             
     def add_WMS(self,website='http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx',
                 printurl=False,notime=False,popup=False,cql_filter=None,hires=False,
-                vert_crs=False,xlim=None,ylim=None,bbox=None,**kwargs): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
+                vert_crs=False,mss_crs=False,xlim=None,ylim=None,bbox=None,**kwargs): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
         'GUI handler for adding the figures from WMS support of GEOS'
         try:
             from gui import Popup_list
@@ -1397,6 +1424,9 @@ class gui:
             crss = wms[cont[i]].crsOptions
             if vert_crs: ccrs_str = 'VERT'
             srss = [c for c in crss if c.find(ccrs_str)>-1]
+            if mss_crs: 
+                if 'stere' in self.line.m.proj_name.lower():
+                    srss = ['mss:stere,0,90,90']
             if len(srss)>0:
                 srs = srss[0]
             else:
@@ -1408,8 +1438,11 @@ class gui:
         if wms[cont[i]].styles:
             style = [k+':'+wms[cont[i]].styles[k]['title'] for k in wms[cont[i]].styles]
             style_list = [k for k in wms[cont[i]].styles]
-            jpop = Popup_list(style,title='Select Style')
-            style_sel = style_list[jpop.var.get()].strip()
+            if len(style_list)<2:
+                style_sel = style_list[0]
+            else:
+                jpop = Popup_list(style,title='Select Style')
+                style_sel = style_list[jpop.var.get()].strip()
             kwargs['styles'] = [style_sel]
             
         try:
@@ -1508,7 +1541,7 @@ class gui:
         return geos, label, geos_legend
         
         
-    def add_wms_images(self,geos,geos_legend,name='GEOS',alpha=1.0,text='',flip=False):
+    def add_wms_images(self,geos,geos_legend,name='GEOS',alpha=1.0,text='',flip=False,**kwargs):
         'adding the wms images to the plots'
         from PIL import Image
         import tkinter.messagebox as tkMessageBox
@@ -1519,7 +1552,7 @@ class gui:
                 imm = geos.transpose(Image.FLIP_TOP_BOTTOM)
             else:
                 imm = geos
-            self.line.addfigure_under(geos,ylim[0],xlim[0],ylim[1],xlim[1],text=text,alpha=alpha,name=name)
+            self.line.addfigure_under(geos,ylim[0],xlim[0],ylim[1],xlim[1],text=text,alpha=alpha,name=name,**kwargs)
         except Exception as ie:
             #print(ie)
             self.root.config(cursor='')
@@ -1578,6 +1611,10 @@ class gui:
     def gui_rm_wms(self,name='WMS'):
         'GUI handler for removing any WMS image, wrapper to rm_WMS'
         self.rm_WMS(name=name,button=self.baddwms,newcommand=self.gui_add_any_WMS)
+        
+    def gui_rm_mss(self,name='MSS'):
+        'GUI handler for removing MSS image, wrapper to rm_WMS'
+        self.rm_WMS(name=name,button=self.baddmss,newcommand=self.gui_add_MSS)
         
     def gui_rm_SUA_WMS(self):
         'Button to add Special Use Airspace WMS layer'
