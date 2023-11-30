@@ -1,3 +1,8 @@
+World_View,https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?
+Polar_World_View,https://gibs.earthdata.nasa.gov/wms/epsg3413/best/wms.cgi?
+MSS,http://mss.colorsof.cloud/wms/?
+Weather_Canada,https://geo.weather.gc.ca/geomet?
+nexRAD,https://mesonet.agron.iastate.edu/cgi-bin/wms/nexrad/n0q-t.cgi?
 GEOS,http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx
 GEOS_weather,http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst3_2d_met_Nx
 Public_ECMWF,http://apps.ecmwf.int/wms/?token=MetOceanIE
@@ -8,6 +13,3 @@ SUA,https://sua.faa.gov/geoserver/wms?LAYERS=SUA
 RealEarth,http://realearth.ssec.wisc.edu/cgi-bin/mapserv?service=WMS&version=1.1.1&request=GetCapabilities&map=globalvis.map
 NEO_GFSC,https://neo.sci.gsfc.nasa.gov/wms/wms
 NOWCOAST_radar,https://nowcoast.noaa.gov/arcgis/services/nowcoast/radar_meteo_imagery_nexrad_time/MapServer/WmsServer?,True
-World_View,https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?
-Polar_World_View,https://gibs.earthdata.nasa.gov/wms/epsg3413/best/wms.cgi?
-MSS,http://mss.colorsof.cloud/wms/?

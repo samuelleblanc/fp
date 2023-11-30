@@ -1406,6 +1406,20 @@ class gui:
             if '/' in time_sel:
                 tss = time_sel.split('/')
                 time_sel = tss[1] 
+                try:
+                    import dateutil.parser
+                    begin_time = dateutil.parser.parse(tss[0])
+                    end_time = dateutil.parser.parse(tss[1])
+                    plan_time = dateutil.parser.parse(self.line.ex.datestr)
+                    if (plan_time>begin_time) & (plan_time<end_time):
+                        time_sel = self.line.ex.datestr+'T12:00:00Z'
+                    elif plan_time>end_time:
+                        time_sel = tss[1]
+                    elif plan_time<begin_time:
+                        time_sel = tss[0]
+                    print('Selected time span:{}'.format(time_sel))
+                except:
+                    pass
         else:
             time_sel = None
                        
@@ -1432,6 +1446,16 @@ class gui:
             else:
                 kpop = Popup_list(crss,title='No matching EPSG values, please select')
                 srs = crss[kpop.var.get()]
+                bbox_in = bbox
+                try:
+                    import cartopy.crs as ccrs
+                    ccrs_val = int(srs.split(':')[1])
+                    tr_init = ccrs.epsg(ccrs_val)
+                    xlim_tr,ylim_tr = tr_init.transform_points([self.line.m.llcrnrlon,self.line.m.urcrnrlon],[self.line.m.llcrnrlat,self.line.m.urcrnrlat],self.line.m.proj,)
+                    bbox = (xlim_tr[0],ylim_tr[0],xlim_tr[1],ylim_tr[1])
+                except:
+                    bbox = bbox_in
+                    pass
         else:
             srs = 'epsg:4326'
             
@@ -1485,17 +1509,17 @@ class gui:
                                   dim_init_time=dim_init,
                                   CQL_filter=cql_filter,**kwargs)
                 if img:
-                    print('Init_time: '+dim_init)
+                    print('Image downloaded, Init_time: '+dim_init)
                     if printurl:
                         print(img.geturl())
                     break
             except Exception as ie:
                 if i_init>len(inittime_sel)-2:
                     print(ie)
-                    print(img.geturl())
+                    if 'img' in locals(): print(img.geturl())
                     self.root.config(cursor='')
                     self.root.update()
-                    tkMessageBox.showwarning('Sorry','Problem getting the image from WMS server')
+                    tkMessageBox.showwarning('Sorry','Problem getting the image from WMS server: '+website.split('/')[2])
                     return False, None, False
         try:
             legend_call = openURL(img.geturl().replace('GetMap','GetLegend'))
@@ -1574,11 +1598,16 @@ class gui:
         try:
             self.line.m.figure_under[name].remove()
         except:
-            for f in self.line.m.figure_under[name]:
-                try:
-                    f.remove
-                except TypeError:
-                    pass
+            try:
+                for f in self.line.m.figure_under[name]:
+                    try:
+                        f.remove
+                    except TypeError:
+                        pass
+            except TypeError:
+                print('Issue removing figure under:'+name)
+            except KeyError:
+                print('Issue removing figure under:'+name+' - No figure there initially')
         try:
             self.line.m.figure_under_text[name].remove()
         except:
@@ -2125,6 +2154,9 @@ class Popup_list(tkSimpleDialog.Dialog):
         scroll.config(command=lb.yview)
         self.var = tk.IntVar(master)
         self.lb = lb
+        self.lb.select_set(0)
+        if not self.multi:
+            lb.bind('<Double-1>',self.ok)
         self.lb.pack()
         
     def apply(self):
@@ -2132,7 +2164,7 @@ class Popup_list(tkSimpleDialog.Dialog):
             value, = self.lb.curselection()
             self.var.set(value)
             self.result = value
-            print(value)
+            #print(value)
         else:
             value = self.lb.curselection()
             self.result = map(int,value)

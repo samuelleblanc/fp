@@ -551,9 +551,25 @@ class LineBuilder:
             self.m.figure_under
         except AttributeError:
             self.m.figure_under = {}
-        self.m.figure_under[name] = self.m.imshow(img,origin='upper',transform=kwargs.get('transform',self.m.proj),extent=[ll_lon,ur_lon,ll_lat,ur_lat])
-        #import pdb; pdb.set_trace()
-
+        try:
+            #import ipdb; ipdb.set_trace()
+            if len(img.getbands())>3:
+                def invert(image):
+                    return image.point(lambda p: 255 - p)
+                r0,g0,b0,a0 = img.split()
+                img_p = Image.merge(img.mode,(r0,g0,b0,invert(a0)))
+                self.m.figure_under[name] = self.m.imshow(img_p,origin='upper',\
+                transform=kwargs.get('transform',self.m.proj),extent=[ll_lon,ur_lon,ll_lat,ur_lat])#,\
+                #alpha=(1.0-np.rollaxis(np.array(img.getchannel('A')),1)[::-1,:]/255))#1.0-np.array(img.getchannel('A')).reshape(img.size[1],img.size[0])/255)
+            else:
+                self.m.figure_under[name] = self.m.imshow(img,origin='upper',\
+                transform=kwargs.get('transform',self.m.proj),extent=[ll_lon,ur_lon,ll_lat,ur_lat])
+            print('...figure {} has been addded. {}'.format(name,text))
+        except:
+            self.m.figure_under[name] = self.m.imshow(img,origin='upper',\
+            transform=kwargs.get('transform',self.m.proj),extent=[ll_lon,ur_lon,ll_lat,ur_lat])
+            print('...figure {} has been addded. {}'.format(name,text))
+            
 
         if text:
             try: 
