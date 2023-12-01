@@ -34,7 +34,8 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 1) Download appropriate zip file and extract to desired location
 2) run the executable (ml for OSX, ml.exe for Win)
         for OSX:
-            - run from command line, must cd to directory hosting the ml exectuable
+            - ~~run from command line, must cd to directory hosting the ml exectuable~~
+            - executable version of OSX is being phased out, please use the conda install method above
         for Windows:
             - double click the ml.exe icon  
 
