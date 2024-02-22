@@ -300,6 +300,15 @@ Takes advantage of clickable map for creating a flight plan, and already existin
     Modified: Samuel LeBlanc, v1.46, 2023-08-15, Santa Cruz, CA
                 - Debugging for MACos and newer matplotlibs
 				- Added conda deployment
+    Modified: Samuel LeBlanc, v1.47, 2023-11-03, Santa Cruz, CA 
+                - adding simple version output from command line (used for testing on conda deployments)
+    Modified: Samuel LeBlanc, v1.48, 2024-02-22, Santa Cruz, CA
+                - bug fix for forcing max speed, and base speed as start.
+                - Added error handling during 'save all'
+                - sped up interactivity and point adding
+                - Added init time parsing for the MSS models in WMS.
+                - upgraded plotting of figures under map for better viewing of text
+                - added plot vs alt for all combined platforms and highlight of coordinated points
 			
 # To cite:
 
