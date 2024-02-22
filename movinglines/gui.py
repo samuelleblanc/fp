@@ -328,6 +328,7 @@ class gui:
             from matplotlib.figure import Figure
             import tkinter as tk
             root = tk.Toplevel()
+            root.geometry('1000x550')
             root.wm_title('Alt vs. Time: {}'.format(self.line.ex.name))
             fig = Figure()
             canvas = FigureCanvasTkAgg(fig, master=root)
@@ -370,7 +371,7 @@ class gui:
             nm = self.line.ex.name
             surf_el_label_multi = ''
             ax1.set_xlabel('Flight duration [Hours]')
-            time = self.line.ex.cumleg
+            time = self.line.ex.cumlegt
         if surf_alt:
             try:
                 try:
@@ -512,6 +513,7 @@ class gui:
         ax3.set_yticks(ax1.get_yticks())
         alt_labels = ['%2.2f'%(a*3.28084/1000.0) for a in ax1.get_yticks()]
         ax3.set_yticklabels(alt_labels)
+        ax3.set_ylim(ax1.get_ylim())
         ax1.grid()
         ax1.legend(frameon=True,loc='center left', bbox_to_anchor=(1.05, 0.75))
         if self.noplt:
