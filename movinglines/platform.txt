@@ -103,10 +103,10 @@
     'rate_of_turn':None,'turn_bank_angle':10.0,
     'warning':False,'pilot_format':'DD MM'}
 {'Platform':'LearJet','names':['lear','Lear','LJ','LearJet','Lear Jet','learjet','Learjet','Lear jet'],
-    'max_alt':12000.0,'base_speed':150.0,'speed_per_alt':0.017,
-    'max_speed':235.0,'max_speed_alt':8500.0,'descent_speed_decrease':15.0,
-    'climb_vert_speed':10,'descent_vert_speed':-5.0,'alt_for_variable_vert_speed':8000.0,
-    'vert_speed_base':7,'vert_speed_per_alt':7e-05,
+    'max_alt':10700.0,'base_speed':100.0,'speed_per_alt':0.015,
+    'max_speed':220.0,'max_speed_alt':8500.0,'descent_speed_decrease':20.0,
+    'climb_vert_speed':20,'descent_vert_speed':-7.5,'alt_for_variable_vert_speed':7000.0,
+    'vert_speed_base':10,'vert_speed_per_alt':7e-05,
     'rate_of_turn':None,'turn_bank_angle':10.0,
     'warning':False,'pilot_format':'DD MM'}
 {'Platform':'TwinOtter','names':['twin','Twin','TWIN','TO','Twin Otter','Twin otter','Twin-Otter','Twin-otter','NPS','T-O','Otter','otter','twinotter','TwinOtter','CIRPAS','cirpas'],

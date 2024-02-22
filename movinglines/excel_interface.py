@@ -169,7 +169,7 @@ class dict_position:
             self.datestr = datestr
         else:
             self.datestr = datetime.utcnow().strftime('%Y-%m-%d')
-        self.speed = np.array([self.p_info.get('base_speed',speed)])
+        self.speed = np.array([self.calcspeed(alt0,alt0)])
         self.speed_kts = self.speed*1.94384449246
         self.calculate()
         if not filename:

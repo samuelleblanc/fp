@@ -1,4 +1,2 @@
 MSS_Bocachica,https://bocachica.arc.nasa.gov/wms/?
-MSS_cloudgazer2,http://192.168.10.201:8081/?
-MSS,http://mss.colorsof.cloud/wms/?
 MSS_Leipzig,http://tornado.meteo.uni-leipzig.de/
