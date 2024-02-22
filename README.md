@@ -309,6 +309,7 @@ Takes advantage of clickable map for creating a flight plan, and already existin
                 - Added init time parsing for the MSS models in WMS.
                 - upgraded plotting of figures under map for better viewing of text
                 - added plot vs alt for all combined platforms and highlight of coordinated points
+                - refined speed parameters for G3 and Learjet
 			
 # To cite:
 

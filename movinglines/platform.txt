@@ -95,9 +95,9 @@
     'vert_speed_base':4.5,'vert_speed_per_alt':7e-05,
     'rate_of_turn':None,'turn_bank_angle':25.0,
     'warning':True}
-{'Platform':'g3','names':['g3','G3','G-3','g-3','g 3','G 3','GIII','gIII'],
-    'max_alt':12000.0,'base_speed':150.0,'speed_per_alt':0.017,
-    'max_speed':225.0,'max_speed_alt':8500.0,'descent_speed_decrease':15.0,
+{'Platform':'g3','names':['g3','G3','G-3','g-3','g 3','G 3','GIII','gIII','giii'],
+    'max_alt':12000.0,'base_speed':135.0,'speed_per_alt':0.0071,
+    'max_speed':218.5,'max_speed_alt':10000.0,'descent_speed_decrease':50.0,
     'climb_vert_speed':10,'descent_vert_speed':-5.0,'alt_for_variable_vert_speed':8000.0,
     'vert_speed_base':6,'vert_speed_per_alt':7e-05,
     'rate_of_turn':None,'turn_bank_angle':10.0,

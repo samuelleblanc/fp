@@ -131,13 +131,17 @@ class dict_position:
         self.comments = [' ']
         self.lon = np.array([pll(lon0)])
         self.lat = np.array([pll(lat0)])
+        self.n = len(self.lon)
         self.speed = np.array([speed])
         self.alt = np.array([alt0])
         self.UTC_conversion = UTC_conversion
         self.utc = np.array([UTC_start])
         self.UTC = self.utc
+        self.local = self.utc+self.UTC_conversion
         self.legt = self.UTC*0.0
         self.dist = self.UTC*0.0
+        self.dist_nm = self.dist*0.53996
+        self.cumdist_nm = self.UTC*0.0
         self.cumdist = self.UTC*0.0
         self.cumlegt = self.legt
         self.delayt = self.legt
@@ -169,11 +173,11 @@ class dict_position:
             self.datestr = datestr
         else:
             self.datestr = datetime.utcnow().strftime('%Y-%m-%d')
-        self.speed = np.array([self.calcspeed(alt0,alt0)])
-        self.speed_kts = self.speed*1.94384449246
-        self.calculate()
         if not filename:
             self.sheet_num = sheet_num
+            self.speed = np.array([self.calcspeed(alt0,alt0)])
+            self.speed_kts = self.speed*1.94384449246
+            self.calculate()
             self.wb = self.Create_excel(newsheetonly=newsheetonly,name=name)
             try:
                 self.write_to_excel()
@@ -345,7 +349,18 @@ class dict_position:
             else:
                 self.alt[i+1] = self.get_alt(self.alt[0],self.alt[i])
                 self.alt_kft[i+1] = self.alt[i+1]*3.28084/1000.0
-            if np.isfinite(self.speed.astype(float)[i+1]):
+            if np.isfinite(self.speed.astype(float)[i+1]) and np.isfinite(self.speed_kts.astype(float)[i+1]): #both are there, check if there are user changes
+                speed_kts_temp = self.speed[i+1]*1.94384449246
+                speed_temp = self.speed_kts[i+1]/1.94384449246
+                if (speed_kts_temp != self.speed_kts[i+1]) and (speed_temp==self.speed[i+1]): #same do nothing
+                    nul = 0
+                if (speed_kts_temp != self.speed_kts[i+1]) and (speed_temp==self.speed[i+1]): #kts changed, keep that
+                    self.speed[i+1] = speed_temp
+                elif (speed_kts_temp == self.speed_kts[i+1]) and (speed_temp!=self.speed[i+1]): #m/s changed, keep that
+                    self.speed_kts[i+1] = self.speed[i+1]*1.94384449246
+                else: #both aren't the same, keep kts
+                    self.speed[i+1] = speed_temp
+            elif np.isfinite(self.speed.astype(float)[i+1]):
                 self.speed_kts[i+1] = self.speed[i+1]*1.94384449246
             elif np.isfinite(self.speed_kts.astype(float)[i+1]):
                 self.speed[i+1] = self.speed_kts[i+1]/1.94384449246
@@ -827,10 +842,16 @@ class dict_position:
                 self.toempty['speed_kts'] = 1
                 compare_speedk = False
                 changed = True
+            else:
+                self.toempty['speed'] = 1
+                changed = True
         if self.speed_kts[i] != spkt:
             if np.isfinite(spkt)&compare_speedk:
                 self.speed_kts[i] = spkt
                 self.toempty['speed'] = 1
+                changed = True
+            else:
+                self.toempty['speed_kts'] = 1
                 changed = True
         if self.delayt[i] != dt:
             if i != 0:
@@ -908,6 +929,10 @@ class dict_position:
         else:
             self.campaign = str(wb.sh.range('X1').value).split(' ')[0]
             self.verify_campaign()
+        try:
+            self.__version__ = str(wb.sh.range('Z3').value).split(' ')[0]
+        except:
+            pass
         self.wb = wb
         self.UTC_conversion = self.verify_UTC_conversion()
         return wb
@@ -1351,7 +1376,7 @@ def save2xl_for_pilots(filename,ex_arr):
         for i in range(len(a.lon)):
             lat_f,lon_f = format_lat_lon(a.lat[i],a.lon[i],format=a.pilot_format)
             if a.delayt[i]>3.0:
-                comment = 'delay: {} min, {}'.format(a.delayt[i],a.comments[i])
+                comment = 'delay: {:2.1f} min, {}'.format(a.delayt[i],a.comments[i])
             else:
                 comment = a.comments[i]
             xw.Range('A{:d}'.format(i+2)).value = [a.WP[i],lat_f,lon_f,a.alt_kft[i],comment]
