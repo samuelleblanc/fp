@@ -108,8 +108,12 @@
                 - Debugging for MACos and newer matplotlibs
         Modified: Samuel LeBlanc, v1.47, 2023-11-03, Santa Cruz, CA 
                 - adding simple version output from command line (used for testing on conda deployments)
-        
-                
+        Modified: Samuel LeBlanc, v1.48, 2024-02-19, Santa Cruz, CA
+                - bug fix for forcing max speed, and base speed as start.
+                - Added error handling during 'save all'
+                - sped up interactivity and point adding
+                - Added init time parsing for the MSS models in WMS.
+                - upgraded plotting of figures under map for better viewing of text
                  
 """
 try:

@@ -31,7 +31,7 @@ requirements:
     - lxml
     - netcdf4
     - hdf4
-    - pillow
+    - pillow <=9.0.0
     - pytz
     - requests >=2.31.0
     - scipy

@@ -373,6 +373,7 @@ class gui:
             ax3.set_yticks(ax1.get_yticks())
             alt_labels = ['%2.2f'%(a*3.28084/1000.0) for a in ax1.get_yticks()]
             ax3.set_yticklabels(alt_labels)
+            ax3.set_ylim(ax1.get_ylim())
         ax1.grid()
         ax1.legend(frameon=True,loc='center left', bbox_to_anchor=(1.05, 0.75))
         if self.noplt:
@@ -380,6 +381,7 @@ class gui:
             fig.canvas = canvas
         else:
             plt.figure(f1.number)
+
         return fig
         
     def gui_plotmss_profile(self,filename='vert_WMS.txt',hires=False):
@@ -709,9 +711,15 @@ class gui:
             return
         f_name,_ = path.splitext(filename)
         print('Saving Excel file to :'+f_name+'.xlsx')
-        self.line.ex.save2xl(f_name+'.xlsx')
+        try:
+            self.line.ex.save2xl(f_name+'.xlsx')
+        except:
+            tkMessageBox.showwarning('Excel not saved','Error in saving excel file: {}'.format(f_name+'.xlsx'))
         print('Saving Excel file for pilots to :'+f_name+'_for_pilots.xlsx')
-        save2xl_for_pilots(f_name+'_for_pilots.xlsx',self.line.ex_arr)
+        try:
+            save2xl_for_pilots(f_name+'_for_pilots.xlsx',self.line.ex_arr)
+        except:
+            tkMessageBox.showwarning('Excel not saved','Error in saving excel pilot file: {}'.format(f_name+'_for_pilots.xlsx'))
         try:
             self.line.ex.wb.set_current()
         except:
@@ -1354,10 +1362,10 @@ class gui:
                 vert_crs=False,mss_crs=False,xlim=None,ylim=None,bbox=None,**kwargs): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
         'GUI handler for adding the figures from WMS support of GEOS'
         try:
-            from gui import Popup_list
+            from gui import Popup_list,inittime_sel_fx
             from map_interactive import convert_ccrs_to_epsg
         except ModuleNotFoundError:
-            from .gui import Popup_list
+            from .gui import Popup_list,inittime_sel_fx
             from .map_interactive import convert_ccrs_to_epsg
         
         import tkinter.messagebox as tkMessageBox
@@ -1371,6 +1379,8 @@ class gui:
             tkMessageBox.showwarning('Downloading from internet','Trying to load data from {}\n with most current model/measurements'.format(website.split('/')[2]))
         self.root.config(cursor='exchange')
         self.root.update()
+        
+        use_init_time_fx = any([mss_crs,vert_crs]) #use init time function if using the MSS
         
         # Get capabilities
         try: 
@@ -1389,9 +1399,21 @@ class gui:
             return False, None, False
         titles = [wms[c].title for c in cont]
         arr = [x.split('-')[-1]+':  '+y for x,y in zip(cont,titles)]
+        arrs = arr
+        if mss_crs:
+            #take out the vertical and line plots from MSS
+            i_maps = [i for i,m in enumerate(cont) if ('.VS' not in m) and ('.LS' not in m)]
+            arrs = [arr[i] for i in i_maps]
+        elif vert_crs:
+            i_maps = [i for i,m in enumerate(cont) if '.VS' in m]
+            arrs = [arr[i] for i in i_maps]
         self.root.config(cursor='')
-        popup = Popup_list(arr)
-        i = popup.var.get()
+        popup = Popup_list(arrs)
+        ii = popup.var.get()
+        if any([mss_crs,vert_crs]): 
+            i = i_maps[ii]
+        else:
+            i = ii
         wms_layer_title = titles[i].split(',')[-1]
         self.line.tb.set_message('Selected WMS map: '+wms_layer_title)
         print('Selected WMS map: '+wms_layer_title)
@@ -1421,6 +1443,10 @@ class gui:
                 except:
                     pass
         else:
+            time_sel = None
+        if not time_sel:
+            time_sel = datetime.now().strftime('%Y-%m-%d')+'T12:00'
+        if notime:
             time_sel = None
                        
         if wms[cont[i]].elevations:
@@ -1468,9 +1494,29 @@ class gui:
                 jpop = Popup_list(style,title='Select Style')
                 style_sel = style_list[jpop.var.get()].strip()
             kwargs['styles'] = [style_sel]
-            
         try:
-            inittime_sel = [datetime.now().strftime('%Y-%m-%d')+'T18:00Z',
+            if use_init_time_fx:
+                inittime_sel = inittime_sel_fx(wms.getServiceXML(),cont[i],time_sel)
+                if len(inittime_sel) > 1:
+                    inittime_sels = inittime_sel
+                    if not vert_crs:
+                        # check which init time works:
+                        print('...verifying init times')
+                        inittime_sels = []
+                        for i_init, dim_init in enumerate(inittime_sel):
+                            try:
+                                nul = wms.getmap(layers=[cont[i]],style='default',bbox=[0,0,1,1],size=(1,1),transparent=True,time=time_sel,srs=srs,format='image/png',dim_init_time=dim_init,CQL_filter=cql_filter,**kwargs)
+                            except:
+                                nul = None
+                                pass
+                            if nul:
+                                inittime_sels.append(dim_init)
+                    if len(inittime_sels) > 1:
+                        jpop = Popup_list(inittime_sels,title='Select INIT_TIME')
+                        inittime_sel_1 = inittime_sels[jpop.var.get()]
+                        inittime_sel = [inittime_sel_1]
+            else:
+                inittime_sel = [datetime.now().strftime('%Y-%m-%d')+'T18:00Z',
                             datetime.now().strftime('%Y-%m-%d')+'T12:00Z', 
                             datetime.now().strftime('%Y-%m-%d')+'T06:00Z',
                             datetime.now().strftime('%Y-%m-%d')+'T00:00Z',
@@ -1479,12 +1525,10 @@ class gui:
                             (datetime.now()- timedelta(days = 1)).strftime('%Y-%m-%d')+'T06:00Z',
                             (datetime.now()- timedelta(days = 1)).strftime('%Y-%m-%d')+'T00:00Z',
                             time_sel]
-            #print('building the time_select')
-            if not time_sel:
-                time_sel = datetime.now().strftime('%Y-%m-%d')+'T12:00'
-            if notime:
-                time_sel = None
-            label = '{}: {}, {}'.format(wms_layer_title,time_sel,elev_sel)
+
+            label = '{}: {}[{}]\n {}'.format(cont[i],wms_layer_title,kwargs.get('styles',['default'])[0],time_sel)
+            if elev_sel:
+                label = label+', z:{}'.format(elev_sel)
             #ylim = self.line.line.axes.get_ylim()
             #xlim = self.line.line.axes.get_xlim()
             if not ylim: ylim = self.line.m.llcrnrlat,self.line.m.urcrnrlat
@@ -1510,6 +1554,7 @@ class gui:
                                   CQL_filter=cql_filter,**kwargs)
                 if img:
                     print('Image downloaded, Init_time: '+dim_init)
+                    label = label+', init:'+dim_init
                     if printurl:
                         print(img.geturl())
                     break
@@ -1585,7 +1630,8 @@ class gui:
             return False
             
         try:
-            self.line.addlegend_image_below(geos_legend)
+            if geos_legend:
+                self.line.addlegend_image_below(geos_legend)
         except:
             self.line.tb.set_message('WMS Legend problem')
         self.root.config(cursor='')
@@ -1701,7 +1747,20 @@ class gui:
         # print(prompt_message)
         # shell = code.InteractiveConsole(vars)
         # return shell.interact
-        
+
+def inittime_sel_fx(xml,content,select_time):
+    'Function to parse out the WMS xml for getting the init time'
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(xml,'xml')
+    for l in soup.find_all('Layer'):
+        if content in l.Name.text:
+            selected_layer = l
+    for extents in selected_layer.find_all('Extent'):
+        if 'INIT_TIME' in extents.attrs['name']:
+            inittime_sel = extents.text.strip().split(',')
+    
+    if len(inittime_sel)<1: inittime_sel = [select_time]
+    return inittime_sel
             
 class Select_flt_mod(tkSimpleDialog.Dialog):
     """

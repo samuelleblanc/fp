@@ -102,8 +102,11 @@ class dict_position:
                  - added compatibility with macos
         Modified: Samuel LeBlanc, 2021-11-08, Santa Cruz, CA
                  - Bug fix for end points not being deleted properly
+        Modified: Samuel LeBlanc, 2024-02-19, Santa Cruz, CA
+                 - Fix to ensure max speed is not reached at any Alt.
+                 - Fix for first point of the file matches expected base speed for aircraft.
     """
-    def __init__(self,lon0='14 38.717E',lat0='22 58.783S',speed=150.0,UTC_start=7.0,
+    def __init__(self,lon0='14 38.717E',lat0='22 58.783S',speed=130.0,UTC_start=7.0,
                  UTC_conversion=+1.0,alt0=0.0,
                  verbose=False,filename=None,datestr=None,
                  newsheetonly=False,name='P3 Flight path',sheet_num=1,color='red',
@@ -166,6 +169,8 @@ class dict_position:
             self.datestr = datestr
         else:
             self.datestr = datetime.utcnow().strftime('%Y-%m-%d')
+        self.speed = np.array([self.p_info.get('base_speed',speed)])
+        self.speed_kts = self.speed*1.94384449246
         self.calculate()
         if not filename:
             self.sheet_num = sheet_num
@@ -401,6 +406,8 @@ class dict_position:
         if self.p_info.get('base_speed'):
             TAS = self.p_info['base_speed'] + alt1*self.p_info['speed_per_alt']
             if alt1>self.p_info['max_speed_alt']:
+                TAS = self.p_info['max_speed']
+            if TAS > self.p_info['max_speed']:
                 TAS = self.p_info['max_speed']
             if alt1>alt0+200.0:
                 TAS = TAS-self.p_info['descent_speed_decrease']        

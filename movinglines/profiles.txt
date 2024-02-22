@@ -4,16 +4,22 @@
                  'UTC_start':10.0,'UTC_conversion':-2.0,
                  'start_alt':76.5,
 				 'proj':'NorthPolarStereo','lat_0':76.0,'lon_0':68.0}
-{'Profile':'ALOFT','Plane_name':'ER2',
-                 'Start_lon':'82.52111W','Start_lat':'27.84944N',
-                 'Lon_range':[-95,-75],'Lat_range':[22,36],
-                 'UTC_start':16.00,'UTC_conversion':-5.0,
-                 'start_alt':10.0}
 {'Profile':'PACE-PAX','Plane_name':'ER2',
                  'Start_lon':'118 05 04W','Start_lat':'34 37 46N',
                  'Lon_range':[-129,-111],'Lat_range':[32,48],
                  'UTC_start':16.0,'UTC_conversion':-7.0,
                  'start_alt':775.0}
+{'Profile':'CAESAR','Plane_name':'C130',
+                 'Start_lon':'20.337463','Start_lat':'67.823853', 
+                 'Lon_range':[-28.5,70],'Lat_range':[65,83],
+                 'UTC_start':8.5,'UTC_conversion':1.0,
+                 'start_alt':459.9,
+				 'proj':'NorthPolarStereo','lat_0':67.8,'lon_0':0.0}
+{'Profile':'ALOFT','Plane_name':'ER2',
+                 'Start_lon':'82.52111W','Start_lat':'27.84944N',
+                 'Lon_range':[-95,-75],'Lat_range':[22,36],
+                 'UTC_start':16.00,'UTC_conversion':-5.0,
+                 'start_alt':10.0}
 {'Profile':'IMPACTS-WFF','Plane_name':'P3',
                  'Start_lon':'75.466389W','Start_lat':'37.940194N',
                  'Lon_range':[-92,-65],'Lat_range':[30,50],

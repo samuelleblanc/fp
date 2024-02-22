@@ -23,6 +23,7 @@ try:
 except ModuleNotFoundError:
     from . import map_interactive as mi
     from .map_utils import spherical_dist,equi,shoot,bearing
+import time
 
 class LineBuilder:
     """
@@ -295,13 +296,13 @@ class LineBuilder:
                 self.ex.calculate()
                 self.ex.write_to_excel()
         for lrc in self.line.range_circles:
-            self.m.ax.lines.remove(lrc)
+            lrc.remove()
         for arc in self.line.range_cir_anno:
             try:
                 arc.remove()
             except:
                 continue
-        self.update_labels()
+        self.update_labels(nodraw=True)
         self.line.figure.canvas.draw()
         self.get_bg()
             
@@ -444,7 +445,7 @@ class LineBuilder:
             self.r = sqrt((x-x0)**2+(y-y0)**2)
             return 'x=%2.5f, y=%2.5f, d=%2.5f' % (x,y,self.r)
         
-    def update_labels(self):
+    def update_labels(self,nodraw=False):
         'method to update the waypoints labels after each recalculations'
         #import matplotlib as mpl
         #if mpl.rcParams['text.usetex']:
@@ -479,8 +480,8 @@ class LineBuilder:
                                     annotate(s+'%i'%i,(self.xs[i-1],self.ys[i-1]),ha=has[i%3],va=vas[i%5],zorder=45))
                 except IndexError:
                     pass
-        
-        self.line.figure.canvas.draw()
+        if not nodraw:
+            self.line.figure.canvas.draw()
 
     def plt_range_circles(self,lon,lat,azi=None):
         'program to plot range circles starting from the last point selected on the map, with principal plane identified'        
@@ -577,7 +578,7 @@ class LineBuilder:
             except AttributeError:
                 self.m.figure_under_text = {}
             try:
-                self.m.figure_under_text[name] = self.m.ax.text(0.0,0.0,text,transform=self.m.ax.transAxes)
+                self.m.figure_under_text[name] = self.m.ax.text(0.0,-0.15,text,transform=self.m.ax.transAxes,clip_on=False,color='grey')
             except:
                 print('Problem adding text on figure, continuning...')
         self.line.figure.canvas.draw()

@@ -1,11 +1,11 @@
 # Name:
 
-Moving Lines, version 1.47
+Moving Lines, version 1.48
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1478125.svg)](https://doi.org/10.5281/zenodo.1478125)
 
-Get the compiled versions for MAC OS and Windows at:
-[https://github.com/samuelleblanc/fp/releases/tag/v1.44]
+~~Get the compiled versions for MAC OS and Windows at:
+[https://github.com/samuelleblanc/fp/releases/tag/v1.44]~~   compiled versions not longer maintained, use conda install now (see below)
     
 # Purpose:
     
@@ -30,7 +30,7 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 
    *or*
 
-## For compiled versions:
+## For compiled versions: **No longer Maintained**
 1) Download appropriate zip file and extract to desired location
 2) run the executable (ml for OSX, ml.exe for Win)
         for OSX:
