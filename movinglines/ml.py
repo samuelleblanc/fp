@@ -108,12 +108,13 @@
                 - Debugging for MACos and newer matplotlibs
         Modified: Samuel LeBlanc, v1.47, 2023-11-03, Santa Cruz, CA 
                 - adding simple version output from command line (used for testing on conda deployments)
-        Modified: Samuel LeBlanc, v1.48, 2024-02-19, Santa Cruz, CA
+        Modified: Samuel LeBlanc, v1.48, 2024-02-22, Santa Cruz, CA
                 - bug fix for forcing max speed, and base speed as start.
                 - Added error handling during 'save all'
                 - sped up interactivity and point adding
                 - Added init time parsing for the MSS models in WMS.
                 - upgraded plotting of figures under map for better viewing of text
+                - added plot vs alt for all combined platforms and highlight of coordinated points
                  
 """
 try:
@@ -444,9 +445,14 @@ def build_buttons(ui,lines,vertical=True):
     g.bplotsza = ttk.Button(g.root,text='SZA',
                            command=g.gui_plotsza)
     g.bplotsza.pack(in_=g.frame_plot,side=tk.RIGHT)
+    g.frame_plot2 = ttk.Frame(ui.top)
+    g.frame_plot2.pack(in_=ui.top,side=side,fill=tk.X,pady=2)
     g.bplotaltmss = ttk.Button(g.root,text='MSS Profile',
                            command=g.gui_plotmss_profile)
-    g.bplotaltmss.pack(in_=ui.top,side=side)
+    g.bplotaltmss.pack(in_=g.frame_plot2,side=tk.RIGHT)
+    g.bplotaltcombined = ttk.Button(g.root,text='Combined Alt vs time',
+                           command=g.gui_plotalttime_cmb)
+    g.bplotaltcombined.pack(in_=g.frame_plot2,side=tk.RIGHT)
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
              ).pack(in_=ui.top,side=side,padx=8,pady=5)
     g.frame_select = tk.Frame(g.root,relief=tk.SUNKEN,bg='white')

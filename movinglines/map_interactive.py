@@ -829,6 +829,40 @@ class LineBuilder:
         bearing_end = bearing([self.lats[i],self.lons[i]],[newlat,newlon])
         return bearing_end,dist_end        
         
+    def calc_dist_from_each_points(self):
+        """
+        Program to run through the ex_arr waypoints, and calculate the distances to each of the different points
+        returns a combined dict of the set of waypoints, utc, cumulative leg times, lat,lon,alt, distances to each other, and indices of the waypoints
+        """
+        from scipy import interpolate
+        combined = {'utc':np.hstack([x.utc for x in self.ex_arr]),
+                    'cumlegt':np.hstack([x.cumlegt for x in self.ex_arr]),
+                    'index_ex_array':np.hstack([x.utc*0+i for i,x in enumerate(self.ex_arr)]).astype(int)}
+        # now sort the combined vals
+        i_sort = np.argsort(combined['utc'])
+        for k in combined:
+            combined[k] = combined[k][i_sort]
+        # run through and calculate the positions of each val during these times.
+        n_exs = len(self.ex_arr)
+        combined['lats'] = np.zeros((len(combined['utc']),n_exs))
+        combined['lons'] = np.zeros((len(combined['utc']),n_exs))
+        for i,ex in enumerate(self.ex_arr):
+            fx_lat = interpolate.interp1d(ex.utc,ex.lat,bounds_error=False)
+            fx_lon = interpolate.interp1d(ex.utc,ex.lon,bounds_error=False)
+            combined['lats'][:,i] = fx_lat(combined['utc'])
+            combined['lons'][:,i] = fx_lon(combined['utc'])
+        #now calculate the distance to each lats and lons, based on the index of the value at that moment
+        combined['distances'] = np.zeros((len(combined['utc']),n_exs))
+        for j,utc in enumerate(combined['utc']):
+            for k in list(range(n_exs)):
+                combined['distances'][j,k] = spherical_dist([combined['lats'][j,combined['index_ex_array'][j]],combined['lons'][j,combined['index_ex_array'][j]]],[combined['lats'][j,k],combined['lons'][j,k]])
+        distances = []
+        for i,ex in enumerate(self.ex_arr): 
+            indices = np.where(combined['index_ex_array']==i)[0]
+            distances.append(combined['distances'][indices,:].tolist())
+        
+        return combined,distances
+        
 def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj='cyl',profile=None,larger=True, use_cartopy=True):
     """
     First try at a building of the basemap with a 'stere' projection

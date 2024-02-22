@@ -312,7 +312,11 @@ class gui:
         print('Saving ICT file to :'+filepath)
         self.line.ex.save2ict(filepath)
         
-    def gui_plotalttime(self,surf_alt=True,no_extra_axes=False):
+    def gui_plotalttime_cmb(self,surf_alt=True,no_extra_axes=False):
+        'dummy function to call plotaltitime multi'
+        return self.gui_plotalttime(surf_alt=surf_alt,no_extra_axes=no_extra_axes,multi=True)
+        
+    def gui_plotalttime(self,surf_alt=True,no_extra_axes=False,multi=False):
         'gui function to run the plot of alt vs. time'
         import os
         if self.noplt:
@@ -337,9 +341,36 @@ class gui:
         else:
             print('Problem with loading a new figure handler')
             return
-        ax1.plot(self.line.ex.cumlegt,self.line.ex.alt,'x-',label=self.line.ex.name)
-        for i,w in enumerate(self.line.ex.WP):
-            ax1.annotate('{}'.format(w),(self.line.ex.cumlegt[i],self.line.ex.alt[i]),color='r')
+        if multi and (len(self.line.ex_arr)>1):
+            # get the utc limits
+            nm = 'Combined'
+            surf_el_label_multi = '\nunder {}'.format(self.line.ex.name)
+            root.wm_title('Alt vs. Time: {}'.format('Combined'))
+            cmb,distances = self.line.calc_dist_from_each_points()
+            cum2utc = cmb['utc'][0]
+            coordinated_label = 'coordinated'
+            for j,ex in enumerate(self.line.ex_arr):
+                ax1.plot(ex.utc,ex.alt,'x-',label=ex.name,color=ex.color)
+                for i,w in enumerate(ex.WP):
+                    ax1.annotate('#{}'.format(w),(ex.utc[i],ex.alt[i]),color=ex.color)
+                    for k in range(len(self.line.ex_arr)):
+                        if not k == j and np.isfinite(distances[j][i][k]):
+                            ax1.annotate('{:2.1f} km'.format(distances[j][i][k]),(ex.utc[i],ex.alt[i]-200*(k+1)*(0.5-i%2)*2),color=self.line.ex_arr[k].color,ha='center',clip_on=False,fontsize=7)
+                            if distances[j][i][k]<30.0:
+                                ax1.annotate('{:2.1f} km'.format(distances[j][i][k]),(ex.utc[i],ex.alt[i]-200*(k+1)*(0.5-i%2)*2),color=self.line.ex_arr[k].color,ha='center',clip_on=False,fontsize=7, weight='bold')
+                                ax1.axvline(ex.utc[i]+0.02*(k+1),color=self.line.ex_arr[k].color, lw=2,linestyle=':',label=coordinated_label)
+                                coordinated_label = None
+            ax1.set_xlabel('UTC [Hours]')
+            time = self.line.ex.utc
+        else:
+            ax1.plot(self.line.ex.cumlegt,self.line.ex.alt,'x-',label=self.line.ex.name)
+            for i,w in enumerate(self.line.ex.WP):
+                ax1.annotate('{}'.format(w),(self.line.ex.cumlegt[i],self.line.ex.alt[i]),color='r')
+            cum2utc = self.line.ex.utc[0]
+            nm = self.line.ex.name
+            surf_el_label_multi = ''
+            ax1.set_xlabel('Flight duration [Hours]')
+            time = self.line.ex.cumleg
         if surf_alt:
             try:
                 try:
@@ -349,24 +380,29 @@ class gui:
                 if not os.path.isfile(self.geotiff_path):
                     self.geotiff_path = self.gui_file_select(ext='.tif',ftype=[('All files','*.*'),
                                                              ('GeoTiff','*.tif')])
-                elev,lat_new,lon_new,utcs,geotiff_path = get_elev(self.line.ex.cumlegt,self.line.ex.lat,self.line.ex.lon,dt=60,geotiff_path=self.geotiff_path)
-                ax1.fill_between(utcs,elev,0,color='tab:brown',alpha=0.3,zorder=1,label='Surface\nElevation',edgecolor=None)
+                elev,lat_new,lon_new,utcs,geotiff_path = get_elev(time,self.line.ex.lat,self.line.ex.lon,dt=60,geotiff_path=self.geotiff_path)
+                ax1.fill_between(utcs,elev,0,color='tab:brown',alpha=0.3,zorder=1,label='Surface\nElevation'+surf_el_label_multi,edgecolor=None)
                 self.geotiff_path = geotiff_path
             except Exception as e:
                 print('Surface elevation not working'+e)
-        ax1.set_title('Altitude vs time for %s on %s' %(self.line.ex.name,self.line.ex.datestr),y=1.08)
+        ax1.set_title('Altitude vs time for %s on %s' %(nm,self.line.ex.datestr),y=1.08)
         fig.subplots_adjust(top=0.85,right=0.8)
-        ax1.set_xlabel('Flight duration [Hours]')
+        
         ax1.set_ylabel('Alt [m]')
         ax1.xaxis.tick_bottom()
         if not no_extra_axes:
             ax2 = ax1.twiny()
             ax2.xaxis.tick_top()
-            ax2.set_xlabel('UTC [Hours]')
-            ax2.set_xticks(ax1.get_xticks())
-            cum2utc = self.line.ex.utc[0]
-            utc_label = ['%2.2f'%(u+cum2utc) for u in ax1.get_xticks()]
-            ax2.set_xticklabels(utc_label)
+            if multi and (len(self.line.ex_arr)>1):
+                ax2.set_xlabel('')
+                ax2.set_xticks(ax1.get_xticks())
+                utc_label = ['' for u in ax1.get_xticks()]
+                ax2.set_xticklabels(utc_label)
+            else:
+                ax2.set_xlabel('UTC [Hours]')
+                ax2.set_xticks(ax1.get_xticks())
+                utc_label = ['%2.2f'%(u+cum2utc) for u in ax1.get_xticks()]
+                ax2.set_xticklabels(utc_label)
             ax3 = ax1.twinx()
             ax3.yaxis.tick_right()
             ax3.set_ylabel('Altitude [Kft]')
@@ -731,6 +767,13 @@ class gui:
             lin = self.line.line
         legend,grey_index = self.prep_mapsave()
         lin.figure.savefig(f_name+'_map.png',dpi=600,transparent=False)
+        #save combined plot
+        try:
+            fig = self.gui_plotalttime_cmb()
+            print('Saving the Alt vs time plot at:'+f_name+'_alt_{}.png'.format(combined))
+            fig.savefig(f_name+'_alt_{}.png'.format('combined'),dpi=600,transparent=False)
+        except:
+            pass
         # go through each flight path
         for i,x in enumerate(self.line.ex_arr):
             self.iactive.set(i)
