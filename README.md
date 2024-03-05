@@ -25,6 +25,11 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 	conda activate ml
 	mamba install -c samuelleblanc movinglines
 	```  
+   *for current conda/anaconda install, without mamba/miniconda/miniforge replace last line with*
+	```
+	conda install samuelleblanc::movinglines
+	```   
+ 
 3)  Go through and accept the install of the required packages
 4)  at the command line, start the lines software by typing `ml`
 
