@@ -314,16 +314,27 @@ class dict_position:
             platform = 'NA'
         return platform
         
-    def get_rate_of_turn(self):
+    def get_rate_of_turn(self,i=0):
         'Function to calculate the rate of turn of the plane'
         if self.p_info.get('rate_of_turn'):
             rate_of_turn = self.p_info.get('rate_of_turn')
         elif self.p_info.get('turn_bank_angle'):
-            rate_of_turn = 1091.0*np.tan(self.p_info['turn_bank_angle']*np.pi/180)/self.speed[0]
+            rate_of_turn = 1091.0*np.tan(self.p_info['turn_bank_angle']*np.pi/180)/self.speed_kts[i]
         else:            
             default_bank_angle = 15.0
-            rate_of_turn = 1091.0*np.tan(default_bank_angle*np.pi/180)/self.speed[0] # degree per second
+            rate_of_turn = 1091.0*np.tan(default_bank_angle*np.pi/180)/self.speed_kts[i] # degree per second
         return rate_of_turn
+        
+    def get_time_to_fly_turn_radius(self,i=0):
+        'Function to calculate the time in minutes to fly the radius of the turn, to account for extra time needed in flying that distance from turn, appliesd to turns greater than 100 degrees'
+        if self.turn_deg[i+1]<100:
+            return 0
+        if self.p_info.get('turn_bank_angle'):
+            turn_radius = self.speed_kts[i]*self.speed_kts[i]/(11.26*np.tan(self.p_info['turn_bank_angle']*np.pi/180.0)) #in feet
+        else:            
+            default_bank_angle = 15.0
+            turn_radius = self.speed_kts[i]*self.speed_kts[i]/(11.26*np.tan(default_bank_angle*np.pi/180.0)) # in feet
+        return turn_radius/(self.speed_kts[i] * 101.269) #convert knots to feet per minute, then return minutes
 
     def calculate(self):
         """
@@ -335,9 +346,6 @@ class dict_position:
 
         Assumes that blank spaces/nan are to be filled with new calculations
         """
-        self.rate_of_turn = self.get_rate_of_turn()
-        if not np.isfinite(self.rate_of_turn):
-            self.rate_of_turn = 2.4
         self.n = len(self.lon)
         self.WP = range(1,self.n+1)
         for i in range(self.n-1):
@@ -367,6 +375,9 @@ class dict_position:
             else:
                 self.speed[i+1] = self.calcspeed(self.alt[i],self.alt[i+1])
                 self.speed_kts[i+1] = self.speed[i+1]*1.94384449246  
+            self.rate_of_turn = self.get_rate_of_turn(i)
+            if not np.isfinite(self.rate_of_turn):
+                self.rate_of_turn = 2.4
             self.bearing[i] = mu.bearing([self.lat[i],self.lon[i]],[self.lat[i+1],self.lon[i+1]])
             self.endbearing[i] = (mu.bearing([self.lat[i+1],self.lon[i+1]],[self.lat[i],self.lon[i]])+180)%360.0
             try:
@@ -377,7 +388,11 @@ class dict_position:
                 self.turn_deg[i+1] = abs(self.endbearing[i]-self.bearing[i+1])
             except:
                 self.turn_deg[i+1] = 0.0
-            self.turn_time[i+1] = (self.turn_deg[i+1]/self.rate_of_turn)/60.0
+            if self.turn_deg[i+1] > 100.0:
+                if self.turn_deg[i+1] > 180.0:
+                    self.turn_deg[i+1] = 360 - self.turn_deg[i+1] #for the shortest turn side
+                self.turn_deg[i+1] += 180.0 # to account for a 90-270 turn for near 180 turns
+            self.turn_time[i+1] = (self.turn_deg[i+1]*self.rate_of_turn)/60.0 + self.get_time_to_fly_turn_radius(i)
             if not np.isfinite(self.delayt.astype(float)[i+1]):
                 self.delayt[i+1] = self.turn_time[i+1]
             #else:
@@ -387,6 +402,7 @@ class dict_position:
             if self.legt[i+1] < self.climb_time[i+1]/60.0:
                 self.legt[i+1] = self.climb_time[i+1]/60.0
             self.legt[i+1] += self.delayt[i+1]/60.0
+            self.legt[i+1] += self.turn_time[i+1]/60.0
             self.utc[i+1] = self.utc[i]+self.legt[i+1]
             if not np.isfinite(self.utc[i+1]):
                 print(self.utc)

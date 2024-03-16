@@ -1,0 +1,8 @@
+%length,spacing,angle
+angle,length
+angle+90,spacing
+angle+90,spacing@0
+angle+90,spacing*2@0
+angle+90,spacing*2@1
+angle+90,spacing*3@1
+angle+90,spacing*3@0

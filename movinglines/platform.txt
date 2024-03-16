@@ -51,7 +51,7 @@
     'max_speed':300.0,'max_speed_alt':30000.0,'descent_speed_decrease':0.0,
     'climb_vert_speed':10.0,'descent_vert_speed':-10.0,'alt_for_variable_vert_speed':0.0,
     'vert_speed_base':24.0,'vert_speed_per_alt':0.0011,
-    'rate_of_turn':None,'turn_bank_angle':15.0,
+    'rate_of_turn':None,'turn_bank_angle':10.0,
     'warning':False}
 {'Platform':'dc8','names':['dc8','DC8','DC-8','dc-8','DC 8','dc 8','Dc','dC'],
     'max_alt':13000.0,'base_speed':130.0,'speed_per_alt':0.0075,

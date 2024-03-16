@@ -763,8 +763,15 @@ class LineBuilder:
                 exec('{}={}'.format(n,vals.names_val[i]))
             except:
                 print('problem for {}={}'.format(n,vals.names_val[i]))
+        wp_num = len(self.ex.alt)
         for l in s[1:-1]:
             if not (l.startswith('#') or l.startswith('%')):
+                if len(l.split('@'))>1:
+                    l,l1 = l.split('@')
+                    insert_i = int(l1)+wp_num-1
+                else:
+                    insert_i = -1
+                    
                 if l.lower().find('time')>=0: #check if there is a time slot instead of distance
                     try:
                         if len(l.split(','))>2:
@@ -780,15 +787,21 @@ class LineBuilder:
                         print('problem with distance calculation for {}'.format(l))
                     l = ','.join([l.split(',')[0],'{}'.format(dist),'{}'.format(alt)])
                 try:
-                    print(eval(l),use_feet,use_km)
-                    self.newpoint(*eval(l),last=False,feet=use_feet,km=use_km)
+                    print(eval(l),use_feet,use_km,insert_i)
+                    self.newpoint(*eval(l),last=False,feet=use_feet,km=use_km,insert_i=insert_i)
                 except:
                     print('problem with {}'.format(l))
         if not s[-1].startswith('#') or not s[-1].startswith('%'):
-                try:
-                    self.newpoint(*eval(s[-1]),feet=use_feet,km=use_km)
-                except:
-                    print('problem with last {}'.format(s[-1]))
+            if len(s[-1].split('@'))>1:
+                s[-1],l1 = s[-1].split('@')
+                insert_i = int(l1)+wp_num-1
+                print('@ sign detected at point: {}, splitting into: {} and insert_i: {}'.format(self.ex.WP[-1],s[-1],insert_i))
+            else:
+                insert_i = -1
+            try:
+                self.newpoint(*eval(s[-1]),feet=use_feet,km=use_km,insert_i=insert_i)
+            except:
+                print('problem with last {}'.format(s[-1]))
         f.close()
 
     def get_bg(self,redraw=False):

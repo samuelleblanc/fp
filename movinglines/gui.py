@@ -459,7 +459,7 @@ class gui:
 
         if label:
             try:
-                fig.ax.text(0.0,0.0,text,transform=fig.ax.transAxes)
+                fig.ax.text(0.0,0.0,label,transform=fig.ax.transAxes)
             except:
                 print('Problem adding text on profile figure, continuning...')
         return fig
