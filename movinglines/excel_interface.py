@@ -329,12 +329,19 @@ class dict_position:
         'Function to calculate the time in minutes to fly the radius of the turn, to account for extra time needed in flying that distance from turn, appliesd to turns greater than 100 degrees'
         if self.turn_deg[i+1]<100:
             return 0
+        if np.isfinite(self.speed_kts[i]):
+            speed_kts = self.speed_kts[i]
+        elif self.p_info.get('max_speed'):
+            speed_kts = self.p_info.get('max_speed')*1.94384449246
+        else:
+            speed_kts = 150.0
+        
         if self.p_info.get('turn_bank_angle'):
-            turn_radius = self.speed_kts[i]*self.speed_kts[i]/(11.26*np.tan(self.p_info['turn_bank_angle']*np.pi/180.0)) #in feet
+            turn_radius = speed_kts*speed_kts/(11.26*np.tan(self.p_info['turn_bank_angle']*np.pi/180.0)) #in feet
         else:            
             default_bank_angle = 15.0
-            turn_radius = self.speed_kts[i]*self.speed_kts[i]/(11.26*np.tan(default_bank_angle*np.pi/180.0)) # in feet
-        return turn_radius/(self.speed_kts[i] * 101.269) #convert knots to feet per minute, then return minutes
+            turn_radius = speed_kts*speed_kts/(11.26*np.tan(default_bank_angle*np.pi/180.0)) # in feet
+        return turn_radius/(speed_kts * 101.269) #convert knots to feet per minute, then return minutes
 
     def calculate(self):
         """
@@ -663,7 +670,7 @@ class dict_position:
         num = 0
         for i,t in enumerate(tmp):
             if i>self.n-1: #new points
-                self.appends(*t[1:16],comm=t[21])
+                self.appends(*t[1:16],comm=t[20])
                 num = num + 1
             else: # check if modifications
                 changed = self.mods(i,t[1],t[2],t[3],t[14],t[4],t[5],t[15],t[20])
