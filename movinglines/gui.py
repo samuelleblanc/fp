@@ -230,9 +230,9 @@ class gui:
     def gui_save_xl_pilot(self):
         'gui wrapper for calling the save2xl_for_pilots excel_interface method'
         try:
-            from excel_interface import save2xl_for_pilots
+            from excel_interface import save2xl_for_pilots,save2csv_for_FOREFLIGHT_UFP
         except ModuleNotFoundError:
-            from .excel_interface import save2xl_for_pilots
+            from .excel_interface import save2xl_for_pilots,save2csv_for_FOREFLIGHT_UFP
         filename = self.gui_file_save(ext='.xlsx',ftype=[('All files','*.*'),
                                                          ('Excel 1997-2003','*.xls'),
                                                          ('Excel','*.xlsx')])
@@ -240,6 +240,9 @@ class gui:
         print('Saving Pilot Excel file to :'+filename)
         save2xl_for_pilots(filename,self.line.ex_arr)
         self.line.ex.wb.sh.activate()
+        
+        for ex in self.line.ex_arr:
+            save2csv_for_FOREFLIGHT_UFP(filename.split('.')[0],ex,verbose=True)
 
     def gui_open_xl(self):
         'Function to load a excel spreadsheet that has been previously saved'
@@ -1588,6 +1591,8 @@ class gui:
         for i_init, dim_init in enumerate(inittime_sel):
             try:
                 #print('trying the wms get map')
+                if not use_init_time_fx:
+                    dim_init = None
                 img = wms.getmap(layers=[cont[i]],style='default',
                                   bbox=bbox, #(ylim[0],xlim[0],ylim[1],xlim[1]),
                                   size=res,

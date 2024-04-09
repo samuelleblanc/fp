@@ -129,6 +129,7 @@ class dict_position:
             UTC_conversion,alt0,name,campaign = profile['UTC_conversion'],profile['start_alt'],profile['Plane_name'],profile['Campaign']
         self.__version__ = version
         self.comments = [' ']
+        self.wpname = [' ']
         self.lon = np.array([pll(lon0)])
         self.lat = np.array([pll(lat0)])
         self.n = len(self.lon)
@@ -754,13 +755,18 @@ class dict_position:
             self.WP = np.delete(self.WP,i)
         except:
             self.WP = range(1,len(self.lon))
+            
+        try: 
+            self.wpname = np.delete(self.wpname,i)
+        except:
+            pass
         #print 'deletes, number of lon left:%i' %len(self.lon)
 
     def appends(self,lat,lon,sp=None,dt=None,alt=None,
                 clt=None,utc=None,loc=None,lt=None,d=None,cd=None,
                 dnm=None,cdnm=None,spkt=None,altk=None,
                 bear=0.0,endbear=0.0,turnd=0.0,turnt=0.0,climbt=0.0,
-                sza=None,azi=None,comm=None):
+                sza=None,azi=None,comm=None,wpname=None):
         """
         Program that appends to the current class with values supplied, or with defaults from the command line
         """
@@ -792,12 +798,13 @@ class dict_position:
         self.sza = np.append(self.sza,sza)
         self.azi = np.append(self.azi,azi)
         self.comments.append(comm)
+        self.wpname.append(wpname)
         
     def inserts(self,i,lat,lon,sp=None,dt=None,alt=None,
                 clt=None,utc=None,loc=None,lt=None,d=None,cd=None,
                 dnm=None,cdnm=None,spkt=None,altk=None,
                 bear=0.0,endbear=0.0,turnd=0.0,turnt=0.0,climbt=0.0,
-                sza=None,azi=None,comm=None):
+                sza=None,azi=None,comm=None,wpname=None):
         """
         Program that appends to the current class with values supplied, or with defaults from the command line
         """
@@ -829,6 +836,7 @@ class dict_position:
         self.sza = np.insert(self.sza,i,sza)
         self.azi = np.insert(self.azi,i,azi)
         self.comments.insert(i,comm)
+        self.wpname.insert(i,wpname)
 
     def mods(self,i,lat=None,lon=None,sp=None,spkt=None,
              dt=None,alt=None,altk=None,comm=None):
@@ -1302,6 +1310,28 @@ class dict_position:
         'Program to remove the current Sheet'
         print('Not yet')
         pass
+    
+    def get_waypoint_names(self,i=None,fmt='{x.name[0]}{x.datestr.split("-")[1]}{x.datestr.split("-")[2]}WP{w:02d}'):
+        'function to name the waypoints'
+        x = self
+        if i:
+            w = self.WP[i]
+            return eval("f'{}'".format(fmt))
+        wpname = list(self.WP)
+        if hasattr(self,'wpname'):
+            wpname_old = self.wpname
+        else:
+            wpname_old = self.WP
+        onlyletters = lambda str : ''.join(c for c in str if not c.isdigit())
+        for j,w in enumerate(self.WP):
+            wp_str = eval("f'{}'".format(fmt))
+            #compare only the non numerics
+            wpname[j] = wp_str
+            if (wp_str) and (wpname_old[j]):
+                if not onlyletters(wp_str) == onlyletters(wpname_old[j]):
+                    wpname[j] = wpname_old[j]
+        return wpname
+            
         
 def get_next_revision(fname):
     'Program that returns the next revision value for a given filename of ict file'
@@ -1411,6 +1441,48 @@ def save2xl_for_pilots(filename,ex_arr):
     except:
         print('** unable to close for_pilots spreadsheet, may need to close manually **')
         
+def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
+    """ 
+    Purpose:
+        Program that saves a new csv file from the current excel sheet, with name of platform 
+        Creates an excel file in the format defined for pilots for the FOREFLIGHT software.
+    Input:
+        filename: filename of new excel file
+        ex: excel interface dict_position to be saved
+        foreflight_only: 
+    Output:
+        new csv file
+    Dependices:
+        ---
+    History:
+        written: Samuel LeBlanc, Santa Cruz, CA 2024-04-09
+        Modified: 
+    
+    """
+    if filename.endswith('.csv'): 
+        filename = filename[:-4]
+    if verbose: print('.. saving FOREFLIGHT csv to {}'.format(filename+'_'+ex.name+'_FOREFLIGHT.csv'))
+    f = open(filename+'_'+ex.name+'_FOREFLIGHT.csv','w+')
+    f.write('Waypoint,Description,LAT,LONG\n')
+    ex.wpname = ex.get_waypoint_names(fmt=ex.p_info.get('waypoint_format','{x.name[0]}{x.datestr.split("-")[1]}{x.datestr.split("-")[2]}WP{w:02d}'))
+    for i in range(ex.n):
+        f.write("""%s,%s ALT=%3.0f kft,%+2.12f,%+2.12f\n""" %(
+                ex.wpname[i],ex.comments[i],ex.alt_kft[i],ex.lon[i],ex.lat[i]))
+    f.close()
+    
+    if verbose: print('.. saving FOREFLIGHT one liner to {}'.format(filename+'_'+ex.name+'_FOREFLIGHT_oneline.txt'))
+    fo = open(filename+'_'+ex.name+'_FOREFLIGHT_oneline.txt','w+')
+    fo.write(one_line_points(ex))
+    fo.close()
+    
+    if verbose: print('.. saving UFP csv to {}'.format(filename+'_'+ex.name+'_UFP.csv'))
+    fu = open(filename+'_'+ex.name+'_UFP.csv','w+')
+    fu.write('Waypoint,LAT,LONG,Description\n')
+    for i in range(ex.n):
+        fu.write("""%s,%+2.12f,%+2.12f,%s ALT=%3.0f kft\n""" %(
+                ex.wpname[i],ex.lon[i],ex.lat[i],ex.comments[i],ex.alt_kft[i]))
+    fu.close()
+                
 def format_lat_lon(lat,lon,format='DD MM SS'):
     'Lat and lon formatter'
     if format == 'DD MM SS':

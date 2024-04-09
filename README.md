@@ -1,6 +1,6 @@
 # Name:
 
-Moving Lines, version 1.48
+Moving Lines, version 1.49
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1478125.svg)](https://doi.org/10.5281/zenodo.1478125)
 
@@ -315,6 +315,10 @@ Takes advantage of clickable map for creating a flight plan, and already existin
                 - upgraded plotting of figures under map for better viewing of text
                 - added plot vs alt for all combined platforms and highlight of coordinated points
                 - refined speed parameters for G3 and Learjet
+	Modified: Samuel LeBlanc, v1.49, 2024-04-09, Santa Cruz, CA
+                - bug fix for speeds of turns and timing
+                - bug fix for missing comments
+                - Added file format outputs in csv for FOREFLIGHT and UFP
 			
 # To cite:
 

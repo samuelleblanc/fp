@@ -115,6 +115,10 @@
                 - Added init time parsing for the MSS models in WMS.
                 - upgraded plotting of figures under map for better viewing of text
                 - added plot vs alt for all combined platforms and highlight of coordinated points
+        Modified: Samuel LeBlanc, v1.49, 2024-04-09, Santa Cruz, CA
+                - bug fix for speeds of turns and timing
+                - bug fix for missing comments
+                - Added file format outputs in csv for FOREFLIGHT and UFP
                  
 """
 try:
