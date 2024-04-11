@@ -122,6 +122,8 @@ class LineBuilder:
         self.verbose = verbose
         self.blit = blit
         self.firstrun = True
+        self.num_changed = 0
+        self.points_changed = 0
         try:
             self.get_bg()
         except:
@@ -257,6 +259,7 @@ class LineBuilder:
             
             self.m.llcrnrlat,self.m.urcrnrlat = self.m.get_ylim() 
             self.m.llcrnrlon,self.m.urcrnrlon = self.m.get_xlim()
+            self.update_labels(nodraw=False)
             self.get_bg()
             return
         elif self.tb.mode!='':
@@ -302,7 +305,7 @@ class LineBuilder:
                 arc.remove()
             except:
                 continue
-        self.update_labels(nodraw=True)
+        self.update_labels(nodraw=True,updatexys=True)
         self.line.figure.canvas.draw()
         self.get_bg()
             
@@ -337,8 +340,12 @@ class LineBuilder:
             print('pressed key',event.key,event.xdata,event.ydata)
         if event.inaxes!=self.line.axes: return
         if (event.key=='s') | (event.key=='alt+s'):
-            print('Stopping interactive point selection')
+            print('Stopping interactive point selection, press i to start again')
             self.disconnect()
+        if (event.key=='q') | (event.key=='alt+q'):
+            print('Stopping interactive point selection, going into debug mode, press i to start again')
+            self.disconnect()
+            import ipdb; ipdb.set_trace()
         if (event.key=='i') | (event.key=='alt+i'):
             print('Starting interactive point selection')
             self.connect()
@@ -353,6 +360,8 @@ class LineBuilder:
 
     def onfigureenter(self,event):
         'event handler for updating the figure with excel data'
+        get_time = False
+        if get_time: t0 = time.time()
         if self.firstrun:
             self.get_bg(redraw=True)
             self.firstrun = False
@@ -363,6 +372,9 @@ class LineBuilder:
         if self.ex:
             #self.ex.switchsheet(self.iactive)
             self.ex.check_xl()
+            if get_time: 
+                t1 = time.time()
+                print('after check_xl: {}'.format(t1-t0))
             self.lats = list(self.ex.lat)
             self.lons = list(self.ex.lon)
             if self.m:
@@ -373,10 +385,26 @@ class LineBuilder:
                 except TypeError as ei:
                     import pdb; pdb.set_trace()
                 self.line.set_data(self.xs,self.ys)
+                if get_time: 
+                    t2 = time.time()
+                    print('after set_datal: {}'.format(t2-t1))
                 self.draw_canvas()
-        self.update_labels()
+                if get_time: 
+                    t3 = time.time()
+                    print('after draw_canvas: {}'.format(t3-t2))
+        self.update_labels(nodraw=True,updatexys=True)
+        if self.ex.points_changed>0: 
+            self.line.figure.canvas.draw()
+            self.get_bg()
+            #import ipdb; ipdb.set_trace()
+        if get_time: 
+            t4 = time.time()
+            print('after update_labels: {}'.format(t4-t3))
         self.tb.set_message('Done Recalculating')
         self.line.axes.format_coord = self.format_position_simple
+        if get_time:
+            t5 = time.time()
+            print('after format_coord: {}'.format(t5-t4))
         
     def zoom_fun(self,event,base_scale=1.25):
         'For zooming with scroll_event'
@@ -419,6 +447,7 @@ class LineBuilder:
         # REVIEW perhaps this should participate in a drag_zoom like
         # matplotlib/backend_bases.py:NavigationToolbar2:drag_zoom()
         self.tb.push_current()
+        self.update_labels(nodraw=False)
         self.get_bg(redraw=True)
         #self.draw_canvas()#ax.figure.canvas.draw() # force re-draw
                 
@@ -445,7 +474,7 @@ class LineBuilder:
             self.r = sqrt((x-x0)**2+(y-y0)**2)
             return 'x=%2.5f, y=%2.5f, d=%2.5f' % (x,y,self.r)
         
-    def update_labels(self,nodraw=False):
+    def update_labels(self,nodraw=False,updatexys=False):
         'method to update the waypoints labels after each recalculations'
         #import matplotlib as mpl
         #if mpl.rcParams['text.usetex']:
@@ -455,15 +484,25 @@ class LineBuilder:
         s = '#'
         if self.ex:
             self.wp = self.ex.WP
+            if updatexys:
+                x,y = self.m.invert_lonlat(self.ex.lon,self.ex.lat) #self.m(self.ex.lon,self.ex.lat)
+                self.xs = list(x)
+                self.ys = list(y)
+#            if not nocheckpoints:
+#                self.xs = list(self.line.get_xdata())
+#                self.ys = list(self.line.get_ydata())
+#            else:
+#                x,y = self.m.invert_lonlat(self.ex.lon,self.ex.lat) #self.m(self.ex.lon,self.ex.lat)
+#                self.xs = list(x)
+#                self.ys = list(y)
         else:
             self.n = len(self.xs)
             self.wp = range(1,self.n+1)
         if self.lbl:
-           for ll in self.lbl:
-                try:
+            for ll in self.lbl:
+                if ll.axes:
                     ll.remove()
-                except:
-                    continue
+            self.lbl = []
         if self.labelsoff:
             return
         vas = ['bottom', 'baseline', 'center', 'center_baseline', 'top']
@@ -471,7 +510,7 @@ class LineBuilder:
         for i in self.wp:    
             if not self.lbl:
                 self.lbl = [self.line.axes.annotate(s+'%i'%i,
-                                                    (self.xs[i-1],self.ys[i-1]))]
+                                                    (self.xs[i-1],self.ys[i-1]),zorder=45)]
             else:
                 try:
                     if not self.xs[i-1]:
@@ -673,7 +712,7 @@ class LineBuilder:
                 self.ex.inserts(insert_i+1,newlat,newlon,alt=alt)
             self.ex.calculate()
             self.ex.write_to_excel()
-        self.update_labels()
+        self.update_labels(updatexys=True)
         self.draw_canvas()
 
     def movepoint(self,i,Bearing,distance,last=False):
@@ -1120,11 +1159,12 @@ def pll(string):
             deg_m = deg_m + float(str_ls[i])/60.0
     return deg+(deg_m*sign)
 
-def plot_map_labels(m,filename,marker=None,skip_lines=0,color=None,textcolor='k',alpha=0.3):
+def plot_map_labels(m,filename,marker=None,skip_lines=0,color=None,textcolor='k',alpha=0.3,clip=False):
     """
     program to plot the map labels on the basemap plot defined by m
     if marker is set, then it will be the default for all points in file
     """
+    
     labels = mi.load_map_labels(filename,skip_lines=skip_lines) 
     
     labels_points = []
@@ -1135,6 +1175,9 @@ def plot_map_labels(m,filename,marker=None,skip_lines=0,color=None,textcolor='k'
         except:
             x,y = l['lon'],l['lat']
             xtxt,ytxt = l['lon']+0.05,l['lat']
+        if clip:
+            if not m.axes.contains_point((x,y)):
+                continue
         if marker:
             ma = marker
         else:
@@ -1352,11 +1395,8 @@ def plot_sat_tracks(m,sat,label_every=5,max_num=60):
         ncol = 2
     else:
         ncol = 1
-    sat_legend = m.ax.legend(loc='lower right',bbox_to_anchor=(1.05,1.04),ncol=ncol)
-    #try:    
-    #    sat_legend.draggable()
-    #except:
-    #    sat_legend.set_draggable(True)
+    sat_legend = m.ax.legend(loc='upper right',bbox_to_anchor=(0.98,0.98),ncol=ncol,fancybox=True, shadow=True,bbox_transform=m.ax.figure.transFigure)
+
     #handle the toggle visibility
     sat_leg_lines = sat_legend.get_lines()
     graphs = {}
@@ -1364,8 +1404,17 @@ def plot_sat_tracks(m,sat,label_every=5,max_num=60):
     for i,k in enumerate(sat_keys):
         graphs[sat_leg_lines[i]] = sat_lines[k]
         texts[sat_leg_lines[i]] = sat_text[k]
-        sat_leg_lines[i].set_picker(5)
+        sat_leg_lines[i].set_picker(7)
         sat_leg_lines[i].set_lw(0.8)
+        sat_leg_lines[i].set_marker('s')
+        sat_leg_lines[i].set_markersize(6)
+        sat_leg_lines[i].set_markeredgewidth(2.0)
+        if i>0:
+            sat_leg_lines[i].set_markerfacecolor('#ffffff')
+            sat_leg_lines[i].set_alpha(0.2)
+            [g.set_visible(False) for g in graphs[sat_leg_lines[i]]]
+            [g.set_alpha(0) for g in graphs[sat_leg_lines[i]]]
+            [(te.set_visible(False),te.set_alpha(0)) for te in texts[sat_leg_lines[i]]]
         #sat_leg_lines[i].set_pickradius(5)
     graphs['lastserial'] = 0
     
@@ -1382,11 +1431,16 @@ def plot_sat_tracks(m,sat,label_every=5,max_num=60):
             te.set_visible(not isVisible)
             te.set_alpha(1.0 if not isVisible else 0)
         legend0.set_alpha(1.0 if not isVisible else 0.2) #set_visible(not isVisible)
+        legend0.set_markerfacecolor(legend0.get_markeredgecolor() if not isVisible else '#ffffff')
         #print(legend0,'toggled, for line:',graphs[legend0],isVisible,legend0.get_alpha)
         #import pdb; pdb.set_trace()
         m.figure.canvas.draw()
     
     leg_onpick = m.figure.canvas.mpl_connect('pick_event',on_pick_legend)
+    #try:    
+    #    sat_legend.draggable()
+    #except:
+    #    sat_legend.set_draggable(True)
     m.ax.add_artist(sat_legend)
     sat_obj.append(sat_legend)
     #sat_obj.append(leg_onpick)
@@ -1424,13 +1478,22 @@ def get_sat_tracks_from_tle(datestr,fraction_minute_interval=2,sat_filename='sat
         tkMessageBox.showerror('Old TLEs','The file {} has been modified more than 14 days ago. Satellite tracks may be innacurate. Please update.'.format(fname))
     else:
         print('... Imported the {} file, now plotting'.format(os.path.abspath(fname)))
+    toremove = []      
+        
     for k in sat.keys():
         try:
             sat[k]['ephem'] = ephem.readtle(k,sat[k]['tle1'],sat[k]['tle2'])
         except ValueError:
             tkMessageBox.showerror('bad TLE line','The Satellite {} line do not conform to TLE standard. Please update.'.format(k))
+            toremove.append(k)
+            continue
         sat[k]['d'] = [ephem.Date(datestr+' 00:00')]
-        sat[k]['ephem'].compute(sat[k]['d'][0])
+        try:
+            sat[k]['ephem'].compute(sat[k]['d'][0])
+        except ValueError as error:
+            tkMessageBox.showerror('Old TLE line','The Satellite {} encountered an error: {}'.format(k,error))
+            toremove.append(k)
+            continue
         sat[k]['lat'] = [np.rad2deg(sat[k]['ephem'].sublat)]
         sat[k]['lon'] = [np.rad2deg(sat[k]['ephem'].sublong)]
         for t in range(24*60*fraction_minute_interval):
@@ -1439,6 +1502,8 @@ def get_sat_tracks_from_tle(datestr,fraction_minute_interval=2,sat_filename='sat
             sat[k]['ephem'].compute(d)
             sat[k]['lat'].append(np.rad2deg(sat[k]['ephem'].sublat))
             sat[k]['lon'].append(np.rad2deg(sat[k]['ephem'].sublong))
+    for k in toremove:
+        nul = sat.pop(k)
     return sat
 
 def get_tle_from_file(filename):

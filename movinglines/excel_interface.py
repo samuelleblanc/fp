@@ -627,9 +627,11 @@ class dict_position:
         wrapper for checking excel updates.
         Reruns check_updates_excel whenever a line is found to be deleted
         """
+        self.points_changed = 0
         while self.check_updates_excel():
+            self.points_changed = self.points_changed+self.num_changed
             if self.verbose:
-                print('line removed, cutting it out')
+                print('line removed, cutting it out') 
 
     def check_updates_excel(self):
         """
@@ -687,7 +689,8 @@ class dict_position:
                 print('Updated %i lines from Excel, recalculating and printing' % num)
             self.calculate()
             self.write_to_excel()
-        self.num_changed = num
+        self.num_changed = num+deleted
+#        if self.num_changed>0: print(self.num_changed)
         
         # wp,lat,lon,sp,dt,alt,clt,utc,loc,lt,d,cd,dnm,cdnm,spkt,altk = t[0:16]
         # try:
@@ -798,7 +801,11 @@ class dict_position:
         self.sza = np.append(self.sza,sza)
         self.azi = np.append(self.azi,azi)
         self.comments.append(comm)
-        self.wpname.append(wpname)
+        try:
+            self.wpname.append(wpname)
+        except:
+            self.wpname = list(self.wpname)
+            self.wpname.append(wpname)
         
     def inserts(self,i,lat,lon,sp=None,dt=None,alt=None,
                 clt=None,utc=None,loc=None,lt=None,d=None,cd=None,
@@ -836,7 +843,11 @@ class dict_position:
         self.sza = np.insert(self.sza,i,sza)
         self.azi = np.insert(self.azi,i,azi)
         self.comments.insert(i,comm)
-        self.wpname.insert(i,wpname)
+        try:
+            self.wpname.insert(i,wpname)
+        except:
+            self.wpname = list(self.wpname)
+            self.wpname.insert(i,wpname)
 
     def mods(self,i,lat=None,lon=None,sp=None,spkt=None,
              dt=None,alt=None,altk=None,comm=None):
@@ -1328,9 +1339,10 @@ class dict_position:
             #compare only the non numerics
             wpname[j] = wp_str
             if (wp_str) and (wpname_old[j]):
-                if not onlyletters(wp_str) == onlyletters(wpname_old[j]):
-                    wpname[j] = wpname_old[j]
-        return wpname
+                if len(onlyletters(wpname_old[j]).strip())>0:
+                    if not onlyletters(wp_str) == onlyletters(wpname_old[j]):
+                        wpname[j] = wpname_old[j]
+        return list(wpname)
             
         
 def get_next_revision(fname):
@@ -1466,8 +1478,8 @@ def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
     f.write('Waypoint,Description,LAT,LONG\n')
     ex.wpname = ex.get_waypoint_names(fmt=ex.p_info.get('waypoint_format','{x.name[0]}{x.datestr.split("-")[1]}{x.datestr.split("-")[2]}WP{w:02d}'))
     for i in range(ex.n):
-        f.write("""%s,%s ALT=%3.0f kft,%+2.12f,%+2.12f\n""" %(
-                ex.wpname[i],ex.comments[i],ex.alt_kft[i],ex.lon[i],ex.lat[i]))
+        f.write("""%s,ALT=%3.2f kft %s ,%+2.12f,%+2.12f\n""" %(
+                ex.wpname[i],ex.alt_kft[i],ex.comments[i],ex.lat[i],ex.lon[i]))
     f.close()
     
     if verbose: print('.. saving FOREFLIGHT one liner to {}'.format(filename+'_'+ex.name+'_FOREFLIGHT_oneline.txt'))
@@ -1479,9 +1491,18 @@ def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
     fu = open(filename+'_'+ex.name+'_UFP.csv','w+')
     fu.write('Waypoint,LAT,LONG,Description\n')
     for i in range(ex.n):
-        fu.write("""%s,%+2.12f,%+2.12f,%s ALT=%3.0f kft\n""" %(
-                ex.wpname[i],ex.lon[i],ex.lat[i],ex.comments[i],ex.alt_kft[i]))
+        fu.write("""%s,%+2.12f,%+2.12f,ALT=%3.2f kft %s\n""" %(
+                ex.wpname[i],ex.lat[i],ex.lon[i],ex.alt_kft[i],ex.comments[i]))
     fu.close()
+    
+    if verbose: print('.. saving Honeywell csv to {}'.format(filename+'_'+ex.name+'_Honeywell.csv'))
+    fh = open(filename+'_'+ex.name+'_Honeywell.csv','w+')
+    fh.write('E,WPT,FIX,LAT,LON\n')
+    for i in range(ex.n):
+        lat_str,lon_str = format_lat_lon(ex.lat[i],ex.lon[i],format='NDDD MM.SS')
+        fh.write("""x,%s,ALT=%3.2f kft %s,%s,%s\n""" %(
+                ex.wpname[i],ex.alt_kft[i],ex.comments[i],lat_str,lon_str))
+    fh.close()
                 
 def format_lat_lon(lat,lon,format='DD MM SS'):
     'Lat and lon formatter'
@@ -1496,6 +1517,15 @@ def format_lat_lon(lat,lon,format='DD MM SS'):
         lonv = deg_to_dms(lon)
         lat_f = '{:02d} {:02d} {:02.3f}'.format(latv[0],latv[1],latv[2])
         lon_f = '{:02d} {:02d} {:02.3f}'.format(lonv[0],lonv[1],lonv[2])
+    if format == 'NDDD MM.SS':
+        def deg_to_dms(deg):
+            d = int(deg)
+            md = abs(deg - d) * 60
+            return [d, md]
+        latv = deg_to_dms(lat)
+        lonv = deg_to_dms(lon)
+        lat_f = '{n}{:3d} {:02.2f}'.format(abs(latv[0]),latv[1],n='N' if latv[0]>0 else 'S')
+        lon_f = '{n}{:3d} {:02.2f}'.format(abs(lonv[0]),lonv[1],n='E' if lonv[0]>0 else 'W')
     if format == 'DD MM':
         def deg_to_dm(deg):
             d = int(deg)

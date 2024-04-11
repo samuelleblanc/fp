@@ -319,6 +319,12 @@ Takes advantage of clickable map for creating a flight plan, and already existin
                 - bug fix for speeds of turns and timing
                 - bug fix for missing comments
                 - Added file format outputs in csv for FOREFLIGHT and UFP
+	Modified: Samuel LeBlanc, v1.50, 2024-04-10, Santa Cruz, CA
+				- general speedup of software
+                - new pilot files bug fix for waypoint naming and lat/long flip
+                - added file output for honeywell FMS for GIII
+				- added better handling of satellite tracks defaulting to not visible for speed
+                - speeded up interactions with changing labels update
 			
 # To cite:
 

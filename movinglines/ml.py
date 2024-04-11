@@ -119,6 +119,11 @@
                 - bug fix for speeds of turns and timing
                 - bug fix for missing comments
                 - Added file format outputs in csv for FOREFLIGHT and UFP
+        Modified: Samuel LeBlanc, v1.50, 2024-04-11, Santa Cruz, CA
+                - new pilot files bug fix for waypoint naming and lat/long flip
+                - added file output for honeywell FMS for GIII
+                - added better handling of satellite tracks defaulting to not visible for speed
+                - speeded up interactions with changing labels update
                  
 """
 try:
@@ -286,6 +291,8 @@ class window:
         side = tk.TOP
         h = 2
         w = 20
+        self.progressbar = ttk.Progressbar()
+        self.progressbar.pack(in_=left_frame,side=tk.BOTTOM)
         label = ttk.Label(self.root,text='by Samuel LeBlanc\n NASA Ames')
         label.pack(in_=left_frame,side=tk.BOTTOM)
         self.left_frame = left_frame
@@ -700,36 +707,63 @@ def Create_interaction(test=False,profile=None,**kwargs):
     
     
     ui = window(tk.Tk()) #Create_gui()
-    ui.tb.set_message('Creating basemap')
+    def echo(message,pre='..'):
+        ui.tb.set_message(pre+message)
+        print(pre+message)
+    echo('Waiting on user input for profile')
+    ui.progressbar.step(10)
+    ui.progressbar.update()
     profile = Get_basemap_profile()
+    ui.progressbar.step(10)
+    ui.progressbar.update()
+    echo('Creating basemap')
     m = mi.build_basemap(fig=ui.fig,profile=profile)
+    ui.progressbar.step(20)
+    ui.progressbar.update()
     ui.ax1 = m
+    ui.progressbar.step(5)
+    ui.progressbar.update()
     if profile:
         sla,slo = profile['Start_lat'],profile['Start_lon']
     else:
         sla,slo = None,None
     line = init_plot(m,start_lat=sla,start_lon=slo,color='red')
-
+    echo('init plot')
+    ui.progressbar.step(5)
+    ui.progressbar.update()
     try:
-        ui.tb.set_message('putting labels and aeronet')
+        echo('putting labels')
         line.labels_points = mi.plot_map_labels(m,flabels,alpha=0.4)
-        mi.plot_map_labels(m,faero,marker='*',skip_lines=2,color='y',textcolor='k',alpha=0.3)
+        ui.progressbar.step(20)
+        ui.progressbar.update()
+        echo('putting aeronet')
+        line.aeronet_points = mi.plot_map_labels(m,faero,marker='*',skip_lines=2,color='y',textcolor='k',alpha=0.3,clip=True)
+        ui.progressbar.step(20)
+        ui.progressbar.update()
     except Exception as e:
         print('Problem with label files!',e)
     get_datestr(ui)
-    ui.tb.set_message('making the Excel connection')
+    echo('making the Excel connection')
     wb = ex.dict_position(datestr=ui.datestr,color=line.get_color(),profile=profile,
          version=__version__,platform_file=platform_filename,**kwargs)
-    ui.tb.set_message('Building the interactivity on the map')
+    ui.progressbar.step(4)
+    ui.progressbar.update()
+    echo('Building the interactivity on the map')
     lines = mi.LineBuilder(line,m=m,ex=wb,tb=ui.tb,blit=True,verbose=args.verbose)
-    ui.tb.set_message('Saving temporary excel file')
+    echo('Saving temporary excel file')
     savetmp(ui,wb)
+    ui.progressbar.step(4)
+    ui.progressbar.update()
     
     build_buttons(ui,lines)
+    ui.progressbar.step(2)
+    ui.progressbar.update()
+    ui.progressbar.destroy()
     lines.get_bg(redraw=True)
     bind_move_window(ui,lines)
-    ui.tb.set_message('Ready for interaction')
+    
     lines.get_bg(redraw=True)
+    echo('Ready for interaction',pre='')
     def stopandquit():
         'simple function to handle the stop and quit'
         lines.ex.wb.close()

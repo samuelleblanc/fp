@@ -692,6 +692,7 @@ class gui:
         self.line.line = self.line.line_arr[self.iactive.get()]
         self.line.ex.switchsheet(self.iactive.get())
         self.line.colorme(self.colors[self.iactive.get()])
+        self.line.update_labels(nodraw=False,updatexys=True)
         self.line.get_bg()
         
     def gui_savefig(self):
@@ -815,13 +816,13 @@ class gui:
         self.line.onfigureenter([1])
         self.refresh_speed()
         #self.line.redraw_pars_mers()
-        self.line.get_bg()
+        self.line.get_bg(redraw=True)
         
     def refresh_nospeed(self,*arg,**karg):
         'function to force a refresh of the plotting window'
         self.line.onfigureenter([1])
         #self.line.redraw_pars_mers()
-        self.line.get_bg()
+        self.line.get_bg(redraw=True)
         
     def refresh_speed(self):
         ' function to force a refresh on the speed calculations'
