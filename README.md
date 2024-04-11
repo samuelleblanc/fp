@@ -28,8 +28,12 @@ Takes advantage of clickable map for creating a flight plan, and already existin
    *for current conda/anaconda install, without mamba/miniconda/miniforge replace last line with*
 	```
 	conda install samuelleblanc::movinglines
-	```   
- 
+	```    
+ if you encounter errors with conda, ensure that you have the conda-froge channel in conda (it is automatic for mamba)
+	```
+ 	conda config --add channels conda-forge
+ 	```    
+  
 3)  Go through and accept the install of the required packages
 4)  at the command line, start the lines software by typing `ml`
 
