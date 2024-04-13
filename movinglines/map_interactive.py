@@ -167,6 +167,7 @@ class LineBuilder:
         if self.moving: return
         self.set_alt0 = False
         self.contains_point = False
+        self.point_name = None
         self.contains, attrd = self.line.contains(event)
         if self.line.labels_points:
             for lp in self.line.labels_points:
@@ -199,6 +200,8 @@ class LineBuilder:
                 self.highlight_linepoint, = self.line.axes.plot(self.xs[self.contains_index],
                                                             self.ys[self.contains_index],'bo',zorder=40)
                 self.draw_canvas(extra_points=[self.highlight_linepoint])
+                if self.point_name:
+                    self.ex.wpname[self.contains_index] = None
             else:
                 self.line.axes.format_coord = self.format_position_simple
                 self.xy = self.xs[-1],self.ys[-1]
@@ -217,7 +220,7 @@ class LineBuilder:
             else:
                 point_contains_index = int(attrd_point['ind'])
             
-            #self.xy = self.xs[-1],self.ys[-1]
+            self.xy = self.xs[-1],self.ys[-1]
             self.line.axes.format_coord = self.format_position_distance
             #self.line.axes.autoscale(enable=False)
             #self.highlight_linepoint, = self.line.axes.plot(xs[point_contains_index],
@@ -342,6 +345,8 @@ class LineBuilder:
             self.highlight_linepoint.set_data(event.xdata,event.ydata)
         else:
             i = -1
+            if self.contains_point:
+                return
         self.xs[i] = event.xdata
         self.ys[i] = event.ydata
         if self.m:
@@ -755,7 +760,9 @@ class LineBuilder:
             if self.ex:
                 self.ex.calculate()
                 self.ex.write_to_excel()
-            self.update_labels()
+            self.line.figure.canvas.draw()
+            self.update_labels(updatexys=True)
+            self.get_bg(redraw=True)
             self.draw_canvas()
             
     def parse_flt_module_file(self,filename):

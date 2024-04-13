@@ -125,6 +125,8 @@
                 - added better handling of satellite tracks defaulting to not visible for speed
                 - speeded up interactions with changing labels update
                 - added snapping to labeled points
+                - added midpoint between 2 points
+                - added waypoint name row in excel
                  
 """
 try:

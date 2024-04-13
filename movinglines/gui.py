@@ -237,6 +237,7 @@ class gui:
                                                          ('Excel 1997-2003','*.xls'),
                                                          ('Excel','*.xlsx')])
         if not filename: return
+        self.line.ex.wpname = self.line.ex.get_waypoint_names(fmt=self.line.ex.p_info.get('waypoint_format','{x.name[0]}{x.datestr.split("-")[2]}{w:02d}'))
         print('Saving Pilot Excel file to :'+filename)
         save2xl_for_pilots(filename,self.line.ex_arr)
         self.line.ex.wb.sh.activate()

@@ -424,7 +424,7 @@ class dict_position:
         
         self.datetime = self.calcdatetime()
         self.sza,self.azi = mu.get_sza_azi(self.lat,self.lon,self.datetime)
-        
+        self.wpname = self.get_waypoint_names(fmt=self.p_info.get('waypoint_format','{x.name[0]}{x.datestr.split("-")[2]}{w:02d}'))
         self.time2xl()
         
     def force_calcspeed(self):
@@ -614,6 +614,9 @@ class dict_position:
                                       ]).T
         for i,c in enumerate(self.comments):
             sh.range('U%i'%(i+2)).value = c
+        if hasattr(self,'wpname'):
+            for i,w in enumerate(self.wpname):
+                sh.range('V%i'%(i+2)).value = w
         sh.range('G2:J%i'% (self.n+1)).number_format = 'hh:mm'
         sh.range('E2:E%i'% (self.n+1)).number_format = '0'
         sh.range('B:B').autofit()
@@ -644,7 +647,7 @@ class dict_position:
         #self.wb.sh.activate(steal_focus=False) #self.wb.set_current()
         row_start = 2
         last_row = sh.range((self.wb.sheets.active.cells.last_cell.row,2)).end('up').row
-        tmp = sh.range((row_start,1),(last_row,26)).value 
+        tmp = sh.range((row_start,1),(last_row,27)).value 
         
         if len(np.shape(tmp))==1: tmp = [tmp]
         # run through each line to check for updates
@@ -668,15 +671,15 @@ class dict_position:
         
         # check updated sheets (after deletions)
         last_row = sh.range((self.wb.sheets.active.cells.last_cell.row,2)).end('up').row
-        tmp = sh.range((row_start,1),(last_row,26)).value
+        tmp = sh.range((row_start,1),(last_row,27)).value
         if len(np.shape(tmp))==1: tmp = [tmp]
         num = 0
         for i,t in enumerate(tmp):
             if i>self.n-1: #new points
-                self.appends(*t[1:16],comm=t[20])
+                self.appends(*t[1:16],comm=t[20],wpname=t[21])
                 num = num + 1
             else: # check if modifications
-                changed = self.mods(i,t[1],t[2],t[3],t[14],t[4],t[5],t[15],t[20])
+                changed = self.mods(i,t[1],t[2],t[3],t[14],t[4],t[5],t[15],t[20],t[21])
                 if i == 0:
                     if self.utc[i] != t[7]*24.0:
                         self.utc[i] = t[7]*24.0
@@ -704,7 +707,7 @@ class dict_position:
         Program that moves up all excel rows by one line overriding the ith line
         """
         sh = self.wb.sh
-        linesbelow = sh.range('A%i:U%i'%(i+3,self.n+1)).value
+        linesbelow = sh.range('A%i:V%i'%(i+3,self.n+1)).value
         n_rm = (self.n+1)-(i+3)
         linelist = False
         for j,l in enumerate(linesbelow):
@@ -720,8 +723,8 @@ class dict_position:
                 linesbelow[0] = linesbelow[0]-1
             except:
                 yup = True
-        sh.range('A%i:U%i'%(i+2,i+2)).value = linesbelow
-        sh.range('A%i:U%i'%(self.n+1,self.n+1)).clear_contents()
+        sh.range('A%i:V%i'%(i+2,i+2)).value = linesbelow
+        sh.range('A%i:V%i'%(self.n+1,self.n+1)).clear_contents()
 
     def dels(self,i):
         """
@@ -753,7 +756,7 @@ class dict_position:
         self.climb_time = np.delete(self.climb_time,i)
         self.sza = np.delete(self.sza,i)
         self.azi = np.delete(self.azi,i)
-        self.comments.pop(i)
+        self.comments.pop(i)          
         try:
             self.WP = np.delete(self.WP,i)
         except:
@@ -762,7 +765,10 @@ class dict_position:
         try: 
             self.wpname = np.delete(self.wpname,i)
         except:
-            pass
+            try:
+                self.wpname.pop(i)  
+            except:
+                pass
         #print 'deletes, number of lon left:%i' %len(self.lon)
 
     def appends(self,lat,lon,sp=None,dt=None,alt=None,
@@ -850,7 +856,7 @@ class dict_position:
             self.wpname.insert(i,wpname)
 
     def mods(self,i,lat=None,lon=None,sp=None,spkt=None,
-             dt=None,alt=None,altk=None,comm=None):
+             dt=None,alt=None,altk=None,comm=None,wpname=None):
         """
         Program to modify the contents of the current class if
         there is an update on the line, defned by i
@@ -918,6 +924,10 @@ class dict_position:
         if not self.comments[i] == comm:
             if comm: 
                 self.comments[i] = comm
+                changed = True
+        if not self.wpname[i] == wpname:
+            if wpname: 
+                self.wpname[i] = wpname
                 changed = True
         return changed
 
@@ -1052,7 +1062,7 @@ class dict_position:
                              'LegT\n[hh:mm]','Dist\n[km]','CumDist\n[km]',
                              'Dist\n[nm]','CumDist\n[nm]','Speed\n[kt]',
                              'Altitude\n[kft]','SZA\n[deg]','AZI\n[deg]',
-                             'Bearing\n[deg]','ClimbT\n[min]','Comments']
+                             'Bearing\n[deg]','ClimbT\n[min]','Comments','WP names']
         freeze_top_pane(wb)
         
         sh.range('G2:J2').number_format = 'hh:mm'
@@ -1098,14 +1108,14 @@ class dict_position:
                 '  CumLegT[H]  UTC[H]  LocalT[H]'+
                 '  LegT[H]  Dist[km]  CumDist[km]'+
                 '  Dist[nm]  CumDist[nm]  Speed[kt]'+
-                '  Altitude[kft]  SZA[deg]  AZI[deg]  Bearing[deg]  Climbt[min]  Comments\n')
+                '  Altitude[kft]  SZA[deg]  AZI[deg]  Bearing[deg]  Climbt[min]  Comments WPnames\n')
         for i in range(self.n):
-            f.write("""%-2i  %+2.8f  %+2.8f  %-4.2f  %-3i  %-5.1f  %-2.2f  %-2.2f  %-2.2f  %-2.2f  %-5.1f  %-5.1f  %-5.1f  %-5.1f  %-3.1f %-3.2f  %-3.1f  %-3.1f  %-3.1f  %-3i  %s  \n""" %(
+            f.write("""%-2i  %+2.8f  %+2.8f  %-4.2f  %-3i  %-5.1f  %-2.2f  %-2.2f  %-2.2f  %-2.2f  %-5.1f  %-5.1f  %-5.1f  %-5.1f  %-3.1f %-3.2f  %-3.1f  %-3.1f  %-3.1f  %-3i  %s  %s \n""" %(
                     i+1,self.lon[i],self.lat[i],self.speed[i],
                     self.delayt[i],self.alt[i],self.cumlegt[i],
                     self.utc[i],self.local[i],self.legt[i],
                     self.dist[i],self.cumdist[i],self.dist_nm[i],self.cumdist_nm[i], 
-                    self.speed_kts[i],self.alt_kft[i],self.sza[i],self.azi[i],self.bearing[i],self.climb_time[i],self.comments[i]))
+                    self.speed_kts[i],self.alt_kft[i],self.sza[i],self.azi[i],self.bearing[i],self.climb_time[i],self.comments[i],self.wpname[i]))
 
 
     def save2kml(self,filename=None):
@@ -1177,7 +1187,7 @@ class dict_position:
                 pnt.style.iconstyle.icon.href = path
             except:
                 pnt.style.iconstyle.icon.href = get_curdir()+'//map_icons//number_{}.png'.format(self.WP[i])
-            pnt.description = """UTC[H]=%2.2f\nLocal[H]=%2.2f\nCumDist[km]=%f\nspeed[m/s]=%4.2f\ndelayT[min]=%f\nSZA[deg]=%3.2f\nAZI[deg]=%3.2f\nBearing[deg]=%3.2f\nClimbT[min]=%f\nComments:%s""" % (self.utc[i],self.local[i],self.cumdist[i],
+            pnt.description = """UTC[H]=%2.2f\nWPname=%s\nLocal[H]=%2.2f\nCumDist[km]=%f\nspeed[m/s]=%4.2f\ndelayT[min]=%f\nSZA[deg]=%3.2f\nAZI[deg]=%3.2f\nBearing[deg]=%3.2f\nClimbT[min]=%f\nComments:%s""" % (self.utc[i],self.wpname[i],self.local[i],self.cumdist[i],
                                                                    self.speed[i],self.delayt[i],self.sza[i],
                                                                    self.azi[i],self.bearing[i],self.climb_time[i],self.comments[i])
 
@@ -1342,6 +1352,9 @@ class dict_position:
                 if len(onlyletters(wpname_old[j]).strip())>0:
                     if not onlyletters(wp_str) == onlyletters(wpname_old[j]):
                         wpname[j] = wpname_old[j]
+            if len(wpname[j])!=5:
+                alphanum = lambda some_string: ''.join(ch for ch in some_string if ch.isalnum())
+                wpname[j] = '{:X<5.5s}'.format(alphanum(wpname[j].upper()))
         return list(wpname)
             
         
@@ -1423,7 +1436,7 @@ def save2xl_for_pilots(filename,ex_arr):
         else:
             sh = wb_pilot.sheets.add(name=a.name,after=wb_pilot.sheets[wb_pilot.sheets.count-1])
             #wb_pilot.sheets(1).add(name=a.name)
-        xw.Range('A1').value = ['WP','Lat\n[+-90]','Lon\n[+-180]',
+        xw.Range('A1').value = ['WP','WP name','Lat\n[+-90]','Lon\n[+-180]',
                              'Altitude\n[kft]','Comments']
         #freeze_top_pane(wb_pilot)
         xw.Range('G2:J2').number_format = 'hh:mm'
@@ -1444,7 +1457,7 @@ def save2xl_for_pilots(filename,ex_arr):
                 comment = 'delay: {:2.1f} min, {}'.format(a.delayt[i],a.comments[i])
             else:
                 comment = a.comments[i]
-            xw.Range('A{:d}'.format(i+2)).value = [a.WP[i],lat_f,lon_f,a.alt_kft[i],comment]
+            xw.Range('A{:d}'.format(i+2)).value = [a.WP[i],a.wpname[i],lat_f,lon_f,a.alt_kft[i],comment]
         xw.Range('A{:d}'.format(i+4)).value = 'One line waypoints for foreflight:'
         xw.Range('A{:d}'.format(i+5)).value = one_line_points(a)
     wb_pilot.save(filename)

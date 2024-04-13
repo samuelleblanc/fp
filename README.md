@@ -331,6 +331,7 @@ Takes advantage of clickable map for creating a flight plan, and already existin
                 - speeded up interactions with changing labels update
 				- added snapping to labeled points
 				- added midpoint between 2 points
+				- added waypoint name row in excel
 			
 # To cite:
 
