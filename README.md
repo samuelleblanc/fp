@@ -330,6 +330,7 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 				- added better handling of satellite tracks defaulting to not visible for speed
                 - speeded up interactions with changing labels update
 				- added snapping to labeled points
+				- added midpoint between 2 points
 			
 # To cite:
 
