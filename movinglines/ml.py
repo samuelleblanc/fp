@@ -120,10 +120,11 @@
                 - bug fix for missing comments
                 - Added file format outputs in csv for FOREFLIGHT and UFP
         Modified: Samuel LeBlanc, v1.50, 2024-04-11, Santa Cruz, CA
-                - new pilot files bug fix for waypoint naming and lat/long flip
+                - new pilot files bug fix for waypoint naming (only 5 digits) and lat/long flip
                 - added file output for honeywell FMS for GIII
                 - added better handling of satellite tracks defaulting to not visible for speed
                 - speeded up interactions with changing labels update
+                - added snapping to labeled points
                  
 """
 try:

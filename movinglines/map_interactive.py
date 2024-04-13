@@ -173,9 +173,15 @@ class LineBuilder:
                 try:
                     self.contains_point, attrd_point = lp.contains(event)
                 except:
-                    import pdb; pdb.set_trace()
+                    pass
                 if self.contains_point:
                     xs,ys = lp.get_xdata(),lp.get_ydata()
+                    if hasattr(lp,'name'):
+                        print('click is near label point:',lp.name)
+                        self.point_name = lp.name
+                    else:
+                        self.point_name = None
+                    break
         if self.contains:
             if self.verbose:
                 print('click is near point:',self.contains,attrd)
@@ -206,20 +212,26 @@ class LineBuilder:
                 self.contains = False
             ilola = self.contains_index
         elif self.contains_point:
-            point_contains_index = attrd_point['ind']
-            self.xy = self.xs[-1],self.ys[-1]
-            #print(self.xy)
+            if len(attrd_point['ind'])>1:
+                point_contains_index = int(attrd_point['ind'][-1])
+            else:
+                point_contains_index = int(attrd_point['ind'])
+            
+            #self.xy = self.xs[-1],self.ys[-1]
             self.line.axes.format_coord = self.format_position_distance
-            self.line.axes.autoscale(enable=False)
-            self.highlight_linepoint, = self.line.axes.plot(xs[point_contains_index],
-                                                        ys[point_contains_index],'bo',zorder=40)
-            self.draw_canvas(extra_points=[self.highlight_linepoint])
+            #self.line.axes.autoscale(enable=False)
+            #self.highlight_linepoint, = self.line.axes.plot(xs[point_contains_index],
+            #                                            ys[point_contains_index],'bo',zorder=40)
+            #self.draw_canvas(extra_points=[self.highlight_linepoint])
             if self.m:
-                lo,la = self.m.convert_latlon(xs[point_contains_index],ys[point_contains_index]) #self.m(xs[point_contains_index],ys[point_contains_index],inverse=True)
+                lo,la = self.m.convert_latlon(float(xs[point_contains_index]),float(ys[point_contains_index])) #self.m(xs[point_contains_index],ys[point_contains_index],inverse=True)
+                self.lons = list(self.lons)
+                self.lats = list(self.lats)
                 self.lons.append(lo)
                 self.lats.append(la)
-            self.xs.append(xs[point_contains_index])
-            self.ys.append(ys[point_contains_index])
+            self.xs.append(float(xs[point_contains_index]))
+            self.ys.append(float(ys[point_contains_index]))
+            
             ilola = -2
         else:
             self.xy = self.xs[-1],self.ys[-1]
@@ -228,6 +240,8 @@ class LineBuilder:
             #print(self.xy,event.xdata,event.ydata,self.xs[-1],self.ys[-1])
             if self.m:
                 lo,la = self.m.convert_latlon(event.xdata,event.ydata) #self.m(event.xdata,event.ydata,inverse=True)
+                self.lons = list(self.lons)
+                self.lats = list(self.lats)
                 self.lons.append(lo)
                 self.lats.append(la)
             self.line.axes.format_coord = self.format_position_distance
@@ -281,12 +295,16 @@ class LineBuilder:
                 self.ex.calculate()
                 self.ex.write_to_excel()
         elif self.contains_point:
-            hlight = self.highlight_linepoint.findobj()[0]
-            while hlight in self.line.axes.lines:
-                self.line.axes.lines.remove(hlight)
+            #hlight = self.highlight_linepoint.findobj()[0]
+            #while hlight in self.line.axes.lines:
+            #    self.line.axes.lines.remove(hlight)
             self.contains_point = False
             if self.ex:
-                self.ex.appends(self.lats[-1],self.lons[-1])    
+                if self.point_name:
+                    alphanum = lambda some_string: ''.join(ch for ch in some_string if ch.isalnum())
+                    self.ex.appends(self.lats[-1],self.lons[-1],comm=self.point_name,wpname='{:X<5.5s}'.format(alphanum(self.point_name.upper())))    
+                else:
+                    self.ex.appends(self.lats[-1],self.lons[-1])
                 self.ex.calculate()
                 self.ex.write_to_excel()           
             self.xy = self.m.invert_lonlat(self.lons[-1],self.lats[-1])
@@ -670,18 +688,23 @@ class LineBuilder:
             import pdb; pdb.set_trace()
         self.line.figure.canvas.draw()
 
-    def newpoint(self,Bearing,distance,alt=None,last=True,feet=False,km=True,insert=False,insert_i=-1):
+    def newpoint(self,Bearing=0.0,distance=0.0,lat=None,lon=None,alt=None,last=True,feet=False,km=True,insert=False,insert_i=-1):
         """
         program to add a new point at the end of the current track with a bearing and distance, optionally an altitude
         if feet is set, altitude is defined in feet not the defautl meters.
         if km is set to True, distance is defined in kilometers (default), if False, it uses nautical miles (nm)
         update to use insert keyword for placing a point in the middle of the line, at the position of insert_i
+        
+        if lat and lon set, Bearing and distance is ignored
         """
-        if not km:
-            dist = distance*2.02 #need to check this value.
+        if lat and lon:
+            newlon,newlat = lon,lat
         else:
-            dist = distance
-        newlon,newlat,baz = shoot(self.lons[insert_i],self.lats[insert_i],Bearing,maxdist=distance)
+            if not km:
+                dist = distance*2.02 #need to check this value.
+            else:
+                dist = distance
+            newlon,newlat,baz = shoot(self.lons[insert_i],self.lats[insert_i],Bearing,maxdist=distance)
         if self.verbose:
             print('New points at lon: %f, lat: %f' %(newlon,newlat))
         if self.m:
@@ -1198,6 +1221,7 @@ def plot_map_labels(m,filename,marker=None,skip_lines=0,color=None,textcolor='k'
         point = m.plot(x,y,color=co,marker=ma,alpha=alpha)
         m.annotate(l['label'],(xtxt,ytxt),color=tco,alpha=alpha)
         point[0].set_pickradius(10)
+        point[0].name = l['label']
         labels_points.append(point[0])
             
         #import pdb; pdb.set_trace()

@@ -325,16 +325,17 @@ Takes advantage of clickable map for creating a flight plan, and already existin
                 - Added file format outputs in csv for FOREFLIGHT and UFP
 	Modified: Samuel LeBlanc, v1.50, 2024-04-10, Santa Cruz, CA
 				- general speedup of software
-                - new pilot files bug fix for waypoint naming and lat/long flip
+                - new pilot files bug fix for waypoint naming (only 5 digits) and lat/long flip
                 - added file output for honeywell FMS for GIII
 				- added better handling of satellite tracks defaulting to not visible for speed
                 - speeded up interactions with changing labels update
+				- added snapping to labeled points
 			
 # To cite:
 
 Cite as:
 
-Samuel LeBlanc (2023). samuelleblanc/fp: Moving Lines: NASA airborne research flight planning tool release (v1.44). Zenodo. https://doi.org/10.5281/zenodo.1478125
+Samuel LeBlanc and millercommamatt (2024) “samuelleblanc/fp: Moving Lines: Turn speed bug fix and new pilot formats”. (v1.49) Zenodo. doi: 10.5281/zenodo.10951716.
 
 BibTex:
 @misc{samuel_leblanc_2023_1478125,

@@ -1322,7 +1322,7 @@ class dict_position:
         print('Not yet')
         pass
     
-    def get_waypoint_names(self,i=None,fmt='{x.name[0]}{x.datestr.split("-")[1]}{x.datestr.split("-")[2]}WP{w:02d}'):
+    def get_waypoint_names(self,i=None,fmt='{x.name[0]}{x.datestr.split("-")[2]}{w:02d}'):
         'function to name the waypoints'
         x = self
         if i:
@@ -1476,7 +1476,7 @@ def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
     if verbose: print('.. saving FOREFLIGHT csv to {}'.format(filename+'_'+ex.name+'_FOREFLIGHT.csv'))
     f = open(filename+'_'+ex.name+'_FOREFLIGHT.csv','w+')
     f.write('Waypoint,Description,LAT,LONG\n')
-    ex.wpname = ex.get_waypoint_names(fmt=ex.p_info.get('waypoint_format','{x.name[0]}{x.datestr.split("-")[1]}{x.datestr.split("-")[2]}WP{w:02d}'))
+    ex.wpname = ex.get_waypoint_names(fmt=ex.p_info.get('waypoint_format','{x.name[0]}{x.datestr.split("-")[2]}{w:02d}'))
     for i in range(ex.n):
         f.write("""%s,ALT=%3.2f kft %s ,%+2.12f,%+2.12f\n""" %(
                 ex.wpname[i],ex.alt_kft[i],ex.comments[i],ex.lat[i],ex.lon[i]))
@@ -1484,7 +1484,7 @@ def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
     
     if verbose: print('.. saving FOREFLIGHT one liner to {}'.format(filename+'_'+ex.name+'_FOREFLIGHT_oneline.txt'))
     fo = open(filename+'_'+ex.name+'_FOREFLIGHT_oneline.txt','w+')
-    fo.write(one_line_points(ex))
+    fo.write(one_line_points(ex,wpnames=ex.wpname))
     fo.close()
     
     if verbose: print('.. saving UFP csv to {}'.format(filename+'_'+ex.name+'_UFP.csv'))
@@ -1537,19 +1537,23 @@ def format_lat_lon(lat,lon,format='DD MM SS'):
         lon_f = '{:02d} {:02.3f}'.format(lonv[0],lonv[1])
     return lat_f,lon_f
     
-def one_line_points(a):
+def one_line_points(a,wpnames=None):
     'Fromatting all waypoints onto one line for foreflight'
     def deg_to_dm(deg):
         d = int(deg)
         md = abs(deg - d) * 60
         return [d, md]
     str = ''
-    for i in range(len(a.lon)):
-        latv = deg_to_dm(a.lat[i])
-        lonv = deg_to_dm(a.lon[i])
-        lat_f = '{n}{:02d}{:06.3f}'.format(abs(latv[0]),latv[1],n='N' if latv[0]>0 else 'S')
-        lon_f = '{n}{:02d}{:06.3f}'.format(abs(lonv[0]),lonv[1],n='E' if lonv[0]>0 else 'W')
-        str = str+lat_f+'/'+lon_f+' '
+    if not wpnames:
+        for i in range(len(a.lon)):
+            latv = deg_to_dm(a.lat[i])
+            lonv = deg_to_dm(a.lon[i])
+            lat_f = '{n}{:02d}{:06.3f}'.format(abs(latv[0]),latv[1],n='N' if latv[0]>0 else 'S')
+            lon_f = '{n}{:02d}{:06.3f}'.format(abs(lonv[0]),lonv[1],n='E' if lonv[0]>0 else 'W')
+            str = str+lat_f+'/'+lon_f+' '
+    else:
+        for w in wpnames:
+            str = str+w+' ' 
     return str.rstrip()
         
 def get_curdir():

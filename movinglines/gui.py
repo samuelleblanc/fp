@@ -876,19 +876,41 @@ class gui:
             from gui import Move_point, ask_option
         except ModuleNotFoundError:
             from .gui import Move_point, ask_option
-        r = ask_option(title='Select Option',Text='Select where to put the points',button1='At End',button2='In Between\nPoints')
+        try:
+            from map_utils import midpoint
+        except:
+            from .map_utils import midpoint
+        r = ask_option(title='Select Option',Text='Select where to put the points',button1='At end',button2='After a\npoint',button3='Between 2\npoints')
         if r.out.get()==0:
             m = Move_point(speed=self.line.ex.speed[-1],pp=self.line.ex.azi[-1])
             self.line.newpoint(m.bear,m.dist)
+        elif r.out.get()==1:
+            wp_arr = []
+            for w in self.line.ex.WP:
+                wp_arr.append('WP #%i'%w)
+            p0 = Popup_list(wp_arr,title='After which point?',Text='After which point do you want to add ?:',multi=False)
+            #print('p0 result ',p0.result[0],p0.result[:],int(p0.result))
+            i0 = p0.result
+            m = Move_point(speed=self.line.ex.speed[-1],pp=self.line.ex.azi[-1])
+            self.line.newpoint(m.bear,m.dist,insert=True,insert_i=i0)        
         else:
             wp_arr = []
             for w in self.line.ex.WP:
                 wp_arr.append('WP #%i'%w)
-            p0 = Popup_list(wp_arr,title='After which point?',Text='Select the point before the one you want to add:',multi=False)
-            #print('p0 result ',p0.result[0],p0.result[:],int(p0.result))
-            i0 = p0.result
-            m = Move_point(speed=self.line.ex.speed[-1],pp=self.line.ex.azi[-1])
-            self.line.newpoint(m.bear,m.dist,insert=True,insert_i=i0)            
+            p = Popup_list(wp_arr,title='Between which points?',Text='Select two points, \nfor adding a central point:',multi=True)
+            i_vals = []
+            try:
+                for pi in p.result:
+                    i_vals.append(int(pi)) 
+                nul,nul = i_vals[0],i_vals[1]
+            except Exception as e:
+                import tkinter.messagebox as tkMessageBox
+                tkMessageBox.showwarning('Sorry',"Make sure you've selected 2 points: {}".format(e))
+            mid_p = midpoint((self.line.ex.lon[i_vals[0]],self.line.ex.lat[i_vals[0]]),(self.line.ex.lon[i_vals[1]],self.line.ex.lat[i_vals[1]]))
+            self.line.newpoint(None,None,lat=mid_p[1],lon=mid_p[0],insert=True,insert_i=i_vals[0])     
+        self.line.update_labels()
+        self.line.draw_canvas()
+        
 
     def gui_movepoints(self):
         'GUI button to move many points at once'
@@ -2284,10 +2306,12 @@ class ask_option(tkSimpleDialog.Dialog):
     """
     program to ask to select between two options with buttons
     """
-    def __init__(self,title='Select option',Text=None,button1='At End',button2='In Between\npoints'):
+    def __init__(self,title='Select option',Text=None,button1='At End',button2='In Between\npoints',button3=None):
         import tkinter as tk
         self.b1 = button1
         self.b2 = button2
+        if button3:
+            self.b3 = button3
         parent = tk._default_root
         self.Text = Text
         tkSimpleDialog.Dialog.__init__(self,parent,title)
@@ -2307,6 +2331,11 @@ class ask_option(tkSimpleDialog.Dialog):
         w.pack(side=tk.LEFT, padx=5, pady=5)
         w = tk.Button(box, text=self.b2, width=10, command=but2)
         w.pack(side=tk.LEFT, padx=5, pady=5)
+        if hasattr(self,'b3'):
+            def but3():
+                self.but(2)
+            w = tk.Button(box, text=self.b3, width=10, command=but3)
+            w.pack(side=tk.LEFT, padx=5, pady=5)
         self.bind("<Return>", self.ok)
         self.bind("<Escape>", self.cancel)
         box.pack()

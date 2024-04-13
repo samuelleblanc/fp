@@ -304,6 +304,26 @@ def shoot(lon, lat, azimuth, maxdist=None):
  
     return (glon2, glat2, baz)
 
+def midpoint(p1,p2):
+    """ This is the half-way point along a great circle path between the two points.
+    :param p1: tuple point of (lon, lat)
+    :param p2: tuple point of (lon, lat)
+    :return: point (lon, lat)
+    by SeanGrogan, from the package great_circle_calculator: https://github.com/seangrogan/great_circle_calculator
+    """
+    import numpy as np
+    _degrees_to_radians = lambda x: x*np.pi/180.0
+    _radians_to_degrees = lambda x: x*180.0/np.pi
+    lon1, lat1 = _degrees_to_radians(p1[0]),_degrees_to_radians(p1[1])
+    lon2, lat2 = _degrees_to_radians(p2[0]),_degrees_to_radians(p2[1])
+    b_x = np.cos(lat2) * np.cos(lon2 - lon1)
+    b_y = np.cos(lat2) * np.sin(lon2 - lon1)
+    lat3 = np.arctan2(np.sin(lat1) + np.sin(lat2), np.sqrt((np.cos(lat1) + b_x) * (np.cos(lat1) + b_x) + b_y * b_y))
+    lon3 = lon1 + np.arctan2(b_y, np.cos(lat1) + b_x)
+    lat3 = _radians_to_degrees(lat3)
+    lon3 = (_radians_to_degrees(lon3) + 540) % 360 - 180
+    p3 = (lon3, lat3)
+    return p3
 
 # In[ ]:
 
