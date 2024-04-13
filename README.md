@@ -1,6 +1,6 @@
 # Name:
 
-Moving Lines, version 1.49
+Moving Lines, version 1.50
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1478125.svg)](https://doi.org/10.5281/zenodo.1478125)
 
@@ -50,7 +50,7 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 
    *or*  
 ## For python installs:
-1) `pip install ml`
+1) `pip install movinglines`
 2) at a command line, start the moving lines software by typing `ml`  
 	
 # Quick Start: 
