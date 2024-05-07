@@ -255,9 +255,8 @@ class gui:
         if not self.line:
             print('No line object')
             return
-        filename = self.gui_file_select(ext='.xls',ftype=[('All files','*.*'),
-                                                         ('Excel 1997-2003','*.xls'),
-                                                         ('Excel','*.xlsx')])
+        filename = self.gui_file_select(ext='.xls',ftype=[('Excel','*.xlsx'),('All files','*.*'),
+                                                         ('Excel 1997-2003','*.xls')])
         if not filename: return
         try:
             self.line.disconnect()
@@ -744,10 +743,21 @@ class gui:
         'gui program to run through and save all the file formats, without verbosity, for use in distribution'
         from os import path
         try:
-            from excel_interface import save2xl_for_pilots
+            from excel_interface import save2xl_for_pilots, save2csv_for_FOREFLIGHT_UFP
         except ModuleNotFoundError:
-            from .excel_interface import save2xl_for_pilots
+            from .excel_interface import save2xl_for_pilots, save2csv_for_FOREFLIGHT_UFP
+        try:
+            from write_utils import create_generic_pptx
+        except ModuleNotFoundError:
+            from .write_utils import create_generic_pptx
         import tkinter.messagebox as tkMessageBox
+        slides = []
+        #slides (list of dict): Each dictionary represents a slide.
+        #    - For text content: {"text": "Your slide content"}
+        #    - For image content: {"image_path": "path/to/image.jpg"}
+        #    - For bulelts content: {"bulelts":["bulelt1","bullet 2"]}
+        #    - For multiple images: {"multiple_images":["path/to/image1.jpg"]}
+        #    - For title of slide : {"title":"Your slide title"}
         filename = self.gui_file_save(ext='*',ftype=[('Excel','*.xlsx')])
         if not filename:
             tkMessageBox.showwarning('Cancelled','Saving all files cancelled')
@@ -764,6 +774,13 @@ class gui:
         except:
             tkMessageBox.showwarning('Excel not saved','Error in saving excel pilot file: {}'.format(f_name+'_for_pilots.xlsx'))
         try:
+            self.line.ex.wpname = self.line.ex.get_waypoint_names(fmt=self.line.ex.p_info.get('waypoint_format','{x.name[0]}{x.datestr.split("-")[2]}{w:02d}'))
+            self.line.ex.wb.sh.activate()
+            for ex in self.line.ex_arr:
+                save2csv_for_FOREFLIGHT_UFP(f_name+'_for_pilots',ex,verbose=True)
+        except Exception as ef:
+            tkMessageBox.showwarning('Issue saving pilot versions','Error with pilot versions saving: {}'.format(ef))
+        try:
             self.line.ex.wb.set_current()
         except:
             tkMessageBox.showwarning('Unable to close for_pilots spreadsheet, please close manually')
@@ -774,14 +791,18 @@ class gui:
             lin = self.line.line
         legend,grey_index = self.prep_mapsave()
         lin.figure.savefig(f_name+'_map.png',dpi=600,transparent=False)
+        slides.append(dict(title='Map of flight paths',image_path=f_name+'_map.png'))
         #save combined plot
         try:
             fig = self.gui_plotalttime_cmb()
-            print('Saving the Alt vs time plot at:'+f_name+'_alt_{}.png'.format(combined))
+            print('Saving the Alt vs time plot at:'+f_name+'_alt_{}.png'.format('combined'))
             fig.savefig(f_name+'_alt_{}.png'.format('combined'),dpi=600,transparent=False)
+            slides.append(dict(title='Combined Altitude flight paths',image_path=f_name+'_alt_{}.png'.format('combined')))
         except:
-            pass
+            print('Issue saving the Alt vs time plot at:'+f_name+'_alt_{}.png'.format('combined'))
+            
         # go through each flight path
+        names = []
         for i,x in enumerate(self.line.ex_arr):
             self.iactive.set(i)
             self.gui_changeflight()
@@ -799,10 +820,27 @@ class gui:
             fig = self.gui_plotaltlat()
             print('Saving the Alt vs Latitude plot at:'+f_name+'_alt_lat_{}.png'.format(x.name))
             fig.savefig(f_name+'_alt_lat_{}.png'.format(x.name),dpi=600,transparent=False)
+            slides.append(dict(title='Info for: {}'.format(x.name),image_path=f_name+'_alt_{}.png'.format(x.name),
+                               bullets=['Take-off: {} UTC'.format(x.utc[0]),
+                                        'Landing: {} UTC'.format(x.utc[-1]),
+                                        'Total flight time: {:2.2f} h'.format(x.cumlegt[-1]) #### to finish                          
+                                        ]))
+            slides.append(dict(title='Info for: {}'.format(x.name),multiple_images=[f_name+'_sza_{}.png'.format(x.name),f_name+'_alt_lat_{}.png'.format(x.name)]))
+            names.append(x.name) 
         print('Saving kml file to :'+f_name+'.kml')
         self.kmlfilename = f_name+'.kml'
         self.line.ex.save2kml(filename=self.kmlfilename)
         self.return_map(legend,grey_index)
+        
+        #now save all the figures onto at common powerpoint
+        try:
+            nul,file_name = path.split(f_name)
+            create_generic_pptx(slides,f_name+'.pptx', title="Flight plan for {}\n{} \n {}".format(self.line.ex.datestr,file_name,'+'.join(c for c in names)),
+                                subtitle='Objectives:\n   -\n   -\n   -\n   -')
+        except Exception as ie:
+            tkMessageBox.showwarning('Powerpoint slide saving failed.','Error saving powerpoint.\n{}'.format(ie))
+            print('powerpoint slide saving failed. Error:  {}'.format(ie))
+       
         
     def stopandquit(self):
         'function to force a stop and quit the mainloop, future with exit of python'
@@ -1627,8 +1665,8 @@ class gui:
                                   dim_init_time=dim_init,
                                   CQL_filter=cql_filter,**kwargs)
                 if img:
-                    print('Image downloaded, Init_time: '+dim_init)
-                    label = label+', init:'+dim_init
+                    print('Image downloaded, Init_time: '+str(dim_init))
+                    label = label+', init:'+str(dim_init)
                     if printurl:
                         print(img.geturl())
                     break
@@ -1638,7 +1676,7 @@ class gui:
                     if 'img' in locals(): print(img.geturl())
                     self.root.config(cursor='')
                     self.root.update()
-                    tkMessageBox.showwarning('Sorry','Problem getting the image from WMS server: '+website.split('/')[2])
+                    tkMessageBox.showwarning('Sorry','Problem getting the image from WMS server: '+website.split('/')[2]+'\nError: {}'.format(ie))
                     return False, None, False
         try:
             legend_call = openURL(img.geturl().replace('GetMap','GetLegend'))

@@ -506,3 +506,103 @@ def make_plots_ict(data_dict,filepath,data_id,loc_id,date,rev,plot_together=[],p
         print('plotting {}'.format(n))
         fig.savefig(filepath+'{data_id}_{loc_id}_{date}_{rev}_{n}.png'.format(                data_id=data_id,loc_id=loc_id,date=date,rev=rev,n=n),dpi=600,transparent=True)
 
+def create_generic_pptx(slides,filepath,title="My Presentation",subtitle=None):
+    """
+    Creates a PowerPoint presentation (.pptx) with custom slides.
+
+    Args:
+        slides (list of dict): Each dictionary represents a slide.
+            - For text content: {"text": "Your slide content"}
+            - For image content: {"image_path": "path/to/image.jpg"}
+            - For bulelts content: {"bulelts":["bulelt1","bullet 2"]}
+            - For multiple images: {"multiple_images":["path/to/image1.jpg"]}
+            - For title of slide : {"title":"Your slide title"}
+            
+        title (str): Title for the presentation (default: "My Presentation")
+        subtitle (str): subtitle for the presentation title slide
+    """
+    import os
+    from pptx import Presentation
+    from pptx.util import Inches, Pt
+    prs = Presentation()
+
+    # Add a title slide
+    slide_layout = prs.slide_layouts[0]
+    title_slide = prs.slides.add_slide(slide_layout)
+    title_placeholder = title_slide.placeholders[0]
+    title_placeholder.text = title
+    subtitle_placeholder = title_slide.placeholders[1]
+    subtitle_placeholder.text = str(subtitle)
+    
+    left = Inches(1)
+    top = Inches(1)
+            
+    # Add custom slides
+    for slide_data in slides:
+        slide_layout = prs.slide_layouts[6]  # Blank slide layout
+        slide = prs.slides.add_slide(slide_layout)
+
+        
+        if ('text' in slide_data or 'bullets' in slide_data) and 'image_path' in slide_data:
+            content_box = slide.shapes.add_textbox(Inches(0.5), Inches(1.5), Inches(6), Inches(4.5))
+            text_frame = content_box.text_frame
+            p = text_frame.add_paragraph()
+            if 'text' in slide_data:
+                # Add text box on the left
+                p.text = slide_data['text']
+            elif "bullets" in slide_data:
+                # Add bullet points
+                for bullet in slide_data["bullets"]:
+                    p.text = bullet
+                    p.level = 0
+                    p.space_after = Inches(0.2)  # Adjust spacing between bullets
+            # Add image on the right
+            slide.shapes.add_picture(slide_data['image_path'], Inches(4.5), Inches(1.5), width=Inches(5.5))
+        else:
+            if "text" in slide_data:
+                # Add text content
+                textbox = slide.shapes.add_textbox(left, top, width=Inches(8), height=Inches(6))
+                text_frame = textbox.text_frame
+                p = text_frame.add_paragraph()
+                p.text = slide_data["text"]
+            elif "image_path" in slide_data:
+                # Add image content
+                img_path = slide_data["image_path"]
+                #left = (prs.slide_width - Inches(3)) / 2
+                #top = (prs.slide_height - Inches(3)) / 2
+                pic = slide.shapes.add_picture(img_path, 0, 0, width=Inches(10))
+            elif "bullets" in slide_data:
+                # Add bullet points
+                textbox = slide.shapes.add_textbox(left, top, width=Inches(8), height=Inches(6))
+                text_frame = textbox.text_frame
+                for bullet in slide_data["bullets"]:
+                    p = text_frame.add_paragraph()
+                    p.text = bullet
+                    p.level = 0
+                    p.space_after = Inches(0.2)  # Adjust spacing between bullets
+            elif "title" in slide_data:
+                # Add subtitle
+                textbox = slide.shapes.add_textbox(left, top, width=Inches(8), height=Inches(1))
+                text_frame = textbox.text_frame
+                p = text_frame.add_paragraph()
+                p.text = slide_data["title"]
+                p.font.size = Pt(18)  # Customize font size for subtitles
+            elif 'multiple_images' in slide_data:
+                num_images = len(slide_data['multiple_images'])
+                if num_images ==2:
+                    i = 0
+                    for img_path in slide_data['multiple_images']:
+                        pic = slide.shapes.add_picture(img_path, Inches(5)*i, top, width=Inches(5))
+                        i += 1
+                else:
+                    image_width = Inches(3)
+                    total_width = num_images * image_width
+                    left = (prs.slide_width - total_width) / 2
+                    top = Inches(1.5)
+                    for img_path in slide_data['multiple_images']:
+                        slide.shapes.add_picture(img_path, left, top, width=image_width)
+                        left += image_width
+
+    # Save the presentation
+    prs.save(filepath)
+    print("Presentation saved under the name: {}.".format(filepath))
