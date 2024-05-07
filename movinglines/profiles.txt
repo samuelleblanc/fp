@@ -1,7 +1,7 @@
 {'Profile':'ARCSIX','Plane_name':'P3',
                  'Start_lon':'68 42 11W','Start_lat':'76 31 52N', 
                  'Lon_range':[-100,20],'Lat_range':[72,73],
-                 'UTC_start':10.0,'UTC_conversion':-3.0,
+                 'UTC_start':11.0,'UTC_conversion':-3.0,
                  'start_alt':76.5,
 				 'proj':'NorthPolarStereo','lat_0':76.0,'lon_0':68.0,
 				 'waypoint_format':'{x.name[0]}{x.datestr.split("-")[2]}{w:02d}'}

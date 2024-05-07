@@ -356,6 +356,7 @@ class dict_position:
         """
         self.n = len(self.lon)
         self.WP = range(1,self.n+1)
+        previous_spiral = False
         for i in range(self.n-1):
             self.dist[i+1] = mu.spherical_dist([self.lat[i],self.lon[i]],[self.lat[i+1],self.lon[i+1]])
             if np.isfinite(self.alt.astype(float)[i+1]):
@@ -401,16 +402,23 @@ class dict_position:
                     self.turn_deg[i+1] = 360 - self.turn_deg[i+1] #for the shortest turn side
                 self.turn_deg[i+1] += 180.0 # to account for a 90-270 turn for near 180 turns
             self.turn_time[i+1] = (self.turn_deg[i+1]*self.rate_of_turn)/60.0 + self.get_time_to_fly_turn_radius(i)
+            turn_time_as_delay = False
             if not np.isfinite(self.delayt.astype(float)[i+1]):
                 self.delayt[i+1] = self.turn_time[i+1]
+                turn_time_as_delay = True
             #else:
             #    self.delayt[i+1] = self.delayt[i+1]+self.turn_time[i+1]
             self.climb_time[i+1] = self.calc_climb_time(self.alt[i],self.alt[i+1]) #defaults to P3 speed
             self.legt[i+1] = (self.dist[i+1]/(self.speed[i+1]/1000.0))/3600.0
+            spiral = False
             if self.legt[i+1] < self.climb_time[i+1]/60.0:
                 self.legt[i+1] = self.climb_time[i+1]/60.0
+                spiral = True
             self.legt[i+1] += self.delayt[i+1]/60.0
-            self.legt[i+1] += self.turn_time[i+1]/60.0
+            if not spiral and not turn_time_as_delay and not previous_spiral:
+                self.legt[i+1] += self.turn_time[i+1]/60.0
+            if spiral:
+                previous_spiral = True
             self.utc[i+1] = self.utc[i]+self.legt[i+1]
             if not np.isfinite(self.utc[i+1]):
                 print(self.utc)

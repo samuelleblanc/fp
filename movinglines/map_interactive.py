@@ -1466,6 +1466,7 @@ def plot_sat_tracks(m,sat,label_every=5,max_num=60):
         #print(legend0,'toggled, for line:',graphs[legend0],isVisible,legend0.get_alpha)
         #import pdb; pdb.set_trace()
         m.figure.canvas.draw()
+        #m.get_bg(redraw=True)
     
     leg_onpick = m.figure.canvas.mpl_connect('pick_event',on_pick_legend)
     #try:    
