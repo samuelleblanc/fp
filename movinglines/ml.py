@@ -421,6 +421,8 @@ def build_buttons(ui,lines,vertical=True):
     g.bsaveall_style.configure('B2.TButton',background='lightskyblue',foreground='blue')
     g.bsaveall = ttk.Button(g.root,text='Save All',
 			    command=g.gui_saveall,style='B2.TButton')
+    g.bsavepptx = ttk.Button(g.root,text='Save pptx',
+                             command=g.gui_savepptx)
     g.refresh.pack(in_=ui.top,side=side,fill=tk.X,pady=0)
     g.refreshspeed.pack(in_=ui.top,side=side,fill=tk.X,pady=0)
     ttk.Label(g.root,text='File options').pack(in_=ui.top,side=side) 
@@ -444,7 +446,8 @@ def build_buttons(ui,lines,vertical=True):
     g.frame_save2 = ttk.Frame(ui.top)
     g.frame_save2.pack(in_=ui.top,side=side,fill=tk.X,pady=2)
     g.bsavepng.pack(in_=g.frame_save2,side=tk.RIGHT)
-    g.bsaveall.pack(in_=g.frame_save2,side=tk.LEFT)         
+    g.bsaveall.pack(in_=g.frame_save2,side=tk.LEFT)
+    g.bsavepptx.pack(in_=g.frame_save2,side=tk.LEFT)    
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
              ).pack(in_=ui.top,side=side,padx=8,pady=5)
     g.frame_plot = ttk.Frame(ui.top)

@@ -89,6 +89,7 @@ class gui:
         self.colorcycle = ['red','blue','green','cyan','magenta','yellow','black','lightcoral','teal','darkviolet','orange']
         self.get_geometry()
         self.geotiff_path = os.path.relpath('elevation_10KMmd_GMTEDmd.tif')
+        self.pptx_point_format = '..{deltat_min} minutes from previous\n#{i:02.0f} - {utc_str} UTC, {wpname}:{Comment}'
         if not root:
             self.root = tk.Tk()
         else:
@@ -802,7 +803,9 @@ class gui:
             print('Issue saving the Alt vs time plot at:'+f_name+'_alt_{}.png'.format('combined'))
             
         # go through each flight path
-        names = []
+        names = [x.name for x in self.line.ex_arr]
+        subtitle = ''
+        cmb,distances = self.line.calc_dist_from_each_points()
         for i,x in enumerate(self.line.ex_arr):
             self.iactive.set(i)
             self.gui_changeflight()
@@ -820,13 +823,16 @@ class gui:
             fig = self.gui_plotaltlat()
             print('Saving the Alt vs Latitude plot at:'+f_name+'_alt_lat_{}.png'.format(x.name))
             fig.savefig(f_name+'_alt_lat_{}.png'.format(x.name),dpi=600,transparent=False)
-            slides.append(dict(title='Info for: {}'.format(x.name),image_path=f_name+'_alt_{}.png'.format(x.name),
-                               bullets=['Take-off: {} UTC'.format(x.utc[0]),
-                                        'Landing: {} UTC'.format(x.utc[-1]),
-                                        'Total flight time: {:2.2f} h'.format(x.cumlegt[-1]) #### to finish                          
-                                        ]))
-            slides.append(dict(title='Info for: {}'.format(x.name),multiple_images=[f_name+'_sza_{}.png'.format(x.name),f_name+'_alt_lat_{}.png'.format(x.name)]))
-            names.append(x.name) 
+
+            labels,main_points = x.get_main_points(combined_distances=distances[i], combined_utc=cmb,combined_names=names,fmt=self.pptx_point_format)
+            table = [[mpt['i'],mpt['utc_str'],mpt['wpname'],mpt['deltat_min'],mpt['Comment']] for mpt in main_points]
+            table.insert(0,['WP #','UTC [H]','WP Name','Time delta [minutes]','Comments'])
+            float_to_hh_mm = lambda float_hours: '{:02d}:{:02d}'.format(int(float_hours), int((float_hours - int(float_hours)) * 60))
+            slides.append(dict(title='{}: Take-off {} UTC-> landing {} UTC\nflight time {:2.2}h '.format(x.name,\
+                               float_to_hh_mm(x.utc[0]),float_to_hh_mm(x.utc[-1]),x.cumlegt[-1]),image_path=f_name+'_alt_{}.png'.format(x.name),
+                               table=table,text='Some important points'))
+            slides.append(dict(title='{}'.format(x.name),multiple_images=[f_name+'_sza_{}.png'.format(x.name),f_name+'_alt_lat_{}.png'.format(x.name)]))
+            subtitle += '{}({:2.2f}h T/O@{}UTC) '.format(x.name,x.cumlegt[-1],float_to_hh_mm(x.utc[0]))
         print('Saving kml file to :'+f_name+'.kml')
         self.kmlfilename = f_name+'.kml'
         self.line.ex.save2kml(filename=self.kmlfilename)
@@ -835,13 +841,86 @@ class gui:
         #now save all the figures onto at common powerpoint
         try:
             nul,file_name = path.split(f_name)
-            create_generic_pptx(slides,f_name+'.pptx', title="Flight plan for {}\n{} \n {}".format(self.line.ex.datestr,file_name,'+'.join(c for c in names)),
-                                subtitle='Objectives:\n   -\n   -\n   -\n   -')
+            create_generic_pptx(slides,f_name+'.pptx', title="Flight plan for {}\n{} \n {}".format(self.line.ex.datestr,file_name,subtitle),
+                                subtitle='Objectives:\n   -\n   -\n   -')
         except Exception as ie:
             tkMessageBox.showwarning('Powerpoint slide saving failed.','Error saving powerpoint.\n{}'.format(ie))
             print('powerpoint slide saving failed. Error:  {}'.format(ie))
        
+    def gui_savepptx(self):
+        'gui program to run through and save all the figures, and makes a powerpoint presentation'
+        from os import path
+        try:
+            from write_utils import create_generic_pptx
+        except ModuleNotFoundError:
+            from .write_utils import create_generic_pptx
+        import tkinter.messagebox as tkMessageBox
+        slides = []
+        #slides (list of dict): Each dictionary represents a slide.
+        #    - For text content: {"text": "Your slide content"}
+        #    - For image content: {"image_path": "path/to/image.jpg"}
+        #    - For bulelts content: {"bulelts":["bulelt1","bullet 2"]}
+        #    - For multiple images: {"multiple_images":["path/to/image1.jpg"]}
+        #    - For title of slide : {"title":"Your slide title"}
+        filename = self.gui_file_save(ext='*',ftype=[('PowerPoint','*.pptx')])
+        if not filename:
+            tkMessageBox.showwarning('Cancelled','Saving all files cancelled')
+            return
+        f_name,_ = path.splitext(filename)
+        slides = []
+        print('Saving figure file to :'+f_name+'_map.png')
+        if type(self.line.line) is list:
+            lin = self.line.line[0]
+        else:
+            lin = self.line.line
+        legend,grey_index = self.prep_mapsave()
+        lin.figure.savefig(f_name+'_map.png',dpi=600,transparent=False)
+        slides.append(dict(title='Map of flight paths',image_path=f_name+'_map.png'))
+        #save combined plot
+        try:
+            fig = self.gui_plotalttime_cmb()
+            print('Saving the Alt vs time plot at:'+f_name+'_alt_{}.png'.format('combined'))
+            fig.savefig(f_name+'_alt_{}.png'.format('combined'),dpi=600,transparent=False)
+            slides.append(dict(title='Combined Altitude flight paths',image_path=f_name+'_alt_{}.png'.format('combined')))
+        except:
+            print('Issue saving the Alt vs time plot at:'+f_name+'_alt_{}.png'.format('combined'))
+            
+        # go through each flight path
+        names = [x.name for x in self.line.ex_arr]
+        subtitle = ''
+        cmb,distances = self.line.calc_dist_from_each_points()
+        for i,x in enumerate(self.line.ex_arr):
+            self.iactive.set(i)
+            self.gui_changeflight()
+            print('Generating the figures for {}'.format(x.name))
+            fig = self.gui_plotalttime()
+            print('Saving the Alt vs time plot at:'+f_name+'_alt_{}.png'.format(x.name))
+            fig.savefig(f_name+'_alt_{}.png'.format(x.name),dpi=600,transparent=False)
+            fig = self.gui_plotsza()
+            print('Saving the SZA vs time plot at:'+f_name+'_sza_{}.png'.format(x.name))
+            fig.savefig(f_name+'_sza_{}.png'.format(x.name),dpi=600,transparent=False)
+            fig = self.gui_plotaltlat()
+            print('Saving the Alt vs Latitude plot at:'+f_name+'_alt_lat_{}.png'.format(x.name))
+            fig.savefig(f_name+'_alt_lat_{}.png'.format(x.name),dpi=600,transparent=False)
+            labels,main_points = x.get_main_points(combined_distances=distances[i], combined_utc=cmb,combined_names=names,fmt=self.pptx_point_format)
+            table = [[mpt['i'],mpt['utc_str'],mpt['wpname'],mpt['deltat_min'],mpt['Comment']] for mpt in main_points]
+            table.insert(0,['WP #','UTC [H]','WP Name','Time delta [minutes]','Comments'])
+            float_to_hh_mm = lambda float_hours: '{:02d}:{:02d}'.format(int(float_hours), int((float_hours - int(float_hours)) * 60))
+            slides.append(dict(title='{}: Take-off {} UTC-> landing {} UTC\nflight time {:2.2}h '.format(x.name,float_to_hh_mm(x.utc[0]),float_to_hh_mm(x.utc[-1]),x.cumlegt[-1]),image_path=f_name+'_alt_{}.png'.format(x.name),
+                               table=table,text='Some important points'))
+            slides.append(dict(title='Info for: {}'.format(x.name),multiple_images=[f_name+'_sza_{}.png'.format(x.name),f_name+'_alt_lat_{}.png'.format(x.name)])) 
+            subtitle += '{}({:2.2f}h T/O@{}UTC) '.format(x.name,x.cumlegt[-1],float_to_hh_mm(x.utc[0]))
+        self.return_map(legend,grey_index)
         
+        #now save all the figures onto at common powerpoint
+        try:
+            nul,file_name = path.split(f_name)
+            create_generic_pptx(slides,f_name+'.pptx', title="Flight plan for {}\n{} \n {}".format(self.line.ex.datestr,file_name,subtitle),
+                                subtitle='Objectives:\n   -\n   -\n   -')
+        except Exception as ie:
+            tkMessageBox.showwarning('Powerpoint slide saving failed.','Error saving powerpoint.\n{}'.format(ie))
+            print('powerpoint slide saving failed. Error:  {}'.format(ie))
+       
     def stopandquit(self):
         'function to force a stop and quit the mainloop, future with exit of python'
         self.root.quit()

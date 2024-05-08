@@ -100,6 +100,7 @@ class LineBuilder:
         self.iactive = 0
         self.m = m
         self.ex = ex
+        self.ex.labels_points = self.make_labels_points()
         self.ex_arr = []
         self.ex_arr.append(ex)
         self.xs = list(line.get_xdata())
@@ -294,7 +295,7 @@ class LineBuilder:
             if self.ex:
                 self.ex.mods(self.contains_index,
                              self.lats[self.contains_index],
-                             self.lons[self.contains_index])
+                             self.lons[self.contains_index], wpname=' ')
                 self.ex.calculate()
                 self.ex.write_to_excel()
         elif self.contains_point:
@@ -544,6 +545,18 @@ class LineBuilder:
                     pass
         if not nodraw:
             self.line.figure.canvas.draw()
+    
+    def make_labels_points(self):
+        'function to make a list of the lat, lon, and names of the labelled points'
+        
+        points = []
+        for lp in self.line.labels_points:
+            if not hasattr(lp,'name'):
+                continue
+            lon,lat = self.m.convert_latlon(lp.get_xdata()[0],lp.get_ydata()[0])
+            points.append((str(lp.name),lat,lon))
+            
+        return points
 
     def plt_range_circles(self,lon,lat,azi=None):
         'program to plot range circles starting from the last point selected on the map, with principal plane identified'        
@@ -755,7 +768,7 @@ class LineBuilder:
         self.xs[i] = x
         self.ys[i] = y
         self.line.set_data(self.xs, self.ys)
-        if self.ex: self.ex.mods(i,self.lats[i],self.lons[i])
+        if self.ex: self.ex.mods(i,self.lats[i],self.lons[i],wpname=' ')
         if last:
             if self.ex:
                 self.ex.calculate()
@@ -944,6 +957,7 @@ class LineBuilder:
             distances.append(combined['distances'][indices,:].tolist())
         
         return combined,distances
+    
         
 def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj='cyl',profile=None,larger=True, use_cartopy=True):
     """

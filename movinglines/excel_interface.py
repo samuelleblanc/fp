@@ -933,9 +933,15 @@ class dict_position:
             if comm: 
                 self.comments[i] = comm
                 changed = True
+            if comm==' ':
+                self.comments[i] = None
+                changed = True
         if not self.wpname[i] == wpname:
             if wpname: 
                 self.wpname[i] = wpname
+                changed = True
+            if wpname==' ':
+                self.wpname[i] = None
                 changed = True
         return changed
 
@@ -1351,21 +1357,52 @@ class dict_position:
             wpname_old = self.wpname
         else:
             wpname_old = self.WP
-        onlyletters = lambda str : ''.join(c for c in str if not c.isdigit())
+        onlyletters = lambda some_string : ''.join(c for c in some_string if not c.isdigit())
+        alphanum = lambda some_string: ''.join(ch for ch in some_string if ch.isalnum())
         for j,w in enumerate(self.WP):
             wp_str = eval("f'{}'".format(fmt))
             #compare only the non numerics
             wpname[j] = wp_str
+            if hasattr(self,'labels_points'): #check if the labeled points are near the points already identified
+                #import ipdb; ipdb.set_trace()
+                for lp in self.labels_points:
+                    if (lp[1]-self.lat[j])**2+(lp[2]-self.lon[j])**2 < 0.001:
+                        wpname[j] = '{:X<5.5s}'.format(alphanum(lp[0].upper()))
+                        break
             if (wp_str) and (wpname_old[j]):
                 if len(onlyletters(wpname_old[j]).strip())>0:
                     if not onlyletters(wp_str) == onlyletters(wpname_old[j]):
                         wpname[j] = wpname_old[j]
             if len(wpname[j])!=5:
-                alphanum = lambda some_string: ''.join(ch for ch in some_string if ch.isalnum())
                 wpname[j] = '{:X<5.5s}'.format(alphanum(wpname[j].upper()))
         return list(wpname)
-            
-        
+    
+    def get_main_points(self, combined_distances=None, combined_utc=None,combined_names=[],fmt='{wpname}:{Comment}, {utc_str} , {deltat_min} minutes since '):
+        'function to pull out the points that have comments, and those that are coordinated, including time between those points.'
+        main_points = []
+        float_to_hh_mm = lambda float_hours: '{:02d}:{:02d}'.format(int(float_hours), int((float_hours - int(float_hours)) * 60))
+        for j,w in enumerate(self.WP): 
+            if combined_distances: 
+                for ii,d in enumerate(combined_distances[j]):
+                    if (ii != self.sheet_num-1) and (d<30.0): #there is a colocation
+                        main_points.append(dict(Comment='Colocation with: {}'.format(combined_names[ii]),
+                                           wpname=self.wpname[j],utc=self.utc[j],i=j,deltat_min=0,label='',
+                                           utc_str=float_to_hh_mm(self.utc[j])))
+            if self.comments[j]: # There is a comment - likely an important point
+                main_points.append(dict(Comment=self.comments[j],wpname=self.wpname[j],utc=self.utc[j],
+                                        utc_str=float_to_hh_mm(self.utc[j]),i=j,deltat_min=0,label=''))
+                
+            main_points[0]['label'] = fmt.format(**main_points[-1])
+            if len(main_points)>1:
+                old_utc = main_points[0]['utc']
+                for mpt in main_points[1:]:
+                    mpt['deltat_min'] = int((mpt['utc']-old_utc)*60.0)
+                    old_utc = mpt['utc']
+                    mpt['label'] = fmt.format(**mpt)
+                                
+        labels = [mpt['label'] for mpt in main_points]
+        return labels,main_points
+                       
 def get_next_revision(fname):
     'Program that returns the next revision value for a given filename of ict file'
     import os, glob
