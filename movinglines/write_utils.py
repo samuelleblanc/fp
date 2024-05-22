@@ -578,7 +578,7 @@ def create_generic_pptx(slides,filepath,title="My Presentation",subtitle=None):
             rows = len(slide_data['table'])
             cols = len(slide_data['table'][0])
 
-            table = slide.shapes.add_table(rows, cols, Inches(0.2), Inches(3), Inches(4.5), Inches(4)).table
+            table = slide.shapes.add_table(rows, cols, Inches(0.2), Inches(2), Inches(4.5), Inches(4)).table
             for i in range(rows):
                 for j in range(cols):
                     table.cell(i, j).text = str(slide_data['table'][i][j])
