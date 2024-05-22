@@ -1,6 +1,6 @@
 # Name:
 
-Moving Lines, version 1.50
+Moving Lines, version 1.51
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1478125.svg)](https://doi.org/10.5281/zenodo.1478125)
 
@@ -138,6 +138,10 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 ## Saving flight paths for sharing
     1) Press the 'Save all' button to create all figures and save them
     2) Follow dialog to find the desired saving location
+
+## Making a slideshow with preset maps and displays for easier dissemination
+    1) Press the 'Save pptx'
+    2) Follow the prompts to where you want to save the items. This will create new figures, similar to the 'save all' button.
     
 ## Opening previously saved flight plans:
     1) Press the Excel File: 'Open' button. 
