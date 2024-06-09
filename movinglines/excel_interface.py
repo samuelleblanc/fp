@@ -684,6 +684,10 @@ class dict_position:
         num = 0
         for i,t in enumerate(tmp):
             if i>self.n-1: #new points
+                if not t[20]:
+                    t[20] = ' '
+                if not t[21]:
+                    t[21] = ' '
                 self.appends(*t[1:16],comm=t[20],wpname=t[21])
                 num = num + 1
             else: # check if modifications
@@ -1373,7 +1377,7 @@ class dict_position:
                 if len(onlyletters(wpname_old[j]).strip())>0:
                     if not onlyletters(wp_str) == onlyletters(wpname_old[j]):
                         wpname[j] = wpname_old[j]
-            if len(wpname[j])!=5:
+            if len(wpname[j])!=5 and j!=0 and j!=len(self.WP)-1:
                 wpname[j] = '{:X<5.5s}'.format(alphanum(wpname[j].upper()))
         return list(wpname)
     
@@ -1386,7 +1390,7 @@ class dict_position:
                 for ii,d in enumerate(combined_distances[j]):
                     if (ii != self.sheet_num-1) and (d<30.0): #there is a colocation
                         main_points.append(dict(Comment='Colocation with: {}'.format(combined_names[ii]),
-                                           wpname=self.wpname[j],utc=self.utc[j],i=j,deltat_min=0,label='',
+                                           wpname=self.wpname[j],utc=self.utc[j],i=j+1,deltat_min=0,label='',
                                            utc_str=float_to_hh_mm(self.utc[j])))
             if self.comments[j]: # There is a comment - likely an important point
                 main_points.append(dict(Comment=self.comments[j],wpname=self.wpname[j],utc=self.utc[j],
@@ -1536,8 +1540,13 @@ def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
     f.write('Waypoint,Description,LAT,LONG\n')
     ex.wpname = ex.get_waypoint_names(fmt=ex.p_info.get('waypoint_format','{x.name[0]}{x.datestr.split("-")[2]}{w:02d}'))
     for i in range(ex.n):
+        if ex.wpname[i] in ex.wpname[0:i]: break
+
+        comm = ex.comments[i]
+        if ex.comments[i]:
+            comm = ex.comments[i].replace(',', '')
         f.write("""%s,ALT=%3.2f kft %s ,%+2.12f,%+2.12f\n""" %(
-                ex.wpname[i],ex.alt_kft[i],ex.comments[i],ex.lat[i],ex.lon[i]))
+                ex.wpname[i],ex.alt_kft[i],comm,ex.lat[i],ex.lon[i]))
     f.close()
     
     if verbose: print('.. saving FOREFLIGHT one liner to {}'.format(filename+'_'+ex.name+'_FOREFLIGHT_oneline.txt'))
@@ -1549,17 +1558,25 @@ def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
     fu = open(filename+'_'+ex.name+'_UFP.csv','w+')
     fu.write('Waypoint,LAT,LONG,Description\n')
     for i in range(ex.n):
+        if ex.wpname[i] in ex.wpname[0:i]: break
+        comm = ex.comments[i]
+        if ex.comments[i]:
+            comm = ex.comments[i].replace(',', '')
         fu.write("""%s,%+2.12f,%+2.12f,ALT=%3.2f kft %s\n""" %(
-                ex.wpname[i],ex.lat[i],ex.lon[i],ex.alt_kft[i],ex.comments[i]))
+                ex.wpname[i],ex.lat[i],ex.lon[i],ex.alt_kft[i],comm))
     fu.close()
     
     if verbose: print('.. saving Honeywell csv to {}'.format(filename+'_'+ex.name+'_Honeywell.csv'))
     fh = open(filename+'_'+ex.name+'_Honeywell.csv','w+')
     fh.write('E,WPT,FIX,LAT,LON\n')
     for i in range(ex.n):
+        if ex.wpname[i] in ex.wpname[0:i]: break
         lat_str,lon_str = format_lat_lon(ex.lat[i],ex.lon[i],format='NDDD MM.SS')
+        comm = ex.comments[i]
+        if ex.comments[i]:
+            comm = ex.comments[i].replace(',', '')
         fh.write("""x,%s,ALT=%3.2f kft %s,%s,%s\n""" %(
-                ex.wpname[i],ex.alt_kft[i],ex.comments[i],lat_str,lon_str))
+                ex.wpname[i],ex.alt_kft[i],comm,lat_str,lon_str))
     fh.close()
                 
 def format_lat_lon(lat,lon,format='DD MM SS'):
@@ -1573,8 +1590,8 @@ def format_lat_lon(lat,lon,format='DD MM SS'):
             return [d, m, sd]
         latv = deg_to_dms(lat)
         lonv = deg_to_dms(lon)
-        lat_f = '{:02d} {:02d} {:02.3f}'.format(latv[0],latv[1],latv[2])
-        lon_f = '{:02d} {:02d} {:02.3f}'.format(lonv[0],lonv[1],lonv[2])
+        lat_f = '{:02d} {:02d} {:04.1f}'.format(latv[0],latv[1],latv[2])
+        lon_f = '{:02d} {:02d} {:04.1f}'.format(lonv[0],lonv[1],lonv[2])
     if format == 'NDDD MM.SS':
         def deg_to_dms(deg):
             d = int(deg)
@@ -1582,8 +1599,8 @@ def format_lat_lon(lat,lon,format='DD MM SS'):
             return [d, md]
         latv = deg_to_dms(lat)
         lonv = deg_to_dms(lon)
-        lat_f = '{n}{:3d} {:02.2f}'.format(abs(latv[0]),latv[1],n='N' if latv[0]>0 else 'S')
-        lon_f = '{n}{:3d} {:02.2f}'.format(abs(lonv[0]),lonv[1],n='E' if lonv[0]>0 else 'W')
+        lat_f = '{n}{:3d} {:05.2f}'.format(abs(latv[0]),latv[1],n='N' if latv[0]>0 else 'S')
+        lon_f = '{n}{:3d} {:05.2f}'.format(abs(lonv[0]),lonv[1],n='E' if lonv[0]>0 else 'W')
     if format == 'DD MM':
         def deg_to_dm(deg):
             d = int(deg)
@@ -1591,8 +1608,8 @@ def format_lat_lon(lat,lon,format='DD MM SS'):
             return [d, md]
         latv = deg_to_dm(lat)
         lonv = deg_to_dm(lon)
-        lat_f = '{:02d} {:02.3f}'.format(latv[0],latv[1])
-        lon_f = '{:02d} {:02.3f}'.format(lonv[0],lonv[1])
+        lat_f = '{:02} {:05.2f}'.format(int(latv[0]),latv[1])
+        lon_f = '{:02} {:05.2f}'.format(int(lonv[0]),lonv[1])
     return lat_f,lon_f
     
 def one_line_points(a,wpnames=None):

@@ -706,7 +706,7 @@ class LineBuilder:
             import pdb; pdb.set_trace()
         self.line.figure.canvas.draw()
 
-    def newpoint(self,Bearing=0.0,distance=0.0,lat=None,lon=None,alt=None,last=True,feet=False,km=True,insert=False,insert_i=-1):
+    def newpoint(self,Bearing=0.0,distance=0.0,lat=None,lon=None,alt=None,last=True,feet=False,km=True,insert=False,insert_i=-1,wp_name=None):
         """
         program to add a new point at the end of the current track with a bearing and distance, optionally an altitude
         if feet is set, altitude is defined in feet not the defautl meters.
@@ -748,13 +748,14 @@ class LineBuilder:
                 if feet:
                     alt = alt/3.28084
             if not insert:
-                self.ex.appends(self.lats[-1],self.lons[-1],alt=alt)
+                self.ex.appends(self.lats[-1],self.lons[-1],alt=alt,wpname=wp_name)
             else:
-                self.ex.inserts(insert_i+1,newlat,newlon,alt=alt)
+                self.ex.inserts(insert_i+1,newlat,newlon,alt=alt,wpname=wp_name)
             self.ex.calculate()
             self.ex.write_to_excel()
-        self.update_labels(updatexys=True)
-        self.draw_canvas()
+        if last:
+            self.update_labels(updatexys=True)
+            self.draw_canvas()
 
     def movepoint(self,i,Bearing,distance,last=False):
         'Program to move a point a certain distance and bearing'
@@ -848,9 +849,14 @@ class LineBuilder:
         wp_num = len(self.ex.alt)
         for l in s[1:-1]:
             if not (l.startswith('#') or l.startswith('%')):
+                if len(l.split(','))>3:
+                    l,wpname = l.rsplit(',',1)
+                    wpname = wpname.strip()
+                else:
+                    wpname = None
                 if len(l.split('@'))>1:
                     l,l1 = l.split('@')
-                    insert_i = int(l1)+wp_num-1
+                    insert_i = int(l1.strip(','))+wp_num-1
                 else:
                     insert_i = -1
                     
@@ -870,18 +876,24 @@ class LineBuilder:
                     l = ','.join([l.split(',')[0],'{}'.format(dist),'{}'.format(alt)])
                 try:
                     print(eval(l),use_feet,use_km,insert_i)
-                    self.newpoint(*eval(l),last=False,feet=use_feet,km=use_km,insert_i=insert_i)
+                    self.newpoint(*eval(l),last=False,feet=use_feet,km=use_km,insert_i=insert_i,wp_name=wpname)
                 except:
                     print('problem with {}'.format(l))
         if not s[-1].startswith('#') or not s[-1].startswith('%'):
+            if len(s[-1].split(','))>3:
+                s[-1],wpname = s[-1].rsplit(',',1)
+                wpname = wpname.strip()
+            else:
+                wpname = None
             if len(s[-1].split('@'))>1:
                 s[-1],l1 = s[-1].split('@')
-                insert_i = int(l1)+wp_num-1
-                print('@ sign detected at point: {}, splitting into: {} and insert_i: {}'.format(self.ex.WP[-1],s[-1],insert_i))
+                insert_i = int(l1.strip(','))+wp_num-1
+                print('@ sign detected at point: {}, splitting into: {} and insert_i: {}'.format(self.ex.WP[-1],s[-1],insert_i,wp_name=wpname))
+
             else:
                 insert_i = -1
             try:
-                self.newpoint(*eval(s[-1]),feet=use_feet,km=use_km,insert_i=insert_i)
+                self.newpoint(*eval(s[-1]),feet=use_feet,km=use_km,insert_i=insert_i,wp_name=wpname,last=True)
             except:
                 print('problem with last {}'.format(s[-1]))
         f.close()

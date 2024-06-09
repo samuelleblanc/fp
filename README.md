@@ -332,7 +332,15 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 				- added snapping to labeled points
 				- added midpoint between 2 points
 				- added waypoint name row in excel
-			
+	Modified: Samuel LeBlanc, v1.51, 2024-05-14, Santa Cruz, CA
+				- Added new automated powerpoint presentation generation
+				- improved G3 speed calculations.
+	Modified: Samuel LeBlanc, v1.52, 2024-06-04, Pituffik, Greenland, Danemark
+				- Added more accurate bank angle and speeds for the G3, and smaller changes to P3
+				- changed some automated processing of the powerpoint generations
+				- added modules for the P3 and G3 used during ARCSIX
+				- Refine pilot files to remove double waypoint names.
+				- updated flight speeds for G3
 # To cite:
 
 Cite as:

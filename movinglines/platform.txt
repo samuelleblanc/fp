@@ -44,7 +44,7 @@
     'max_speed':160.0,'max_speed_alt':5400.0,'descent_speed_decrease':15.0,
     'climb_vert_speed':7.5,'descent_vert_speed':-6.5,'alt_for_variable_vert_speed':5400.0,
     'vert_speed_base':4.5,'vert_speed_per_alt':7e-05,
-    'rate_of_turn':None,'turn_bank_angle':15.0,
+    'rate_of_turn':None,'turn_bank_angle':17.0,
     'warning':False,'pilot_format':'DD MM'}
 {'Platform':'er2','names':['er2','ER2','ER-2','er-2','ER 2','er 2','Er','eR'],
     'max_alt':19000.0,'base_speed':70.0,'speed_per_alt':0.0071,
@@ -96,11 +96,11 @@
     'rate_of_turn':None,'turn_bank_angle':25.0,
     'warning':True}
 {'Platform':'g3','names':['g3','G3','G-3','g-3','g 3','G 3','GIII','gIII','giii'],
-    'max_alt':12000.0,'base_speed':135.0,'speed_per_alt':0.0071,
-    'max_speed':218.5,'max_speed_alt':10000.0,'descent_speed_decrease':50.0,
-    'climb_vert_speed':10,'descent_vert_speed':-5.0,'alt_for_variable_vert_speed':8000.0,
-    'vert_speed_base':6,'vert_speed_per_alt':7e-05,
-    'rate_of_turn':None,'turn_bank_angle':10.0,
+    'max_alt':12000.0,'base_speed':150.0,'speed_per_alt':0.01,
+    'max_speed':222,'max_speed_alt':10000.0,'descent_speed_decrease':25.0,
+    'climb_vert_speed':12.5,'descent_vert_speed':-5.0,'alt_for_variable_vert_speed':8000.0,
+    'vert_speed_base':7.0,'vert_speed_per_alt':7e-05,
+    'rate_of_turn':None,'turn_bank_angle':30.0,
     'warning':False,'pilot_format':'DD MM'}
 {'Platform':'LearJet','names':['lear','Lear','LJ','LearJet','Lear Jet','learjet','Learjet','Lear jet'],
     'max_alt':10700.0,'base_speed':100.0,'speed_per_alt':0.015,
