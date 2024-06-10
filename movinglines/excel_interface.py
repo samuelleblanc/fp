@@ -1394,7 +1394,7 @@ class dict_position:
                                            utc_str=float_to_hh_mm(self.utc[j])))
             if self.comments[j]: # There is a comment - likely an important point
                 main_points.append(dict(Comment=self.comments[j],wpname=self.wpname[j],utc=self.utc[j],
-                                        utc_str=float_to_hh_mm(self.utc[j]),i=j,deltat_min=0,label=''))
+                                        utc_str=float_to_hh_mm(self.utc[j]),i=j+1,deltat_min=0,label=''))
                 
             main_points[0]['label'] = fmt.format(**main_points[-1])
             if len(main_points)>1:
