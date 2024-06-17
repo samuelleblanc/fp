@@ -1389,7 +1389,7 @@ class dict_position:
             if combined_distances: 
                 for ii,d in enumerate(combined_distances[j]):
                     if (ii != self.sheet_num-1) and (d<30.0): #there is a colocation
-                        main_points.append(dict(Comment='Colocation with: {}'.format(combined_names[ii]),
+                        main_points.append(dict(Comment='Potential colocation with: {}'.format(combined_names[ii]),
                                            wpname=self.wpname[j],utc=self.utc[j],i=j+1,deltat_min=0,label='',
                                            utc_str=float_to_hh_mm(self.utc[j])))
             if self.comments[j]: # There is a comment - likely an important point
@@ -1486,9 +1486,10 @@ def save2xl_for_pilots(filename,ex_arr):
             sh = wb_pilot.sheets.add(name=a.name,after=wb_pilot.sheets[wb_pilot.sheets.count-1])
             #wb_pilot.sheets(1).add(name=a.name)
         xw.Range('A1').value = ['WP','WP name','Lat\n[+-90]','Lon\n[+-180]',
-                             'Altitude\n[kft]','Comments']
+                             'Altitude\n[kft]','UTC\n[hh:mm]','Comments']
         #freeze_top_pane(wb_pilot)
-        xw.Range('G2:J2').number_format = 'hh:mm'
+        xw.Range('F2:F%i'% (a.n+1)).number_format = 'hh:mm'
+        xw.Range('E2:E%i'% (a.n+1)).number_format = '0.00'
         xw.Range('W1').value = a.datestr
         xw.Range('X1').value = a.campaign
         xw.Range('Z1').value = 'Created with'
@@ -1506,7 +1507,7 @@ def save2xl_for_pilots(filename,ex_arr):
                 comment = 'delay: {:2.1f} min, {}'.format(a.delayt[i],a.comments[i])
             else:
                 comment = a.comments[i]
-            xw.Range('A{:d}'.format(i+2)).value = [a.WP[i],a.wpname[i],lat_f,lon_f,a.alt_kft[i],comment]
+            xw.Range('A{:d}'.format(i+2)).value = [a.WP[i],a.wpname[i],lat_f,lon_f,a.alt_kft[i],a.utc[i]/24.0,comment]
         xw.Range('A{:d}'.format(i+4)).value = 'One line waypoints for foreflight:'
         xw.Range('A{:d}'.format(i+5)).value = one_line_points(a)
     wb_pilot.save(filename)
@@ -1540,7 +1541,7 @@ def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
     f.write('Waypoint,Description,LAT,LONG\n')
     ex.wpname = ex.get_waypoint_names(fmt=ex.p_info.get('waypoint_format','{x.name[0]}{x.datestr.split("-")[2]}{w:02d}'))
     for i in range(ex.n):
-        if ex.wpname[i] in ex.wpname[0:i]: break
+        if ex.wpname[i] in ex.wpname[0:i]: continue
 
         comm = ex.comments[i]
         if ex.comments[i]:
@@ -1558,7 +1559,7 @@ def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
     fu = open(filename+'_'+ex.name+'_UFP.csv','w+')
     fu.write('Waypoint,LAT,LONG,Description\n')
     for i in range(ex.n):
-        if ex.wpname[i] in ex.wpname[0:i]: break
+        if ex.wpname[i] in ex.wpname[0:i]: continue
         comm = ex.comments[i]
         if ex.comments[i]:
             comm = ex.comments[i].replace(',', '')
@@ -1570,7 +1571,7 @@ def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
     fh = open(filename+'_'+ex.name+'_Honeywell.csv','w+')
     fh.write('E,WPT,FIX,LAT,LON\n')
     for i in range(ex.n):
-        if ex.wpname[i] in ex.wpname[0:i]: break
+        if ex.wpname[i] in ex.wpname[0:i]: continue
         lat_str,lon_str = format_lat_lon(ex.lat[i],ex.lon[i],format='NDDD MM.SS')
         comm = ex.comments[i]
         if ex.comments[i]:

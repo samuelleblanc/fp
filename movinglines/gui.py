@@ -828,7 +828,7 @@ class gui:
             table = [[mpt['i'],mpt['utc_str'],mpt['wpname'],mpt['deltat_min'],mpt['Comment']] for mpt in main_points]
             table.insert(0,['WP #','UTC [H]','WP Name','Time delta [minutes]','Comments'])
             float_to_hh_mm = lambda float_hours: '{:02d}:{:02d}'.format(int(float_hours), int((float_hours - int(float_hours)) * 60))
-            slides.append(dict(title='{}: Take-off {} UTC-> landing {} UTC\nflight time {:2.2}h {:4.0} nm'.format(x.name,\
+            slides.append(dict(title='{}: Take-off {} UTC-> landing {} UTC\nflight time {:2.2}h {:4.0f} nm'.format(x.name,\
                                float_to_hh_mm(x.utc[0]),float_to_hh_mm(x.utc[-1]),x.cumlegt[-1],x.cumdist_nm[-1]),image_path=f_name+'_alt_{}.png'.format(x.name),
                                table=table,text='Some important points'))
             slides.append(dict(title='{}'.format(x.name),multiple_images=[f_name+'_sza_{}.png'.format(x.name),f_name+'_alt_lat_{}.png'.format(x.name)]))
