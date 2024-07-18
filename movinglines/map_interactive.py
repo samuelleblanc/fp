@@ -1510,32 +1510,15 @@ def get_sat_tracks_from_tle(datestr,fraction_minute_interval=2,sat_filename='sat
     """
     import ephem
     import numpy as np
-    try:
-        from map_interactive import get_tle_from_file
-    except ModuleNotFoundError:
-        from .map_interactive import get_tle_from_file
-    import os
-    from datetime import datetime, timedelta
     import tkinter.messagebox as tkMessageBox
     try:
-        fname = os.path.join('.',sat_filename)
-        sat = get_tle_from_file(fname)
-    except:
-        try:
-            try:
-                from gui import gui_file_select_fx
-            except ModuleNotFoundError:
-                from .gui import gui_file_select_fx
-            fname = gui_file_select_fx(ext='*.tle',ftype=[('All files','*.*'),('Two Line element','*.tle')])
-            sat = get_tle_from_file(fname)
-        except:
-            tkMessageBox.showerror('No sat','There was an error reading the sat.tle file')
-            return None
-    dt = datetime.now()-datetime.fromtimestamp(os.path.getmtime(fname))
-    if dt>timedelta(days=14):
-        tkMessageBox.showerror('Old TLEs','The file {} has been modified more than 14 days ago. Satellite tracks may be innacurate. Please update.'.format(fname))
-    else:
-        print('... Imported the {} file, now plotting'.format(os.path.abspath(fname)))
+        from map_interactive import safe_read_sat_tle
+    except ModuleNotFoundError:
+        from .map_interactive import safe_read_sat_tle
+    
+    sat,fname = safe_read_sat_tle(sat_filename=sat_filename)
+    if not sat: return None
+    
     toremove = []      
         
     for k in sat.keys():
@@ -1562,7 +1545,125 @@ def get_sat_tracks_from_tle(datestr,fraction_minute_interval=2,sat_filename='sat
             sat[k]['lon'].append(np.rad2deg(sat[k]['ephem'].sublong))
     for k in toremove:
         nul = sat.pop(k)
-    return sat
+    return sat 
+    
+def safe_read_sat_tle(sat_filename='sat.tle'):
+    """
+    Function to safely read sat.tle and throws error if there is an issue
+    """
+    import os
+    from datetime import datetime, timedelta
+    try:
+        from map_interactive import get_tle_from_file
+    except ModuleNotFoundError:
+        from .map_interactive import get_tle_from_file
+    try:
+        from gui import gui_file_select_fx
+    except ModuleNotFoundError:
+        from .gui import gui_file_select_fx
+    import tkinter.messagebox as tkMessageBox
+    
+    try:
+        fname = os.path.join('.',sat_filename)
+        sat = get_tle_from_file(fname)
+    except:
+        try:
+            fname = gui_file_select_fx(ext='*.tle',ftype=[('All files','*.*'),('Two Line element','*.tle')])
+            sat = get_tle_from_file(fname)
+        except:
+            tkMessageBox.showerror('No sat','There was an error reading the sat.tle file')
+            return None,None
+    
+    dt = datetime.now()-datetime.fromtimestamp(os.path.getmtime(fname))
+    if dt>timedelta(days=14):
+        tkMessageBox.showerror('Old TLEs','The file {} has been modified more than 14 days ago. Satellite tracks may be innacurate. Please update.'.format(fname))
+    else:
+        print('... Imported the {} file'.format(os.path.abspath(fname)))        
+    
+    return sat,fname
+    
+def update_sat_tle_file(sat_filename='sat.tle'):
+    """
+    Function to load up the tle and update everyline from celestrak
+    """
+    try:
+        from map_interactive import safe_read_sat_tle,write_tle_elements
+    except ModuleNotFoundError:
+        from .map_interactive import safe_read_sat_tle,write_tle_elements
+    sat,fname = safe_read_sat_tle(sat_filename=sat_filename)
+    if not sat: return None
+    
+    for k in sat.keys():
+        print('...updating satellite TLE for {}'.format(k))
+        sat[k]['newtle'] = fetch_latest_tle(satCatalogNumber=int(sat[k]['tle2'].split()[1]))
+    write_tle_elements(sat,fname=fname)
+    
+def write_tle_elements(sat,fname='sat.tle'):
+    """
+    function to write to the sat.tle file with updated tle elements
+    """
+    from datetime import datetime
+    name = ''
+    with open(fname,'r+') as f:
+        lines = f.readlines()
+        f.seek(0)
+        f.truncate()
+        for line in lines:
+            if line.find('#')>=0:
+                if not (line.strip('#').strip().startswith('1') or line.strip('#').strip().startswith('2')):
+                    date = [g for g in line.split() if g.startswith('2') and g[-2:].isnumeric()] #look for dates in the comments for an update date
+                    if date:
+                        line = '# Auto-updated from celestrak on: {:%Y-%m-%d}\n'.format(datetime.now())
+            if line.startswith('0'):
+                name = line.strip('0').strip()
+            if name:
+                if line.startswith('1'):
+                    line = sat[name]['newtle'][0]+'\n'
+                if line.startswith('2'):
+                    line = sat[name]['newtle'][1]+'\n'
+                    name = ''
+            f.write(line)
+    
+def fetch_latest_tle(satCatalogNumber=None,sat="PACE"):
+    """
+    Fetch the latest TLE data for the PACE satellite.
+
+    Parameters
+    ----------
+    sat : str, optional. Defaults to "PACE"
+        The satellite we're getting the TLE for. Should be a key in
+        satToCatalogNumber.
+
+    Returns
+    -------
+    list of str
+        TLE lines for the PACE satellite.
+    """
+    import requests
+    satToCatalogNumber = {
+        "AQUA": 27424,
+        "NPP": 37849,
+        "OCEANSAT-2": 35931,
+        "LANDSAT-8": 39084,
+        "SENTINEL-3A": 41335,
+        "JPSS1": 43013,
+        "SEAHAWK-1": 43820,
+        "SENTINEL-3B": 43437,
+        "SENTINEL-2A": 40697,
+        "SENTINEL-2B": 42063,
+        "GCOM-C": 43065,
+        "JPSS2": 54234,
+        "PACE": 58928,
+        "EARTHCARE": 59908
+    }
+    if not satCatalogNumber:
+        satCatalogNumber = satToCatalogNumber[sat]
+
+    url = (f"https://celestrak.org/NORAD/elements/gp.php?"
+           f"CATNR={satCatalogNumber}")
+    response = requests.get(url)
+    tle_lines = response.text.splitlines()
+    return tle_lines[1:3]
 
 def get_tle_from_file(filename):
     'Program to load the tle from a file, skips lines with #'
