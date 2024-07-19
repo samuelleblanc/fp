@@ -1078,6 +1078,12 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj
         m.merc = ccrs.PlateCarree()
         m.convert_latlon = converter_latlon
         m.invert_lonlat = inverter_lonlat
+        r_max = spherical_dist([upper_right[1],upper_right[0]],[lower_left[1],lower_left[0]]) #max distance away from corner to corner
+        
+        def is_within_bounds(lat, lon):    
+            return spherical_dist([lat0,lon0],[lat,lon])< r_max
+        m.is_within_bounds = is_within_bounds
+    
         
     else:
         m.drawcoastlines()
@@ -1232,7 +1238,7 @@ def plot_map_labels(m,filename,marker=None,skip_lines=0,color=None,textcolor='k'
             x,y = l['lon'],l['lat']
             xtxt,ytxt = l['lon']+0.05,l['lat']
         if clip:
-            if not m.axes.contains_point((x,y)):
+            if not m.is_within_bounds(l['lat'],l['lon']):
                 continue
         if marker:
             ma = marker
@@ -1259,7 +1265,7 @@ def plot_map_labels(m,filename,marker=None,skip_lines=0,color=None,textcolor='k'
             
         #import pdb; pdb.set_trace()
     return labels_points
-
+    
 def load_map_labels(filename,skip_lines=0):
     """
     Program to load map labels from a text file, csv
@@ -1590,12 +1596,16 @@ def update_sat_tle_file(sat_filename='sat.tle'):
         from map_interactive import safe_read_sat_tle,write_tle_elements
     except ModuleNotFoundError:
         from .map_interactive import safe_read_sat_tle,write_tle_elements
+    import tkinter.messagebox as tkMessageBox
     sat,fname = safe_read_sat_tle(sat_filename=sat_filename)
     if not sat: return None
     
     for k in sat.keys():
         print('...updating satellite TLE for {}'.format(k))
-        sat[k]['newtle'] = fetch_latest_tle(satCatalogNumber=int(sat[k]['tle2'].split()[1]))
+        try:
+            sat[k]['newtle'] = fetch_latest_tle(satCatalogNumber=int(sat[k]['tle2'].split()[1]))
+        except Exception as e:
+            tkMessageBox.showerror('Unabel to fetch TLE','There is an issue fetching the TLE for satellite {}.\n Error: {}'.format(k,e))
     write_tle_elements(sat,fname=fname)
     
 def write_tle_elements(sat,fname='sat.tle'):

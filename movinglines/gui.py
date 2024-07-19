@@ -1136,6 +1136,34 @@ class gui:
         self.baddsat.config(text='Remove Sat tracks')
         self.baddsat.config(command=self.gui_rmsat,style='Bp.TButton')
         
+    def gui_update_tle(self):
+        'GUI button function to update sat.tle'
+        try:
+            from map_interactive import update_sat_tle_file
+        except ModuleNotFoundError:
+            from .map_interactive import update_sat_tle_file
+        
+        try:
+            self.gui_rmsat()
+        except AttributeError:
+            pass
+        self.line.tb.set_message('Updating satellite info in sat.tle file...')
+        update_sat_tle_file()
+        
+    def gui_openconfig(self):
+        'GUI function to open the config folder with system os'
+        import os
+        import platform
+        folder_path = '.'
+        system = platform.system()
+        if system == "Windows":
+            os.startfile(folder_path)
+        elif system == "Darwin":
+            os.system("open " + folder_path)
+        else:  # Assuming Linux or other POSIX systems
+            os.system("xdg-open " + folder_path)
+        
+        
     def gui_rmsat(self):
         'Gui button to remove the satellite tracks'
         self.line.tb.set_message('Removing satellite tracks')
