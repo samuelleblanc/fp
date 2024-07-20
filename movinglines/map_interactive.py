@@ -706,7 +706,7 @@ class LineBuilder:
             import pdb; pdb.set_trace()
         self.line.figure.canvas.draw()
 
-    def newpoint(self,Bearing=0.0,distance=0.0,lat=None,lon=None,alt=None,last=True,feet=False,km=True,insert=False,insert_i=-1,wp_name=None):
+    def newpoint(self,Bearing=0.0,distance=0.0,alt=None,lat=None,lon=None,last=True,feet=False,km=True,insert=False,insert_i=-1,wp_name=None):
         """
         program to add a new point at the end of the current track with a bearing and distance, optionally an altitude
         if feet is set, altitude is defined in feet not the defautl meters.
@@ -789,7 +789,8 @@ class LineBuilder:
             from gui import ask
         except ModuleNotFoundError:
             from .gui import ask
-        import os
+        import os                
+        import re
         # set up predefined values
         predef = ['azi','AZI','PP','pp']
         azi = self.ex.azi[-1]
@@ -847,18 +848,34 @@ class LineBuilder:
             except:
                 print('problem for {}={}'.format(n,vals.names_val[i]))
         wp_num = len(self.ex.alt)
+
+        def extract_and_remove_at_numbers(s):
+            # Use regex to find the pattern @ followed by numbers until a comma or end of string
+            match = re.search(r'@(\d+)(?=,|$)', s)
+            if match:
+                extracted_string = '@' + match.group(1)
+                number_only = int(match.group(1))
+                modified_string = s.replace(extracted_string, '', 1).strip()
+                return number_only, modified_string
+            return -1, s
+        
+        
         for l in s[1:-1]:
             if not (l.startswith('#') or l.startswith('%')):
+                insert_ib,l = extract_and_remove_at_numbers(l)
+                insert_i = insert_ib+wp_num-1 if insert_ib>=0 else insert_ib
                 if len(l.split(','))>3:
                     l,wpname = l.rsplit(',',1)
                     wpname = wpname.strip()
                 else:
                     wpname = None
-                if len(l.split('@'))>1:
-                    l,l1 = l.split('@')
-                    insert_i = int(l1.strip(','))+wp_num-1
-                else:
-                    insert_i = -1
+                #if len(l.split('@'))>1:
+                #    l,l1 = l.split('@')
+                #    insert_i = int(l1.split(',')[0])+wp_num-1
+                #    l = l+','+l1.split(',')[1]
+                #    import ipdb; ipdb.set_trace()
+                #else:
+                #    insert_i = -1
                     
                 if l.lower().find('time')>=0: #check if there is a time slot instead of distance
                     try:
@@ -885,13 +902,16 @@ class LineBuilder:
                 wpname = wpname.strip()
             else:
                 wpname = None
-            if len(s[-1].split('@'))>1:
-                s[-1],l1 = s[-1].split('@')
-                insert_i = int(l1.strip(','))+wp_num-1
-                print('@ sign detected at point: {}, splitting into: {} and insert_i: {}'.format(self.ex.WP[-1],s[-1],insert_i,wp_name=wpname))
-
-            else:
-                insert_i = -1
+            insert_ib,s[-1] = extract_and_remove_at_numbers(s[-1])
+            insert_i = insert_ib+wp_num-1 if insert_ib>=0 else insert_ib
+#            if len(s[-1].split('@'))>1:
+#                s[-1],l1 = s[-1].split('@')
+#                insert_i = int(l1.split(',')[0])+wp_num-1
+#                s[-1] = s[-1]+','+l1.split(',')[1]
+#                print('@ sign detected at point: {}, splitting into: {} and insert_i: {}'.format(self.ex.WP[-1],s[-1],insert_i,wp_name=wpname))
+#
+#            else:
+#                insert_i = -1
             try:
                 self.newpoint(*eval(s[-1]),feet=use_feet,km=use_km,insert_i=insert_i,wp_name=wpname,last=True)
             except:

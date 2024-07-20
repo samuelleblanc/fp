@@ -1593,16 +1593,16 @@ def format_lat_lon(lat,lon,format='DD MM SS'):
         lonv = deg_to_dms(lon)
         lat_f = '{:02d} {:02d} {:04.1f}'.format(latv[0],latv[1],latv[2])
         lon_f = '{:02d} {:02d} {:04.1f}'.format(lonv[0],lonv[1],lonv[2])
-    if format == 'NDDD MM.SS':
+    elif format == 'NDDD MM.SS':
         def deg_to_dms(deg):
             d = int(deg)
             md = abs(deg - d) * 60
             return [d, md]
         latv = deg_to_dms(lat)
         lonv = deg_to_dms(lon)
-        lat_f = '{n}{:3d} {:05.2f}'.format(abs(latv[0]),latv[1],n='N' if latv[0]>0 else 'S')
-        lon_f = '{n}{:3d} {:05.2f}'.format(abs(lonv[0]),lonv[1],n='E' if lonv[0]>0 else 'W')
-    if format == 'DD MM':
+        lat_f = '{n}{:02d} {:05.2f}'.format(abs(latv[0]),latv[1],n='N' if latv[0]>0 else 'S')
+        lon_f = '{n}{:03d} {:05.2f}'.format(abs(lonv[0]),lonv[1],n='E' if lonv[0]>0 else 'W')
+    elif format == 'DD MM':
         def deg_to_dm(deg):
             d = int(deg)
             md = abs(deg - d) * 60
