@@ -127,6 +127,15 @@
                 - added snapping to labeled points
                 - added midpoint between 2 points
                 - added waypoint name row in excel
+        Modified: Samuel LeBlanc, v1.51, PItuffik, Greenland
+                - automated presentation file building, 
+                - waypoint naming refinment
+                - file for pilot changes and updates
+        Modified: Samuel LeBlanc, v1.52, Santa Cruz, CA
+                - fixed flight modules bug for altitude and references
+                - added update sat.tle button
+                - added config folder opening
+                - added flight modules for bowling alley
                  
 """
 try:
