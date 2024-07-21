@@ -136,6 +136,8 @@
                 - added update sat.tle button
                 - added config folder opening
                 - added flight modules for bowling alley
+        Modified: Samuel LeBlanc, v1.53, Santa Cruz, CA
+                - minor bug fixes, and versioning issue
                  
 """
 try:

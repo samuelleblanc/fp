@@ -52,7 +52,7 @@ requirements:
     - json_tricks
     - simplekml
     - matplotlib<3.6.0
-    - pptx
+    - python-pptx
 
 test:
   commands:
