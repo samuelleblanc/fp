@@ -16,6 +16,7 @@ import sys
 import re
 import copy
 from matplotlib.colors import is_color_like
+#from adjustText import adjust_text
 
 try:
     import map_interactive as mi
@@ -543,6 +544,7 @@ class LineBuilder:
                                     annotate(s+'%i'%i,(self.xs[i-1],self.ys[i-1]),ha=has[i%3],va=vas[i%5],zorder=45))
                 except IndexError:
                     pass
+        #adjust_text(self.lbl,expand_point=(2,2),arrowprops=dict(arrowstyle='->',color="#7F7F7F",lw=2),ax=self.line.axes)
         if not nodraw:
             self.line.figure.canvas.draw()
     

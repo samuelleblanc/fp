@@ -108,7 +108,7 @@ class dict_position:
     """
     def __init__(self,lon0='14 38.717E',lat0='22 58.783S',speed=130.0,UTC_start=7.0,
                  UTC_conversion=+1.0,alt0=0.0,
-                 verbose=False,filename=None,datestr=None,
+                 verbose=False,filename=None,datestr=None,datestr_verified=False,
                  newsheetonly=False,name='P3 Flight path',sheet_num=1,color='red',
                  profile=None,campaign='None',version='v1.09',platform_file='platform.txt'):
         import numpy as np
@@ -163,6 +163,7 @@ class dict_position:
         self.verbose = verbose
         self.name = name
         self.campaign = campaign
+        self.datestr_verified = datestr_verified
         self.platform, self.p_info,use_file = self.get_platform_info(name,platform_file)
         self.pilot_format = self.p_info.get('pilot_format','DD MM SS')
         if use_file:
@@ -994,6 +995,7 @@ class dict_position:
         print('Using platform data for: %s' %self.platform)
         self.datestr = str(wb.sh.range('W1').value).split(' ')[0]
         self.verify_datestr()
+        wb.sh.range('W1').value = self.datestr
         if campaign != 'None':
             self.campaign
         else:
@@ -1019,6 +1021,9 @@ class dict_position:
             print('No datestring found! Using todays date')
             from datetime import datetime
             self.datestr = datetime.utcnow().strftime('%Y-%m-%d')
+        if not self.datestr_verified:
+            self.datestr = tkSimpleDialog.askstring('Flight Date','Please verify Flight Date (yyyy-mm-dd):',initialvalue=self.datestr)
+            self.datestr_verified = True
             
     def verify_campaign(self):
         'verify the input campaign value'
@@ -1128,13 +1133,20 @@ class dict_position:
                 '  Dist[nm]  CumDist[nm]  Speed[kt]'+
                 '  Altitude[kft]  SZA[deg]  AZI[deg]  Bearing[deg]  Climbt[min]  Comments WPnames\n')
         for i in range(self.n):
-            f.write("""%-2i  %+2.8f  %+2.8f  %-4.2f  %-3i  %-5.1f  %-2.2f  %-2.2f  %-2.2f  %-2.2f  %-5.1f  %-5.1f  %-5.1f  %-5.1f  %-3.1f %-3.2f  %-3.1f  %-3.1f  %-3.1f  %-3i  %s  %s \n""" %(
+            
+            try:
+                f.write("""%-2i  %+2.8f  %+2.8f  %-4.2f  %-3i  %-5.1f  %-2.2f  %-2.2f  %-2.2f  %-2.2f  %-5.1f  %-5.1f  %-5.1f  %-5.1f  %-3.1f %-3.2f  %-3.1f  %-3.1f  %-3.1f  %-3i  %s  %s \n""" %(
                     i+1,self.lon[i],self.lat[i],self.speed[i],
                     self.delayt[i],self.alt[i],self.cumlegt[i],
                     self.utc[i],self.local[i],self.legt[i],
                     self.dist[i],self.cumdist[i],self.dist_nm[i],self.cumdist_nm[i], 
                     self.speed_kts[i],self.alt_kft[i],self.sza[i],self.azi[i],self.bearing[i],self.climb_time[i],self.comments[i],self.wpname[i]))
-
+            except TypeError:
+                for attr in ['lon','lat','speed','delayt','alt','cumlegt','utc','local','legt','dist','cumdist','dist_nm','cumdist_nm','speed_kts','alt_kft','sza','azi','bearing','climb_time']:
+                    if not getattr(self,attr):
+                        setattr(self,attr,0.0)
+                
+                
 
     def save2kml(self,filename=None):
         """
@@ -1182,7 +1194,7 @@ class dict_position:
                 print('Not able to open google earth')
                 self.googleearthopened = True
 
-    def print_points_kml(self,folder):
+    def print_points_kml(self,folder,includepng=False):
         """
         print the points saved in lat, lon
         """
@@ -1196,16 +1208,21 @@ class dict_position:
             return
         for i in range(self.n):
             pnt = folder.newpoint()
-            pnt.name = 'WP # {}'.format(self.WP[i])
+            #pnt.name = 'WP # {}'.format(self.WP[i])
+            pnt.name = '{}'.format(self.wpname[i])
             pnt.coords = [(self.lon[i],self.lat[i],self.alt[i]*10.0)]
             pnt.altitudemode = simplekml.AltitudeMode.relativetoground
             pnt.extrude = 1
-            try:
-                path = self.kml.addfile(get_curdir()+'//map_icons//number_{}.png'.format(self.WP[i]))
-                pnt.style.iconstyle.icon.href = path
-            except:
-                pnt.style.iconstyle.icon.href = get_curdir()+'//map_icons//number_{}.png'.format(self.WP[i])
-            pnt.description = """UTC[H]=%2.2f\nWPname=%s\nLocal[H]=%2.2f\nCumDist[km]=%f\nspeed[m/s]=%4.2f\ndelayT[min]=%f\nSZA[deg]=%3.2f\nAZI[deg]=%3.2f\nBearing[deg]=%3.2f\nClimbT[min]=%f\nComments:%s""" % (self.utc[i],self.wpname[i],self.local[i],self.cumdist[i],
+            if includepng:
+                try:
+                    path = self.kml.addfile(get_curdir()+'//map_icons//number_{}.png'.format(self.WP[i]))
+                    pnt.style.iconstyle.icon.href = path
+                except:
+                    pnt.style.iconstyle.icon.href = get_curdir()+'//map_icons//number_{}.png'.format(self.WP[i])
+            else:
+                 pnt.style.iconstyle.icon.href = 'http://maps.google.com/mapfiles/kml/paddle/{}-lv.png'.format(self.WP[i])
+            pnt.description = """WP=#%02f\nUTC[H]=%2.2f\nWPname=%s\nLocal[H]=%2.2f\nCumDist[km]=%f\nspeed[m/s]=%4.2f\ndelayT[min]=%f\nSZA[deg]=%3.2f\nAZI[deg]=%3.2f\nBearing[deg]=%3.2f\nClimbT[min]=%f\nComments:%s""" % (self.WP[i],
+                                                                   self.utc[i],self.wpname[i],self.local[i],self.cumdist[i],
                                                                    self.speed[i],self.delayt[i],self.sza[i],
                                                                    self.azi[i],self.bearing[i],self.climb_time[i],self.comments[i])
 
@@ -1386,15 +1403,18 @@ class dict_position:
         main_points = []
         float_to_hh_mm = lambda float_hours: '{:02d}:{:02d}'.format(int(float_hours), int((float_hours - int(float_hours)) * 60))
         for j,w in enumerate(self.WP): 
-            if combined_distances: 
-                for ii,d in enumerate(combined_distances[j]):
-                    if (ii != self.sheet_num-1) and (d<30.0): #there is a colocation
-                        main_points.append(dict(Comment='Potential colocation with: {}'.format(combined_names[ii]),
-                                           wpname=self.wpname[j],utc=self.utc[j],i=j+1,deltat_min=0,label='',
-                                           utc_str=float_to_hh_mm(self.utc[j])))
             if self.comments[j]: # There is a comment - likely an important point
                 main_points.append(dict(Comment=self.comments[j],wpname=self.wpname[j],utc=self.utc[j],
                                         utc_str=float_to_hh_mm(self.utc[j]),i=j+1,deltat_min=0,label=''))
+            if combined_distances: 
+                for ii,d in enumerate(combined_distances[j]):
+                    if (ii != self.sheet_num-1) and (d<30.0): #there is a colocation
+                        if len(main_points)>0 and self.comments[j]:
+                            main_points[-1]['Comment'] = main_points[-1]['Comment'] + ' - Potential colocation with: {}'.format(combined_names[ii])
+                        else:
+                            main_points.append(dict(Comment='Potential colocation with: {}'.format(combined_names[ii]),
+                                           wpname=self.wpname[j],utc=self.utc[j],i=j+1,deltat_min=0,label='',
+                                           utc_str=float_to_hh_mm(self.utc[j])))
                 
             main_points[0]['label'] = fmt.format(**main_points[-1])
             if len(main_points)>1:
@@ -1448,9 +1468,15 @@ def populate_ex_arr(filename=None,colorcycle=['red','blue','green']):
     for i in range(num):
         if i==0:
             campaign = 'None'
+            datestr_verified = False
         else:
             campaign = arr[i-1].campaign
-        arr.append(ex.dict_position(filename=filename,sheet_num=i+1,color=colorcycle[i],campaign=campaign))
+            try:
+                datestr_verified = arr[i-1].datestr_verified
+            except:
+                datestr_verified = False
+        arr.append(ex.dict_position(filename=filename,sheet_num=i+1,color=colorcycle[i],campaign=campaign,
+                                    datestr_verified=datestr_verified))
     return arr
     
 def save2xl_for_pilots(filename,ex_arr):
@@ -1472,29 +1498,41 @@ def save2xl_for_pilots(filename,ex_arr):
                   - removed all formatting from xlxs
     """
     import xlwings as xw #from xlwings import Workbook,Sheet,Range
+    from matplotlib.colors import to_rgb
     try:
         from excel_interface import format_lat_lon, freeze_top_pane
     except ModuleNotFoundError:
         from .excel_interface import format_lat_lon, freeze_top_pane
     wb_pilot = xw.Book()
     sheet_one = True
+    make_light = lambda rgb: (rgb[0]*0.9+0.1,rgb[1]*0.9+0.1,rgb[2]*0.9+0.1)
+    make_lighter = lambda rgb: (rgb[0]*0.1+0.9,rgb[1]*0.1+0.9,rgb[2]*0.1+0.9)
+    rgb_to_int = lambda rgb: (int(rgb[0]*255),int(rgb[1]*255),int(rgb[2]*255))
     for a in ex_arr:
         if sheet_one:
             wb_pilot.sheets(1).name = a.name
+            sh = wb_pilot.sheets(1)
             sheet_one = False
         else:
             sh = wb_pilot.sheets.add(name=a.name,after=wb_pilot.sheets[wb_pilot.sheets.count-1])
             #wb_pilot.sheets(1).add(name=a.name)
-        xw.Range('A1').value = ['WP','WP name','Lat\n[+-90]','Lon\n[+-180]',
+        xw.Range('A1').value = '{name} - {daystr} - '.format(name=a.name,daystr=a.datestr)
+        xw.Range('A1').font.bold = True
+        xw.Range('A1').font.size = 24
+        #for st in ['A','B','C','D','E','F','G']:
+        xw.Range('A1:G1').color = rgb_to_int(to_rgb(a.color)) 
+        #import ipdb; ipdb.set_trace()
+        xw.Range('A2').value = ['WP','WP name','Lat\n[+-90]','Lon\n[+-180]',
                              'Altitude\n[kft]','UTC\n[hh:mm]','Comments']
+        xw.Range('A2:G2').font.bold = True
         #freeze_top_pane(wb_pilot)
-        xw.Range('F2:F%i'% (a.n+1)).number_format = 'hh:mm'
-        xw.Range('E2:E%i'% (a.n+1)).number_format = '0.00'
-        xw.Range('W1').value = a.datestr
-        xw.Range('X1').value = a.campaign
-        xw.Range('Z1').value = 'Created with'
-        xw.Range('Z2').value = 'moving_lines'
-        xw.Range('Z3').value = a.__version__
+        xw.Range('F3:F%i'% (a.n+1)).number_format = 'hh:mm'
+        xw.Range('E3:E%i'% (a.n+1)).number_format = '0.00'
+        xw.Range('W2').value = a.datestr
+        xw.Range('X2').value = a.campaign
+        xw.Range('Z2').value = 'Created with'
+        xw.Range('Z3').value = 'moving_lines'
+        xw.Range('Z4').value = a.__version__
         #xw.Range('W:W').autofit()
         #xw.Range('W:W').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
         #xw.Range('X:X').autofit()
@@ -1507,9 +1545,12 @@ def save2xl_for_pilots(filename,ex_arr):
                 comment = 'delay: {:2.1f} min, {}'.format(a.delayt[i],a.comments[i])
             else:
                 comment = a.comments[i]
-            xw.Range('A{:d}'.format(i+2)).value = [a.WP[i],a.wpname[i],lat_f,lon_f,a.alt_kft[i],a.utc[i]/24.0,comment]
-        xw.Range('A{:d}'.format(i+4)).value = 'One line waypoints for foreflight:'
-        xw.Range('A{:d}'.format(i+5)).value = one_line_points(a)
+            xw.Range('A{:d}'.format(i+3)).value = [a.WP[i],a.wpname[i],lat_f,lon_f,a.alt_kft[i],a.utc[i]/24.0,comment]
+            if i%2:
+                for st in ['A','B','C','D','E','F','G']:
+                    xw.Range('{}{:d}'.format(st,i)).color = rgb_to_int(make_lighter(to_rgb(a.color)))
+        xw.Range('A{:d}'.format(i+5)).value = 'One line waypoints for foreflight:'
+        xw.Range('A{:d}'.format(i+6)).value = one_line_points(a)
     wb_pilot.save(filename)
     try:
         wb_pilot.close()

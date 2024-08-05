@@ -772,8 +772,8 @@ class gui:
         print('Saving Excel file for pilots to :'+f_name+'_for_pilots.xlsx')
         try:
             save2xl_for_pilots(f_name+'_for_pilots.xlsx',self.line.ex_arr)
-        except:
-            tkMessageBox.showwarning('Excel not saved','Error in saving excel pilot file: {}'.format(f_name+'_for_pilots.xlsx'))
+        except Exception as ie:
+            tkMessageBox.showwarning('Excel not saved','Error in saving excel pilot file: {} \n error:{}'.format(f_name+'_for_pilots.xlsx',ie))
         try:
             self.line.ex.wpname = self.line.ex.get_waypoint_names(fmt=self.line.ex.p_info.get('waypoint_format','{x.name[0]}{x.datestr.split("-")[2]}{w:02d}'))
             self.line.ex.wb.sh.activate()
