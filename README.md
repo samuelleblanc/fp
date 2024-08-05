@@ -1,6 +1,6 @@
 # Name:
 
-Moving Lines, version 1.53
+Moving Lines, version 1.54
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1478125.svg)](https://doi.org/10.5281/zenodo.1478125)
 
@@ -345,6 +345,11 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 				- added modules for the P3 and G3 used during ARCSIX
 				- Refine pilot files to remove double waypoint names.
 				- updated flight speeds for G3
+    Modified: Samuel LeBlanc, v1.53, 
+    Modified: Samuel LeBlanc, v1.54, 2024-08-04, Pituffik, Greenland
+                - Bug fix to table removed extra lines
+                - change kml generation to be named waypoints
+
 # To cite:
 
 Cite as:
