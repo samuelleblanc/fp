@@ -1526,8 +1526,8 @@ def save2xl_for_pilots(filename,ex_arr):
                              'Altitude\n[kft]','UTC\n[hh:mm]','Comments']
         xw.Range('A2:G2').font.bold = True
         #freeze_top_pane(wb_pilot)
-        xw.Range('F3:F%i'% (a.n+1)).number_format = 'hh:mm'
-        xw.Range('E3:E%i'% (a.n+1)).number_format = '0.00'
+        xw.Range('F3:F%i'% (a.n+2)).number_format = 'hh:mm'
+        xw.Range('E3:E%i'% (a.n+2)).number_format = '0.00'
         xw.Range('W2').value = a.datestr
         xw.Range('X2').value = a.campaign
         xw.Range('Z2').value = 'Created with'
@@ -1548,7 +1548,7 @@ def save2xl_for_pilots(filename,ex_arr):
             xw.Range('A{:d}'.format(i+3)).value = [a.WP[i],a.wpname[i],lat_f,lon_f,a.alt_kft[i],a.utc[i]/24.0,comment]
             if i%2:
                 for st in ['A','B','C','D','E','F','G']:
-                    xw.Range('{}{:d}'.format(st,i)).color = rgb_to_int(make_lighter(to_rgb(a.color)))
+                    xw.Range('{}{:d}'.format(st,i+2)).color = rgb_to_int(make_lighter(to_rgb(a.color)))
         xw.Range('A{:d}'.format(i+5)).value = 'One line waypoints for foreflight:'
         xw.Range('A{:d}'.format(i+6)).value = one_line_points(a)
     wb_pilot.save(filename)
