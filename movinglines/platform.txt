@@ -47,9 +47,9 @@
     'rate_of_turn':None,'turn_bank_angle':17.0,
     'warning':False,'pilot_format':'DD MM'}
 {'Platform':'er2','names':['er2','ER2','ER-2','er-2','ER 2','er 2','Er','eR'],
-    'max_alt':19000.0,'base_speed':70.0,'speed_per_alt':0.0071,
+    'max_alt':19812.0,'base_speed':70.0,'speed_per_alt':0.0071,
     'max_speed':300.0,'max_speed_alt':30000.0,'descent_speed_decrease':0.0,
-    'climb_vert_speed':10.0,'descent_vert_speed':-10.0,'alt_for_variable_vert_speed':0.0,
+    'climb_vert_speed':5.0,'descent_vert_speed':-10.0,'alt_for_variable_vert_speed':0.0,
     'vert_speed_base':24.0,'vert_speed_per_alt':0.0011,
     'rate_of_turn':None,'turn_bank_angle':10.0,
     'warning':False,'pilot_format':'NDDD MM.SS'}

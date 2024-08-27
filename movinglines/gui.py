@@ -463,7 +463,7 @@ class gui:
 
         if label:
             try:
-                fig.ax.text(0.0,0.0,label,transform=fig.ax.transAxes)
+                fig.ax.text(0.0,-0.15,label,transform=fig.ax.transAxes,clip_on=False,color='grey')
             except:
                 print('Problem adding text on profile figure, continuning...')
         return fig
@@ -1770,7 +1770,8 @@ class gui:
                                   srs=srs,
                                   format='image/png',
                                   dim_init_time=dim_init,
-                                  CQL_filter=cql_filter,**kwargs)
+                                  CQL_filter=cql_filter,
+                                  timeout=90,**kwargs)
                 if img:
                     print('Image downloaded, Init_time: '+str(dim_init))
                     label = label+', init:'+str(dim_init)

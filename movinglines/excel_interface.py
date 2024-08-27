@@ -1572,7 +1572,8 @@ def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
         ---
     History:
         written: Samuel LeBlanc, Santa Cruz, CA 2024-04-09
-        Modified: 
+        Modified: by Samuel LeBlanc, Snata Cruz, CA, 2024-08-26
+                  - adding an ER2 special file format
     
     """
     if filename.endswith('.csv'): 
@@ -1595,6 +1596,25 @@ def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
     fo = open(filename+'_'+ex.name+'_FOREFLIGHT_oneline.txt','w+')
     fo.write(one_line_points(ex,wpnames=ex.wpname))
     fo.close()
+    
+    if 'er2' in ex.platform: 
+        if verbose: print('.. saving ER2 csv to {}'.format(filename+'_'+ex.name+'.csv'))
+        fe = open(filename+'_'+ex.name+'.csv','w+')
+        fe.write('ID,Description,LAT,LONG,Altitude [kft],UTC [hh:mm],Comments\n')
+        for i in range(ex.n):
+            comm = ex.comments[i]
+            if ex.comments[i]:
+                comm = ex.comments[i].replace(',', '')
+            w = ex.WP[i]
+            x = ex
+            wp_str = eval("f'{}'".format(ex.p_info.get('waypoint_format','{x.name[0]}{x.datestr.split("-")[2]}{w:02d}')))
+            desc = ex.wpname[i]
+            if wp_str in ex.wpname[i]:
+                desc = '.'+wp_str[0]+wp_str[3:5]
+            fe.write("""%2.0f,%s,%+2.12f,%+2.12f,%3.2f,%2.0f:%02.0f,%s\n""" %(
+                    ex.WP[i],desc,ex.lat[i],ex.lon[i],ex.alt_kft[i],np.floor(ex.utc[i]),(ex.utc[i]-np.floor(ex.utc[i]))*60.0,comm))
+        fe.close()
+        return #no need to print out the rest
     
     if verbose: print('.. saving UFP csv to {}'.format(filename+'_'+ex.name+'_UFP.csv'))
     fu = open(filename+'_'+ex.name+'_UFP.csv','w+')
@@ -1620,6 +1640,8 @@ def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
         fh.write("""x,%s,ALT=%3.2f kft %s,%s,%s\n""" %(
                 ex.wpname[i],ex.alt_kft[i],comm,lat_str,lon_str))
     fh.close()
+    
+    
                 
 def format_lat_lon(lat,lon,format='DD MM SS'):
     'Lat and lon formatter'

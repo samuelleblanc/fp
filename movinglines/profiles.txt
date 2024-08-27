@@ -1,3 +1,9 @@
+{'Profile':'PACE-PAX','Plane_name':'ER2',
+                 'Start_lon':'117 53.14W','Start_lat':'34 54.76N',
+                 'Lon_range':[-129,-111],'Lat_range':[32,48],
+                 'UTC_start':17.0,'UTC_conversion':-7.0,
+                 'start_alt':775.0,
+				 'waypoint_format':'{x.name[0]}{x.datestr.split("-")[2]}{w:02d}'}
 {'Profile':'ARCSIX','Plane_name':'P3',
                  'Start_lon':'68 42 11W','Start_lat':'76 31 52N', 
                  'Lon_range':[-100,20],'Lat_range':[72,73],
@@ -5,11 +11,6 @@
                  'start_alt':76.5,
 				 'proj':'NorthPolarStereo','lat_0':76.0,'lon_0':68.0,
 				 'waypoint_format':'{x.name[0]}{x.datestr.split("-")[2]}{w:02d}'}
-{'Profile':'PACE-PAX','Plane_name':'ER2',
-                 'Start_lon':'117 53.14W','Start_lat':'34 54.76N',
-                 'Lon_range':[-129,-111],'Lat_range':[32,48],
-                 'UTC_start':17.0,'UTC_conversion':-7.0,
-                 'start_alt':775.0}
 {'Profile':'CAESAR','Plane_name':'C130',
                  'Start_lon':'20.337463','Start_lat':'67.823853', 
                  'Lon_range':[-28.5,70],'Lat_range':[65,83],

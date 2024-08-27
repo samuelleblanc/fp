@@ -138,6 +138,14 @@
                 - added flight modules for bowling alley
         Modified: Samuel LeBlanc, v1.53, Santa Cruz, CA
                 - minor bug fixes, and versioning issue
+        Modified: Samuel LeBlanc, v1.54, Pituffik, Greenland
+                - Bug fix to table removed extra lines
+                - change kml generation to be named waypoints
+                - added feature to change day when loading previous file.
+        Modified: Samuel LeBlanc, v1.55, Pituffik, Greenland + Santa Cruz, CA
+                - Added fix to coloring of the for_pilots file, and formatting. 
+                - added an ER2 specific file format.
+                - Added longer timeout for mss profile
                  
 """
 try:
