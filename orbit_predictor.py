@@ -52,16 +52,19 @@ satToCatalogNumber = {
     "GCOM-C": 43065,
     "JPSS2": 54234,
     "PACE": 58928,
+    "PACE_OCI": 58928,
     "EARTHCARE": 59908
 }
 
 satToSwath = {
     "PACE": 50,
+    "PACE_OCI": 1350,
     "EARTHCARE": [35,115]
 }
 
 satToColor = {
     "PACE": {'line':'black','poly':'red'},
+    "PACE_OCI":{'line':'red','poly':'lightgrey'},
     "EARTHCARE": {'line':'darkgreen','poly':'azure'}
 }
 

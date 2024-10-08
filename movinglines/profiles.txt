@@ -1,3 +1,9 @@
+{'Profile':'AirSHARP','Plane_name':'TO',
+                 'Start_lon':'121 45.70W','Start_lat':'36 40.89N',
+                 'Lon_range':[-122.5,-121.6],'Lat_range':[36.25,37.25],
+                 'UTC_start':18.0,'UTC_conversion':-7.0,
+                 'start_alt':42.0,
+				 'waypoint_format':'{x.name[0]}{x.datestr.split("-")[2]}{w:02d}','mag_declination':12.65,'include_mag_heading':True}
 {'Profile':'PACE-PAX','Plane_name':'ER2',
                  'Start_lon':'117 53.14W','Start_lat':'34 54.76N',
                  'Lon_range':[-129,-111],'Lat_range':[32,48],

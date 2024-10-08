@@ -146,6 +146,7 @@
                 - Added fix to coloring of the for_pilots file, and formatting. 
                 - added an ER2 specific file format.
                 - Added longer timeout for mss profile
+                - Added ability to add magnetic heading indicator to pilot formats, with magnetic declination in profiles.txt
                  
 """
 try:
@@ -257,7 +258,8 @@ def Get_default_profile(filename):
     """
     try:
         profile = read_prof_file(filename)
-    except:
+    except Exception as e:
+        print('**Error reading profiles file, using defaults ',e)
         profile = [{'Profile':'ORACLES','Campaign':'ORACLES','Plane_name':'P3',
                      'Start_lon':'14 38.717E','Start_lat':'22 58.783S',
                      'Lon_range':[-20,20],'Lat_range':[-30,10],
@@ -666,8 +668,13 @@ def savetmp(ui,wb):
 
 def init_plot(m,start_lon='14 38.717E',start_lat='22 58.783S',color='red'):
     lat0,lon0 = mi.pll(start_lat), mi.pll(start_lon)
-    x0,y0 = m.invert_lonlat(lon0,lat0) #m(lon0,lat0)
-    line, = m.plot([x0],[y0],'o-',color=color,linewidth=3)
+    try:
+        import cartopy.crs as ccrs
+        line, = m.plot([lat0],[lon0],'o-',color=color,linewidth=3,transform=ccrs.Geodetic())
+    except Exception as e:
+        print('*** Issue with plotting as great circle, reverting to rhumb lines ****: ',e)
+        x0,y0 = m.invert_lonlat(lon0,lat0) #m(lon0,lat0)
+        line, = m.plot([x0],[y0],'o-',color=color,linewidth=3)
     line.labels_points = []
     text = ('Press s to stop interaction\\n'
             'Press i to restart interaction\\n')
@@ -753,6 +760,11 @@ def Create_interaction(test=False,profile=None,**kwargs):
     ui.progressbar.step(10)
     ui.progressbar.update()
     profile = Get_basemap_profile()
+    if not profile:
+        ui.root.quit()
+        ui.root.destroy()
+        print('Cancelled... Closing')
+        return False,False
     ui.progressbar.step(10)
     ui.progressbar.update()
     echo('Creating basemap')

@@ -2233,6 +2233,7 @@ class Select_profile(tkSimpleDialog.Dialog):
         self.default_profiles = default_profiles
         self.profile = self.default_profiles[0]
         self.proj_list = proj_list
+        self.oked = False
         parent = tk._default_root
         tkSimpleDialog.Dialog.__init__(self,parent,title)
 
@@ -2328,6 +2329,13 @@ class Select_profile(tkSimpleDialog.Dialog):
         self.profile['UTC_conversion'] = float(self.utc_convert.get())
         self.profile['start_alt'] = float(self.start_alt.get())
         self.profile['Campaign'] = self.pname.get()
+        print('..Applying selected profile')
+        self.oked = True
+        return self.profile
+        
+    def cancel(self,event=None):
+        if not self.oked: self.profile = False
+        super().cancel(event=event)
         return self.profile
 
     def check_input(self,s,isletter=False):

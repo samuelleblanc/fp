@@ -614,7 +614,13 @@ class LineBuilder:
     def newline(self):
         'Program to do a deep copy of the line object in the LineBuilder class'
         x,y = self.line.get_data()
-        line_new, = self.m.plot(x[0],y[0],'o-',linewidth=self.line.get_linewidth()) 
+        try:
+            import cartopy.crs as ccrs
+            x0,y0 = m.convert_latlon(x[0],y[0])
+            line_new, = self.m.plot(x0,y0,'o-',linewidth=self.line.get_linewidth(),transform=ccrs.Geodetic()) 
+        except Exception as e:
+            print('*** Issue with great circle plotting, reverting to rhumb line ****',e)
+            line_new, = self.m.plot(x[0],y[0],'o-',linewidth=self.line.get_linewidth())
         line_new.labels_points = self.line_arr[-1].labels_points
         self.line_arr.append(line_new)
 
@@ -795,8 +801,7 @@ class LineBuilder:
         import re
         # set up predefined values
         predef = ['azi','AZI','PP','pp']
-        azi = self.ex.azi[-1]
-        pp, AZI, PP = azi,azi,azi
+        pp, AZI, PP = self.ex.azi[-1],self.ex.azi[-1],self.ex.azi[-1]
         
         # load flt_module
         name = os.path.basename(filename).split('.')[0]
@@ -863,6 +868,7 @@ class LineBuilder:
         
         
         for l in s[1:-1]:
+            pp, AZI, PP = self.ex.azi[-1],self.ex.azi[-1],self.ex.azi[-1]
             if not (l.startswith('#') or l.startswith('%')):
                 insert_ib,l = extract_and_remove_at_numbers(l)
                 insert_i = insert_ib+wp_num-1 if insert_ib>=0 else insert_ib
@@ -898,6 +904,7 @@ class LineBuilder:
                     self.newpoint(*eval(l),last=False,feet=use_feet,km=use_km,insert_i=insert_i,wp_name=wpname)
                 except:
                     print('problem with {}'.format(l))
+                pp, AZI, PP = self.ex.azi[-1],self.ex.azi[-1],self.ex.azi[-1]
         if not s[-1].startswith('#') or not s[-1].startswith('%'):
             if len(s[-1].split(','))>3:
                 s[-1],wpname = s[-1].rsplit(',',1)
@@ -1255,10 +1262,10 @@ def plot_map_labels(m,filename,marker=None,skip_lines=0,color=None,textcolor='k'
     for j,l in enumerate(labels):
         try:
             x,y = m.invert_lonlat(l['lon'],l['lat'])
-            xtxt,ytxt = m.invert_lonlat(l['lon']+0.05,l['lat'])
+            xtxt,ytxt = m.invert_lonlat(l['lon']+0.005,l['lat'])
         except:
             x,y = l['lon'],l['lat']
-            xtxt,ytxt = l['lon']+0.05,l['lat']
+            xtxt,ytxt = l['lon']+0.005,l['lat']
         if clip:
             if not m.is_within_bounds(l['lat'],l['lon']):
                 continue
@@ -1629,6 +1636,7 @@ def update_sat_tle_file(sat_filename='sat.tle'):
         except Exception as e:
             tkMessageBox.showerror('Unabel to fetch TLE','There is an issue fetching the TLE for satellite {}.\n Error: {}'.format(k,e))
     write_tle_elements(sat,fname=fname)
+    tkMessageBox.showwarning('Updating TLE finished','TLEs have been updated')
     
 def write_tle_elements(sat,fname='sat.tle'):
     """
@@ -1861,7 +1869,7 @@ def plot_kml(kml_file, ax,color='tab:pink'):
     return plots
 
 def convert_ccrs_to_epsg(ccrs_string):
-    'Function to convert the cartoipy projection values to an epsg numrical value'
+    'Function to convert the cartopy projection values to an epsg numrical value'
     projs_dict = {'PlateCarree':4326,
                    'NorthPolarStereo':3995,
                    'AlbersEqualArea':9822,

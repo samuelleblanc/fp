@@ -127,6 +127,7 @@ class dict_position:
         if profile:
             lon0,lat0,UTC_start = profile['Start_lon'],profile['Start_lat'],profile['UTC_start']
             UTC_conversion,alt0,name,campaign = profile['UTC_conversion'],profile['start_alt'],profile['Plane_name'],profile['Campaign']
+            self.profile = profile
         self.__version__ = version
         self.comments = [' ']
         self.wpname = [' ']
@@ -165,6 +166,9 @@ class dict_position:
         self.campaign = campaign
         self.datestr_verified = datestr_verified
         self.platform, self.p_info,use_file = self.get_platform_info(name,platform_file)
+        for k in profile:
+            if k not in self.p_info:
+                self.p_info[k] = profile[k]
         self.pilot_format = self.p_info.get('pilot_format','DD MM SS')
         if use_file:
             print('Using platform data for: {} from platform file: {}'.format(self.platform,os.path.abspath(platform_file)))
@@ -1220,7 +1224,7 @@ class dict_position:
                 except:
                     pnt.style.iconstyle.icon.href = get_curdir()+'//map_icons//number_{}.png'.format(self.WP[i])
             else:
-                 pnt.style.iconstyle.icon.href = 'http://maps.google.com/mapfiles/kml/paddle/{}-lv.png'.format(self.WP[i])
+                 pnt.style.iconstyle.icon.href = 'https://www.samueleleblanc.com/img/icons/{}.png'.format(self.WP[i])
             pnt.description = """WP=#%02f\nUTC[H]=%2.2f\nWPname=%s\nLocal[H]=%2.2f\nCumDist[km]=%f\nspeed[m/s]=%4.2f\ndelayT[min]=%f\nSZA[deg]=%3.2f\nAZI[deg]=%3.2f\nBearing[deg]=%3.2f\nClimbT[min]=%f\nComments:%s""" % (self.WP[i],
                                                                    self.utc[i],self.wpname[i],self.local[i],self.cumdist[i],
                                                                    self.speed[i],self.delayt[i],self.sza[i],
@@ -1516,15 +1520,24 @@ def save2xl_for_pilots(filename,ex_arr):
         else:
             sh = wb_pilot.sheets.add(name=a.name,after=wb_pilot.sheets[wb_pilot.sheets.count-1])
             #wb_pilot.sheets(1).add(name=a.name)
+        
         xw.Range('A1').value = '{name} - {daystr} - '.format(name=a.name,daystr=a.datestr)
         xw.Range('A1').font.bold = True
         xw.Range('A1').font.size = 24
-        #for st in ['A','B','C','D','E','F','G']:
-        xw.Range('A1:G1').color = rgb_to_int(to_rgb(a.color)) 
-        #import ipdb; ipdb.set_trace()
-        xw.Range('A2').value = ['WP','WP name','Lat\n[+-90]','Lon\n[+-180]',
+
+        if not a.p_info.get('include_mag_heading',False):
+            xw.Range('A2').value = ['WP','WP name','Lat\n[+-90]','Lon\n[+-180]',
                              'Altitude\n[kft]','UTC\n[hh:mm]','Comments']
-        xw.Range('A2:G2').font.bold = True
+            letter_range = ['A','B','C','D','E','F','G']
+            last_rgs = 'G'
+        else:
+            xw.Range('A2').value = ['WP','WP name','Lat\n[+-90]','Lon\n[+-180]',
+                             'Altitude\n[kft]','UTC\n[hh:mm]','Mag Heading\n[deg]','Comments']
+            letter_range = ['A','B','C','D','E','F','G','H']
+            xw.Range('G3:G%i'% (a.n+2)).number_format = '0.0'
+            last_rgs = 'H'
+        xw.Range('A1:'+last_rgs+'1').color = rgb_to_int(to_rgb(a.color))
+        xw.Range('A2:'+last_rgs+'2').font.bold = True
         #freeze_top_pane(wb_pilot)
         xw.Range('F3:F%i'% (a.n+2)).number_format = 'hh:mm'
         xw.Range('E3:E%i'% (a.n+2)).number_format = '0.00'
@@ -1545,12 +1558,17 @@ def save2xl_for_pilots(filename,ex_arr):
                 comment = 'delay: {:2.1f} min, {}'.format(a.delayt[i],a.comments[i])
             else:
                 comment = a.comments[i]
-            xw.Range('A{:d}'.format(i+3)).value = [a.WP[i],a.wpname[i],lat_f,lon_f,a.alt_kft[i],a.utc[i]/24.0,comment]
+            if not a.p_info.get('include_mag_heading',False):
+                xw.Range('A{:d}'.format(i+3)).value = [a.WP[i],a.wpname[i],lat_f,lon_f,a.alt_kft[i],a.utc[i]/24.0,comment]
+            else:
+                mag_decl = a.p_info.get('mag_declination',13.0)
+                xw.Range('A{:d}'.format(i+3)).value = [a.WP[i],a.wpname[i],lat_f,lon_f,a.alt_kft[i],a.utc[i]/24.0,(360.0+a.bearing[i]-mag_decl)%360,comment]
             if i%2:
-                for st in ['A','B','C','D','E','F','G']:
+                for st in letter_range:
                     xw.Range('{}{:d}'.format(st,i+2)).color = rgb_to_int(make_lighter(to_rgb(a.color)))
         xw.Range('A{:d}'.format(i+5)).value = 'One line waypoints for foreflight:'
         xw.Range('A{:d}'.format(i+6)).value = one_line_points(a)
+        sh.page_setup.print_area = '$A$1:$'+last_rgs+'$%i'% (a.n+2)
     wb_pilot.save(filename)
     try:
         wb_pilot.close()
@@ -1578,26 +1596,27 @@ def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
     """
     if filename.endswith('.csv'): 
         filename = filename[:-4]
-    if verbose: print('.. saving FOREFLIGHT csv to {}'.format(filename+'_'+ex.name+'_FOREFLIGHT.csv'))
-    f = open(filename+'_'+ex.name+'_FOREFLIGHT.csv','w+')
-    f.write('Waypoint,Description,LAT,LONG\n')
-    ex.wpname = ex.get_waypoint_names(fmt=ex.p_info.get('waypoint_format','{x.name[0]}{x.datestr.split("-")[2]}{w:02d}'))
-    for i in range(ex.n):
-        if ex.wpname[i] in ex.wpname[0:i]: continue
+    if 'foreflight' in ex.p_info.get('preferred_file_format',['foreflight']):
+        if verbose: print('.. saving FOREFLIGHT csv to {}'.format(filename+'_'+ex.name+'_FOREFLIGHT.csv'))
+        f = open(filename+'_'+ex.name+'_FOREFLIGHT.csv','w+')
+        f.write('Waypoint,Description,LAT,LONG\n')
+        ex.wpname = ex.get_waypoint_names(fmt=ex.p_info.get('waypoint_format','{x.name[0]}{x.datestr.split("-")[2]}{w:02d}'))
+        for i in range(ex.n):
+            if ex.wpname[i] in ex.wpname[0:i]: continue
 
-        comm = ex.comments[i]
-        if ex.comments[i]:
-            comm = ex.comments[i].replace(',', '')
-        f.write("""%s,ALT=%3.2f kft %s ,%+2.12f,%+2.12f\n""" %(
-                ex.wpname[i],ex.alt_kft[i],comm,ex.lat[i],ex.lon[i]))
-    f.close()
+            comm = ex.comments[i]
+            if ex.comments[i]:
+                comm = ex.comments[i].replace(',', '')
+            f.write("""%s,ALT=%3.2f kft %s ,%+2.12f,%+2.12f\n""" %(
+                    ex.wpname[i],ex.alt_kft[i],comm,ex.lat[i],ex.lon[i]))
+        f.close()
     
-    if verbose: print('.. saving FOREFLIGHT one liner to {}'.format(filename+'_'+ex.name+'_FOREFLIGHT_oneline.txt'))
-    fo = open(filename+'_'+ex.name+'_FOREFLIGHT_oneline.txt','w+')
-    fo.write(one_line_points(ex,wpnames=ex.wpname))
-    fo.close()
+        if verbose: print('.. saving FOREFLIGHT one liner to {}'.format(filename+'_'+ex.name+'_FOREFLIGHT_oneline.txt'))
+        fo = open(filename+'_'+ex.name+'_FOREFLIGHT_oneline.txt','w+')
+        fo.write(one_line_points(ex,wpnames=ex.wpname))
+        fo.close()
     
-    if 'er2' in ex.platform: 
+    if 'er2' in ex.p_info.get('preferred_file_format',['foreflight']):
         if verbose: print('.. saving ER2 csv to {}'.format(filename+'_'+ex.name+'.csv'))
         fe = open(filename+'_'+ex.name+'.csv','w+')
         fe.write('ID,Description,LAT,LONG,Altitude [kft],UTC [hh:mm],Comments\n')
@@ -1608,7 +1627,7 @@ def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
             w = ex.WP[i]
             x = ex
             wp_str = eval("f'{}'".format(ex.p_info.get('waypoint_format','{x.name[0]}{x.datestr.split("-")[2]}{w:02d}')))
-            desc = ex.wpname[i]
+            desc = '.'+ex.wpname[i]
             if wp_str in ex.wpname[i]:
                 desc = '.'+wp_str[0]+wp_str[3:5]
             fe.write("""%2.0f,%s,%+2.12f,%+2.12f,%3.2f,%2.0f:%02.0f,%s\n""" %(
@@ -1616,30 +1635,32 @@ def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
         fe.close()
         return #no need to print out the rest
     
-    if verbose: print('.. saving UFP csv to {}'.format(filename+'_'+ex.name+'_UFP.csv'))
-    fu = open(filename+'_'+ex.name+'_UFP.csv','w+')
-    fu.write('Waypoint,LAT,LONG,Description\n')
-    for i in range(ex.n):
-        if ex.wpname[i] in ex.wpname[0:i]: continue
-        comm = ex.comments[i]
-        if ex.comments[i]:
-            comm = ex.comments[i].replace(',', '')
-        fu.write("""%s,%+2.12f,%+2.12f,ALT=%3.2f kft %s\n""" %(
-                ex.wpname[i],ex.lat[i],ex.lon[i],ex.alt_kft[i],comm))
-    fu.close()
+    if 'ufp' in ex.p_info.get('preferred_file_format',['foreflight']):
+        if verbose: print('.. saving UFP csv to {}'.format(filename+'_'+ex.name+'_UFP.csv'))
+        fu = open(filename+'_'+ex.name+'_UFP.csv','w+')
+        fu.write('Waypoint,LAT,LONG,Description\n')
+        for i in range(ex.n):
+            if ex.wpname[i] in ex.wpname[0:i]: continue
+            comm = ex.comments[i]
+            if ex.comments[i]:
+                comm = ex.comments[i].replace(',', '')
+            fu.write("""%s,%+2.12f,%+2.12f,ALT=%3.2f kft %s\n""" %(
+                    ex.wpname[i],ex.lat[i],ex.lon[i],ex.alt_kft[i],comm))
+        fu.close()
     
-    if verbose: print('.. saving Honeywell csv to {}'.format(filename+'_'+ex.name+'_Honeywell.csv'))
-    fh = open(filename+'_'+ex.name+'_Honeywell.csv','w+')
-    fh.write('E,WPT,FIX,LAT,LON\n')
-    for i in range(ex.n):
-        if ex.wpname[i] in ex.wpname[0:i]: continue
-        lat_str,lon_str = format_lat_lon(ex.lat[i],ex.lon[i],format='NDDD MM.SS')
-        comm = ex.comments[i]
-        if ex.comments[i]:
-            comm = ex.comments[i].replace(',', '')
-        fh.write("""x,%s,ALT=%3.2f kft %s,%s,%s\n""" %(
-                ex.wpname[i],ex.alt_kft[i],comm,lat_str,lon_str))
-    fh.close()
+    if 'honeywell' in ex.p_info.get('preferred_file_format',['foreflight']):
+        if verbose: print('.. saving Honeywell csv to {}'.format(filename+'_'+ex.name+'_Honeywell.csv'))
+        fh = open(filename+'_'+ex.name+'_Honeywell.csv','w+')
+        fh.write('E,WPT,FIX,LAT,LON\n')
+        for i in range(ex.n):
+            if ex.wpname[i] in ex.wpname[0:i]: continue
+            lat_str,lon_str = format_lat_lon(ex.lat[i],ex.lon[i],format='NDDD MM.SS')
+            comm = ex.comments[i]
+            if ex.comments[i]:
+                comm = ex.comments[i].replace(',', '')
+            fh.write("""x,%s,ALT=%3.2f kft %s,%s,%s\n""" %(
+                    ex.wpname[i],ex.alt_kft[i],comm,lat_str,lon_str))
+        fh.close()
     
     
                 
