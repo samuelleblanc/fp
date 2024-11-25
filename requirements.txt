@@ -21,7 +21,7 @@ docopt==0.6.2
 ephem==4.1
 executing==1.2.0
 fake-useragent==0.1.11
-future==0.18.2
+future==0.18.3
 geopy==2.3.0
 gpxpy==1.4.2
 idna==3.3
