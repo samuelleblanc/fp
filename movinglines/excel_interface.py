@@ -166,9 +166,10 @@ class dict_position:
         self.campaign = campaign
         self.datestr_verified = datestr_verified
         self.platform, self.p_info,use_file = self.get_platform_info(name,platform_file)
-        for k in profile:
-            if k not in self.p_info:
-                self.p_info[k] = profile[k]
+        if profile:
+            for k in profile:
+                if k not in self.p_info:
+                    self.p_info[k] = profile[k]
         self.pilot_format = self.p_info.get('pilot_format','DD MM SS')
         if use_file:
             print('Using platform data for: {} from platform file: {}'.format(self.platform,os.path.abspath(platform_file)))

@@ -1663,6 +1663,8 @@ class gui:
             time_sel = None
         if not time_sel:
             time_sel = datetime.now().strftime('%Y-%m-%d')+'T12:00'
+            if 'gibs.earthdata' in website:
+                time_sel = datetime.now().strftime('%Y-%m-%d')
         if notime:
             time_sel = None
                        
@@ -1785,6 +1787,11 @@ class gui:
                     self.root.config(cursor='')
                     self.root.update()
                     tkMessageBox.showwarning('Sorry','Problem getting the image from WMS server: '+website.split('/')[2]+'\nError: {}'.format(ie))
+                    try:
+                        print(website)
+                    except:
+                        pass
+                    
                     return False, None, False
         try:
             legend_call = openURL(img.geturl().replace('GetMap','GetLegend'))

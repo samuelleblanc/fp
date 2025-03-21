@@ -658,8 +658,17 @@ def get_datestr(ui):
     ui.ax1.set_title(ui.datestr)
 
 def savetmp(ui,wb):
-    import tempfile, os
-    tmpfilename = os.path.join(tempfile.gettempdir(),ui.datestr+'.xlsx')
+    import tempfile, os,sys
+    if sys.platform == "darwin":
+        # OS X
+        tmpfilename = os.path.expanduser(os.path.join('~/Library/Containers/com.microsoft.Excel/Data',ui.datestr+'.xlsx'))
+    else:
+        # Windows...
+        tmpfilename = os.path.join(tempfile.gettempdir(),ui.datestr+'.xlsx')
+    
+    if os.path.isfile(tmpfilename):
+        import random,string
+        tmpfilename = tmpfilename[0:-5]+'_tmp'+''.join(random.choices(string.ascii_uppercase + string.digits, k=4))+'.xlsx'
     try:
         wb.save2xl(tmpfilename)
     except:
