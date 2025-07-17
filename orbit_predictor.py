@@ -53,19 +53,25 @@ satToCatalogNumber = {
     "JPSS2": 54234,
     "PACE": 58928,
     "PACE_OCI": 58928,
-    "EARTHCARE": 59908
+    "EARTHCARE": 59908,
+    "PREFIRE1":59965,
+    "PREFIRE2":59881
 }
 
 satToSwath = {
     "PACE": 50,
     "PACE_OCI": 1350,
-    "EARTHCARE": [35,115]
+    "EARTHCARE": [35,115],
+    "PREFIRE1":132,
+    "PREFIRE2":132
 }
 
 satToColor = {
     "PACE": {'line':'black','poly':'red'},
     "PACE_OCI":{'line':'red','poly':'lightgrey'},
-    "EARTHCARE": {'line':'darkgreen','poly':'azure'}
+    "EARTHCARE": {'line':'darkgreen','poly':'azure'},
+    "PREFIRE1": {'line':'darkred','poly':'orange'},
+    "PREFIRE2": {'line':'black','poly':'orange'}
 }
 
 def fetch_latest_tle(sat="PACE"):
@@ -399,10 +405,11 @@ def create_kml(dates, predicted_positions, track_points, boundary_points,
     kml.save(filename)
 
 
-def main(satellite="EARTHCARE", num_days=1,start_date=[2024,7,22],number_of_loops=70,path='./'):
+def main(satellite="EARTHCARE", num_days=1,start_date=[2024,7,22],number_of_loops=70,path='./',tle_lines=[]):
     """Primary driver for standalone version."""
     # Fetch latest TLE for PACE
-    tle_lines = fetch_latest_tle(sat=satellite)
+    if not tle_lines:
+        tle_lines = fetch_latest_tle(sat=satellite)
 
     # Generate dates for prediction (every 1 minutes for the next 3 days)
     for i in range(number_of_loops):
