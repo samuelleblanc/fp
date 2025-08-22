@@ -1580,10 +1580,10 @@ class gui:
         'GUI handler for adding the figures from WMS support of GEOS'
         try:
             from gui import Popup_list,inittime_sel_fx
-            from map_interactive import convert_ccrs_to_epsg
+            from map_interactive import convert_ccrs_to_epsg, get_center_lonlat
         except ModuleNotFoundError:
             from .gui import Popup_list,inittime_sel_fx
-            from .map_interactive import convert_ccrs_to_epsg
+            from .map_interactive import convert_ccrs_to_epsg, get_center_lonlat
         
         import tkinter.messagebox as tkMessageBox
         
@@ -1685,7 +1685,7 @@ class gui:
             srss = [c for c in crss if c.find(ccrs_str)>-1]
             if mss_crs: 
                 if 'stere' in self.line.m.proj_name.lower():
-                    srss = ['mss:stere,0,90,90']
+                    srss = ['mss:stere,{0},{1},{1}'.format(*get_center_lonlat(self.line.m.proj))]
             if len(srss)>0:
                 srs = srss[0]
             else:

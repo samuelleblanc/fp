@@ -15,6 +15,7 @@ import numpy as np
 import sys
 import re
 import copy
+import inspect
 from matplotlib.colors import is_color_like
 #from adjustText import adjust_text
 
@@ -998,6 +999,55 @@ class LineBuilder:
             distances.append(combined['distances'][indices,:].tolist())
         
         return combined,distances
+        
+def make_projection(profile):
+    name = profile.get('proj', 'PlateCarree')
+    proj_cls = getattr(ccrs, name)
+
+    # Pull your preferred center/scale from the profile
+    lon0 = profile.get('lon_0', profile.get('central_longitude', 0))
+    lat0 = profile.get('lat_0', profile.get('central_latitude', 90 if name == 'NorthPolarStereo'
+                                            else (-90 if name == 'SouthPolarStereo' else 0)))
+
+    # Candidate kwargs (we’ll filter to what the class actually accepts)
+    raw_kwargs = {
+        'central_longitude': lon0,
+        'central_latitude': lat0,          # used by Stereographic (not the PolarStereo shortcuts)
+        'true_scale_latitude': lat0,       # used by North/SouthPolarStereo and Stereographic
+    }
+
+    accepted = set(inspect.signature(proj_cls.__init__).parameters.keys())
+    kwargs = {k: v for k, v in raw_kwargs.items() if k in accepted and v is not None}
+    return proj_cls(**kwargs)
+    
+def get_center_lonlat(proj, default_lon=0.0, default_lat=90.0):
+    """
+    Return (central_longitude, central_latitude) from a Cartopy CRS.
+    Falls back to (0, 90) unless the projection exposes those attrs.
+    Handles North/SouthPolarStereo which fix central_latitude to ±90.
+    """
+    lon = getattr(proj, "central_longitude", None)
+    lat = getattr(proj, "central_latitude", None)
+
+    # Handle PolarStereo shortcuts which fix central_latitude
+    if lat is None:
+        name = proj.__class__.__name__
+        if name == "NorthPolarStereo":
+            lat = 90.0
+        elif name == "SouthPolarStereo":
+            lat = -90.0
+
+    # Optional: try proj4 params as a backup on older Cartopy versions
+    if lon is None or lat is None:
+        p4 = getattr(proj, "proj4_params", None)
+        if isinstance(p4, dict):
+            lon = lon if lon is not None else p4.get("lon_0", None)
+            lat = lat if lat is not None else p4.get("lat_0", None)
+
+    # Final defaults
+    lon = float(lon) if lon is not None else float(default_lon)
+    lat = float(lat) if lat is not None else float(default_lat)
+    return lon, lat
     
         
 def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj='cyl',profile=None,larger=True, use_cartopy=True):
@@ -1047,7 +1097,7 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj
         dp = 0
     if use_cartopy:
         #proj = ccrs.PlateCarree()
-        proj = ccrs.__dict__[profile.get('proj','PlateCarree')]() #central_longitude=profile.get('central_longitude',0),central_latitude=profile.get('central_latitude',30))
+        proj = make_projection(profile) #ccrs.__dict__[profile.get('proj','PlateCarree')]() #central_longitude=profile.get('central_longitude',0),central_latitude=profile.get('central_latitude',30))
         m = fig.add_subplot(111,projection=proj)
         m.proj = proj
         m.proj_name = profile.get('proj','PlateCarree')
