@@ -1,0 +1,9 @@
+%length,angle
+0,0,,CTN11
+angle-180,length/2,,STR11
+0,0@0,,CTN11
+angle,length/2@0,,END11
+angle-90,length/2@0,,STR21
+0,0@0,,CTN11
+angle+90,length/2@0,,END21
+angle-180,length/2@0,,STR11
