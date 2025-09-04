@@ -617,8 +617,13 @@ class LineBuilder:
         x,y = self.line.get_data()
         try:
             import cartopy.crs as ccrs
-            x0,y0 = m.convert_latlon(x[0],y[0])
-            line_new, = self.m.plot(x0,y0,'o-',linewidth=self.line.get_linewidth(),transform=ccrs.Geodetic()) 
+            if not isinstance(self.m.proj, ccrs.Stereographic):                
+                x0,y0 = self.m.convert_latlon(x[0],y[0])
+                line_new, = self.m.plot(x0,y0,'o-',linewidth=self.line.get_linewidth(),transform=ccrs.Geodetic()) 
+            else:
+                print('*** Issue with great circle plotting on stereographic, reverting to rhumb line ****',e)
+                line_new, = self.m.plot(x[0],y[0],'o-',linewidth=self.line.get_linewidth())
+
         except Exception as e:
             print('*** Issue with great circle plotting, reverting to rhumb line ****',e)
             line_new, = self.m.plot(x[0],y[0],'o-',linewidth=self.line.get_linewidth())

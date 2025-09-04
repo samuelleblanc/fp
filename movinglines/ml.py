@@ -679,7 +679,12 @@ def init_plot(m,start_lon='14 38.717E',start_lat='22 58.783S',color='red'):
     lat0,lon0 = mi.pll(start_lat), mi.pll(start_lon)
     try:
         import cartopy.crs as ccrs
-        line, = m.plot([lat0],[lon0],'o-',color=color,linewidth=3,transform=ccrs.Geodetic())
+        if not isinstance(m.proj, ccrs.Stereographic):
+            line, = m.plot([lat0],[lon0],'o-',color=color,linewidth=3,transform=ccrs.Geodetic())
+        else:
+            print('*** Issue with plotting as great circle in stereographic, reverting to rhumb lines ****: ',e)
+            x0,y0 = m.invert_lonlat(lon0,lat0) #m(lon0,lat0)
+            line, = m.plot([x0],[y0],'o-',color=color,linewidth=3)
     except Exception as e:
         print('*** Issue with plotting as great circle, reverting to rhumb lines ****: ',e)
         x0,y0 = m.invert_lonlat(lon0,lat0) #m(lon0,lat0)
