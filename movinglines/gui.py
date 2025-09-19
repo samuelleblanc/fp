@@ -2,6 +2,7 @@
 # Copyright 2015 Samuel LeBlanc
 import tkinter.simpledialog as tkSimpleDialog
 import tkinter as Tk
+from tkinter import ttk
 try:
     from matplotlib.backends.backend_tkagg import ToolTip
 except:
@@ -1317,7 +1318,7 @@ class gui:
         p0 = Popup_list(reg_list,title='Which Region?',Text='Select the region of the figure:',multi=False)
         ll_lat,ll_lon,ur_lat,ur_lon = regions[reg_list[p0.result]]
         #ll_lat,ll_lon,ur_lat,ur_lon = 21.22,-106.64,51.70,-57.46
-        self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon,name=filename)
+        self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon,name=filename,text=filename)
         #self.line.addfigure_under(img[710:795,35:535,:],ll_lat-7.0,ll_lon,ll_lat-5.0,ur_lon-10.0,outside=True)
         self.baddtidbit.config(text='Remove Tropical tidbit')
         self.baddtidbit.config(command=lambda: self.gui_rmtidbit(filename),style='Bp.TButton')
@@ -1366,32 +1367,32 @@ class gui:
         self.baddtrajectory.config(command=self.gui_addtrajectory,style=self.bg)
         self.line.get_bg(redraw=True)
 
-    def gui_addfigure(self,ll_lat=None,ll_lon=None,ur_lat=None,ur_lon=None):
+    def gui_addfigure(self,ll_lat=None,ll_lon=None,ur_lat=None,ur_lon=None,source_proj=None,coords_are_geographic=True,debug=False):
         'GUI handler for adding figures forecast maps to basemap plot'
         import tkinter.simpledialog as tkSimpleDialog
+        import tkinter.messagebox as tkMessageBox
         import os
+        import numpy as np
+        import cartopy.crs as ccrs
+        
         try:
             from load_utils import load_from_json
         except ModuleNotFoundError:
             from .load_utils import load_from_json
         try:
-            import PIL
+            from PIL import Image
             filename = self.gui_file_select(ext='.png',ftype=[('All files','*.*'),
-                                                          ('PNG','*.png'),
-							  ('JPEG','*.jpg'),
-							  ('GIF','*.gif')])
+                                                ('PNG','*.png'),('JPEG','*.jpg'),('GIF','*.gif')])
             if not filename:
                 print('Cancelled, no file selected')
                 return
             print('Opening png File: %s' %filename)
-            img = imread(filename)
-            print('... opened')
-        except:
-            import tkinter.messagebox as tkMessageBox
-            tkMessageBox.showwarning('Sorry','Error occurred unable to load file')
+            img = Image.open(filename)
+            if debug: print('... opened')
+        except Exception as ei:
+            tkMessageBox.showwarning('Sorry',f'Error occurred unable to load file: \n{ei}')
             return
-            
-            
+        # load the defined regions    
         try:
             regions = load_from_json(os.path.join('.','image_corners.json'))
         except IOError:
@@ -1401,30 +1402,182 @@ class gui:
                 from .gui import gui_file_select_fx
             fname = gui_file_select_fx(ext='*.json',ftype=[('All files','*.*'),('JSON corner for regions','*.json')])
             regions = load_from_json(fname)
+        except Exception as ej:
+            tkMessageBox.showwarning('Sorry',f'Error occurred unable to load image_corners json file: \n{ej}')
+            return
+            
         try:
             reg_list = list(regions.keys())
             reg_list.append('manual')
             p0 = Popup_list(reg_list,title='Which Region?',Text='Select the region of the figure:',multi=False)
             print('... Selected image corners for: {}'.format(reg_list[p0.result]))
-            if not reg_list[p0.result] in list(regions.keys()):
-                ll_lat = None
-            else:
-                ll_lat,ll_lon,ur_lat,ur_lon = regions[reg_list[p0.result]]
+            if reg_list[p0.result] in list(regions.keys()):
+                out_reg = regions[reg_list[p0.result]]
+                if len(out_reg)<5:
+                    ll_lat,ll_lon,ur_lat,ur_lon = out_reg 
+                else:
+                    region_data = out_reg
+                    if isinstance(region_data, dict):
+                        # Dictionary format
+                        ll_lat,ll_lon,ur_lat,ur_lon = region_data['ll_lat'],region_data['ll_lon'],region_data['ur_lat'],region_data['ur_lon']
+                        source_proj = region_data.get('projection', None)
+                        coords_are_geographic = region_data.get('coordinates_are_geographic', True)
+                        debug = region_data.get('debug',debug)
+                    else:
+                        # List format: [ll_lat, ll_lon, ur_lat, ur_lon, proj_info]
+                        ll_lat, ll_lon, ur_lat, ur_lon = region_data[:4]
+                        source_proj = region_data[4] if len(region_data) > 4 else None
+                        coords_are_geographic = region_data[5] if len(region_data) > 5 else True
         except Exception as ei:
-            print(' ...error with image_corners.json, using the manual image selection')
-            print(ei)
-            ll_lat = None
+            print(f' ...error with image_corners.json, using the manual image selection: {ei}')
+            ll_lat,source_proj = None,None
 
-	# get the corners
-        if not ll_lat:
-            ll_lat = tkSimpleDialog.askfloat('Lower left lat','Lower left lat? [deg]')
-            ll_lon = tkSimpleDialog.askfloat('Lower left lon','Lower left lon? [deg]')
-            ur_lat = tkSimpleDialog.askfloat('Upper right lat','Upper right lat? [deg]')
-            ur_lon = tkSimpleDialog.askfloat('Upper right lon','Upper right lon? [deg]')
+        if not ll_lat: # manual corner selection
+            dialog_result = get_coordinates_and_projection() # The dialog replaces all those individual tkSimpleDialog calls
+            if dialog_result:
+                coords = dialog_result['coordinates']
+                ll_lat,ll_lon,ur_lat,ur_lon = coords['ll_lat'],coords['ll_lon'],coords['ur_lat'],coords['ur_lon'] 
+                coords_are_geographic = dialog_result['coordinates_are_geographic']
+                projection = dialog_result['projection']
+                print(f'...Adding manual image corners: LL({ll_lat},{ll_lon}) UR({ur_lat},{ur_lon}), in geographic: {coords_are_geographic}, with projection: {projection}')
+                debug=True
+                   
         fpath = os.path.split(filename)
-        self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon,name=fpath[1])
+        transform_crs = ccrs.PlateCarree()
+        if source_proj and not coords_are_geographic:
+            transform_crs = self._parse_projection(source_proj)
+            
+        self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon,name=fpath[1],transform=transform_crs,text=fpath[1],debug=debug)
         self.baddfigure.config(text='Remove image')
         self.baddfigure.config(command=lambda: self.gui_rmfigure(fpath[1]),style='Bp.TButton')
+        
+    def _parse_projection(self, proj_info):
+        """Parse projection information and return cartopy CRS object"""
+        import cartopy.crs as ccrs
+        
+        if isinstance(proj_info, str):
+            # Handle string-based projection definitions
+            if proj_info.lower() == 'platecarree' or proj_info.lower() == 'geographic':
+                return ccrs.PlateCarree()
+            elif proj_info.lower() == 'mercator':
+                return ccrs.Mercator()
+            elif proj_info.lower().startswith('utm'):
+                # Extract zone number from string like 'utm_33n'
+                zone = int(proj_info.split('_')[1][:-1])
+                southern = proj_info.split('_')[1][-1].lower() == 's'
+                return ccrs.UTM(zone=zone, southern_hemisphere=southern)
+            elif proj_info.lower() == 'lambert_conformal':
+                return ccrs.LambertConformal()
+            elif proj_info.lower() == 'lambert_azimuthal_equal_area':
+                return ccrs.LambertAzimuthalEqualArea()
+            # Add more projections as needed
+            
+        elif isinstance(proj_info, dict):
+            # Handle dictionary-based projection definitions
+            proj_type = proj_info.get('type', '').lower()
+            
+            if proj_type == 'platecarree':
+                return ccrs.PlateCarree(
+                    central_longitude=proj_info.get('central_longitude', 0))
+            elif proj_type == 'stereographic':
+                return ccrs.Stereographic(
+                    central_latitude=proj_info.get('central_latitude', 90),
+                    central_longitude=proj_info.get('central_longitude', 0))
+            elif proj_type == 'lambert_conformal':
+                return ccrs.LambertConformal(
+                    central_latitude=proj_info.get('central_latitude', 39),
+                    central_longitude=proj_info.get('central_longitude', -96),
+                    standard_parallels=proj_info.get('standard_parallels', (33, 45)))
+            elif proj_type == 'lambert_azimuthal_equal_area':
+                return ccrs.LambertAzimuthalEqualArea(
+                    central_latitude=proj_info.get('central_latitude', 0),
+                    central_longitude=proj_info.get('central_longitude', 0),
+                    false_easting=proj_info.get('false_easting', 0),
+                    false_northing=proj_info.get('false_northing', 0),
+                    globe=proj_info.get('globe_radius', None))
+            elif proj_type == 'utm':
+                return ccrs.UTM(
+                    zone=proj_info.get('zone', 33),
+                    southern_hemisphere=proj_info.get('southern_hemisphere', False))
+            # Add more dictionary-based projections as needed
+    
+        return None    
+    
+    def _transform_corners_from_geographic(self, ll_lat, ll_lon, ur_lat, ur_lon, target_crs):
+        """Transform corner coordinates from geographic (lat/lon) to target projection"""
+        import cartopy.crs as ccrs
+        
+        # Transform from geographic coordinates to target projection
+        ll_x, ll_y = target_crs.transform_point(ll_lon, ll_lat, ccrs.PlateCarree())
+        ur_x, ur_y = target_crs.transform_point(ur_lon, ur_lat, ccrs.PlateCarree())
+        
+        # Convert back to lat/lon if needed (depending on your addfigure_under implementation)
+        if hasattr(target_crs, 'transform_point'):
+            # If your system expects lat/lon, transform back to geographic
+            ll_lat_new, ll_lon_new = ccrs.PlateCarree().transform_point(ll_x, ll_y, target_crs)
+            ur_lat_new, ur_lon_new = ccrs.PlateCarree().transform_point(ur_x, ur_y, target_crs)
+            return ll_lat_new, ll_lon_new, ur_lat_new, ur_lon_new
+        else:
+            # Return projected coordinates directly
+            return ll_y, ll_x, ur_y, ur_x  # Note: might need to swap x,y depending on convention
+
+
+    def _transform_corners_projection_to_projection(self, ll_x, ll_y, ur_x, ur_y, source_crs, target_crs):
+        """Transform corner coordinates from source projection units to target projection"""
+        import cartopy.crs as ccrs
+        
+        # Transform from source projection to target projection
+        ll_x_new, ll_y_new = target_crs.transform_point(ll_x, ll_y, source_crs)
+        ur_x_new, ur_y_new = target_crs.transform_point(ur_x, ur_y, source_crs)
+        
+        # Convert back to lat/lon if needed (depending on your addfigure_under implementation)
+        if hasattr(target_crs, 'transform_point'):
+            # If your system expects lat/lon, transform to geographic
+            ll_lat_new, ll_lon_new = ccrs.PlateCarree().transform_point(ll_x_new, ll_y_new, target_crs)
+            ur_lat_new, ur_lon_new = ccrs.PlateCarree().transform_point(ur_x_new, ur_y_new, target_crs)
+            return ll_lat_new, ll_lon_new, ur_lat_new, ur_lon_new
+        else:
+            # Return projected coordinates directly
+            return ll_y_new, ll_x_new, ur_y_new, ur_x_new
+    def _detect_coordinate_type(self, ll_val, ll_val2, ur_val, ur_val2, source_crs=None):
+        """
+        Automatically detect if coordinates are geographic (lat/lon) or projection units
+        Returns True if coordinates appear to be geographic, False if projection units
+        """
+        import cartopy.crs as ccrs
+        
+        # Check for obvious geographic coordinate ranges
+        if (-90 <= ll_val <= 90 and -90 <= ur_val <= 90 and 
+            -180 <= ll_val2 <= 180 and -180 <= ur_val2 <= 180):
+            # Values are within geographic bounds
+            if source_crs and not isinstance(source_crs, ccrs.PlateCarree):
+                # If we have a non-geographic projection but values are in geo range,
+                # they could be either - use additional heuristics
+                
+                # Check if the values make sense for the projection
+                if isinstance(source_crs, (ccrs.UTM, ccrs.Mercator)):
+                    # UTM/Mercator typically have much larger coordinate values
+                    if (abs(ll_val) < 100 and abs(ll_val2) < 100 and 
+                        abs(ur_val) < 100 and abs(ur_val2) < 100):
+                        return True  # Likely geographic
+                    else:
+                        return False  # Likely projection units
+                
+                # For other projections, assume geographic if in valid range
+                return True
+            else:
+                # No projection specified or PlateCarree, assume geographic
+                return True
+        else:
+            # Values outside geographic bounds, must be projection units
+            return False
+
+
+    def _transform_corners(self, ll_lat, ll_lon, ur_lat, ur_lon, source_crs, target_crs):
+        """Legacy method - kept for backward compatibility"""
+        return self._transform_corners_projection_to_projection(ll_lat, ll_lon, ur_lat, ur_lon, source_crs, target_crs)
+
+    
     
     def gui_rmfigure(self,name):
         'GUI handler for removing the forecast image'
@@ -1434,6 +1587,17 @@ class gui:
         except:
             for f in self.line.m.figure_under[name]:
                 f.remove()
+        try:
+            self.line.m.figure_under_text[name].remove()
+        except:
+            try:
+                for f in self.line.m.figure_under_text[name]:
+                    try:
+                        f.remove  
+                    except TypeError:
+                        pass
+            except AttributeError:
+                pass
         self.baddfigure.config(text='Add image',command=self.gui_addfigure,style=self.bg)
         self.line.get_bg(redraw=True)
         
@@ -1486,7 +1650,9 @@ class gui:
         bbox = (bbo0[0],bbo0[1],bbo1[0],bbo1[1])
         img,label,img_leg = self.add_WMS(website=out[i]['website'],printurl=True,notime=out[i]['notime'],mss_crs=True,bbox=bbox)
         if img:
-            r = self.add_wms_images(img,img_leg,name='MSS',text=label)
+            transform = self.line.m.proj
+            if self.line.m.usestereformss: transform = self.line.m.usestereformss
+            r = self.add_wms_images(img,img_leg,name='MSS',text=label,transform=transform)
             if r:
                 self.wmsname = out[i]['name']
                 self.baddmss.config(text='Remove MSS: {}'.format(out[i]['name']))
@@ -1586,12 +1752,13 @@ class gui:
             from .map_interactive import convert_ccrs_to_epsg, get_center_lonlat
         
         import tkinter.messagebox as tkMessageBox
-        
+        import cartopy.crs as ccrs
         from datetime import datetime, timedelta
         if hires:
             res = (2160,1680)
         else:
             res = (1080,720)
+        self.line.m.usestereformss = False
         if popup:
             tkMessageBox.showwarning('Downloading from internet','Trying to load data from {}\n with most current model/measurements'.format(website.split('/')[2]))
         self.root.config(cursor='exchange')
@@ -1686,6 +1853,10 @@ class gui:
             if mss_crs: 
                 if 'stere' in self.line.m.proj_name.lower():
                     srss = ['mss:stere,{0},{1},{1}'.format(*get_center_lonlat(self.line.m.proj))]
+                if 'lambertazi' in self.line.m.proj_name.lower():
+                    lon0,lat0 = get_center_lonlat(self.line.m.proj)
+                    self.line.m.usestereformss = ccrs.NorthPolarStereo(central_longitude=lon0,true_scale_latitude=lat0)
+                    srss = ['mss:stere,{0},{1},{1}'.format(*get_center_lonlat(self.line.m.proj))]
             if len(srss)>0:
                 srs = srss[0]
             else:
@@ -1693,7 +1864,6 @@ class gui:
                 srs = crss[kpop.var.get()]
                 bbox_in = bbox
                 try:
-                    import cartopy.crs as ccrs
                     ccrs_val = int(srs.split(':')[1])
                     tr_init = ccrs.epsg(ccrs_val)
                     xlim_tr,ylim_tr = tr_init.transform_points([self.line.m.llcrnrlon,self.line.m.urcrnrlon],[self.line.m.llcrnrlat,self.line.m.urcrnrlat],self.line.m.proj,)
@@ -1850,7 +2020,8 @@ class gui:
                 imm = geos
             self.line.addfigure_under(geos,ylim[0],xlim[0],ylim[1],xlim[1],text=text,alpha=alpha,name=name,**kwargs)
         except Exception as ie:
-            #print(ie)
+            print(ie)
+            print(ie)
             self.root.config(cursor='')
             self.root.update()
             tkMessageBox.showwarning('Sorry','Problem putting the image under plot')
@@ -2112,6 +2283,7 @@ class Move_point(tkSimpleDialog.Dialog):
         self.ebear = tk.Entry(master)
         self.edist.grid(row=0,column=1)
         self.ebear.grid(row=1,column=1)
+        self.ebear.grid(row=1,column=1)
         if self.speed:
             self.speed = self.speed*3.6
             tk.Label(master,text='or').grid(row=0,column=2)
@@ -2235,7 +2407,7 @@ class Select_profile(tkSimpleDialog.Dialog):
     """
     def __init__(self,default_profiles,title='Enter map defaults',
         proj_list=['PlateCarree','NorthPolarStereo','AlbersEqualArea','AzimuthalEquidistant',
-        'LambertCylindrical','Mercator','Miller','Mollweide','Orthographic','Robinson','Stereographic','SouthPolarStereo','Geostationary']):
+        'LambertCylindrical','Mercator','Miller','Mollweide','Orthographic','Robinson','Stereographic','SouthPolarStereo','Geostationary','LambertAzimuthalEqualArea']):
         import tkinter as tk
         self.default_profiles = default_profiles
         self.profile = self.default_profiles[0]
@@ -2279,23 +2451,32 @@ class Select_profile(tkSimpleDialog.Dialog):
         self.lat0.grid(row=6,column=1)
         self.lat1.grid(row=6,column=2)
 
-        tk.Label(master, text='UTC Start:').grid(row=7,sticky=tk.E)
-        self.start_utc = tk.Entry(master)
-        self.start_utc.grid(row=7,column=1,columnspan=2)
-
-        tk.Label(master, text='UTC conversion:').grid(row=8,sticky=tk.E)
-        self.utc_convert = tk.Entry(master)
-        self.utc_convert.grid(row=8,column=1,columnspan=2)
-
-        tk.Label(master, text='Start Alt:').grid(row=9,sticky=tk.E)
-        self.start_alt = tk.Entry(master)
-        self.start_alt.grid(row=9,column=1,columnspan=2)
+        tk.Label(master, text='Central Lat/Lon:').grid(row=7,sticky=tk.E)
+        self.lat_0 = tk.Entry(master,width=10)
+        self.lon_0 = tk.Entry(master,width=10)
+        self.lat_0.grid(row=7,column=1)
+        self.lon_0.grid(row=7,column=2)
         
-        tk.Label(master, text='Projection:').grid(row=10,sticky=tk.E)
+        self.start_lat = tk.Entry(master)
+        self.start_lat.grid(row=4,column=1,columnspan=2)
+
+        tk.Label(master, text='UTC Start:').grid(row=8,sticky=tk.E)
+        self.start_utc = tk.Entry(master)
+        self.start_utc.grid(row=8,column=1,columnspan=2)
+
+        tk.Label(master, text='UTC conversion:').grid(row=9,sticky=tk.E)
+        self.utc_convert = tk.Entry(master)
+        self.utc_convert.grid(row=9,column=1,columnspan=2)
+
+        tk.Label(master, text='Start Alt:').grid(row=10,sticky=tk.E)
+        self.start_alt = tk.Entry(master)
+        self.start_alt.grid(row=10,column=1,columnspan=2)
+        
+        tk.Label(master, text='Projection:').grid(row=11,sticky=tk.E)
         self.proj_string = tk.StringVar()
         self.proj_string.set(self.proj_list[0])
         self.proj = tk.OptionMenu(master,self.proj_string,*self.proj_list)
-        self.proj.grid(row=10,column=1,columnspan=2)
+        self.proj.grid(row=11,column=1,columnspan=2)
 
         self.set_profvalues(names[0])
         return self.drop
@@ -2311,6 +2492,8 @@ class Select_profile(tkSimpleDialog.Dialog):
                 self.set_val(self.lon1,p['Lon_range'][1])
                 self.set_val(self.lat0,p['Lat_range'][0])
                 self.set_val(self.lat1,p['Lat_range'][1])
+                self.set_val(self.lat_0,p.get('lat_0',45.0))
+                self.set_val(self.lon_0,p.get('lon_0',0.0))
                 self.set_val(self.start_utc,p['UTC_start'])
                 self.set_val(self.utc_convert,p['UTC_conversion'])
                 self.set_val(self.start_alt,p['start_alt'])
@@ -2332,10 +2515,13 @@ class Select_profile(tkSimpleDialog.Dialog):
         self.profile['Start_lat'] = self.start_lat.get()
         self.profile['Lon_range'] = [self.lon0.get(),self.lon1.get()]
         self.profile['Lat_range'] = [self.lat0.get(),self.lat1.get()]
+        self.profile['lon_0'] = self.lon_0.get()
+        self.profile['lat_0'] = self.lat_0.get()
         self.profile['UTC_start'] = float(self.start_utc.get())
         self.profile['UTC_conversion'] = float(self.utc_convert.get())
         self.profile['start_alt'] = float(self.start_alt.get())
         self.profile['Campaign'] = self.pname.get()
+        self.profile['proj'] = self.proj_string.get()
         print('..Applying selected profile')
         self.oked = True
         return self.profile
@@ -2370,6 +2556,12 @@ class Select_profile(tkSimpleDialog.Dialog):
             return False
         if not self.check_input(self.start_lat.get(),0):
             tkMessageBox.showwarning('Bad input','Start Lat error, try again')
+            return False
+        if not self.check_input(self.lon_0.get(),0):
+            tkMessageBox.showwarning('Bad input','Central Lon error, try again')
+            return False
+        if not self.check_input(self.lat_0.get(),0):
+            tkMessageBox.showwarning('Bad input','Central Lat error, try again')
             return False
         if not self.check_input(self.lon0.get(),0):
             tkMessageBox.showwarning('Bad input','Lon Range error, try again')
@@ -2623,4 +2815,330 @@ def gui_file_select_fx(ext='*',
     if filename:
         filename = abspath(filename)
     return filename
+
+import tkinter as tk
+class CoordinateProjectionDialog(tkSimpleDialog.Dialog):
+    """Custom dialog for entering coordinates and projection information"""
+    
+    
+    def __init__(self, parent, title="Image Coordinates and Projection"):
+        self.result = None
+        super().__init__(parent, title)
+    
+    def body(self, master):
+        """Create dialog body. Return widget that should have initial focus."""
         
+        # Main frame
+        main_frame = ttk.Frame(master, padding="10")
+        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        
+        # Coordinates section
+        coords_frame = ttk.LabelFrame(main_frame, text="Image Coordinates", padding="5")
+        coords_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        
+        # Lower Left coordinates
+        ttk.Label(coords_frame, text="Lower Left:").grid(row=0, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
+        
+        ttk.Label(coords_frame, text="Latitude/Y:").grid(row=1, column=0, sticky=tk.W, padx=(10, 5))
+        self.ll_lat_var = tk.DoubleVar()
+        self.ll_lat_entry = ttk.Entry(coords_frame, textvariable=self.ll_lat_var, width=15)
+        self.ll_lat_entry.grid(row=1, column=1, sticky=tk.W, padx=(0, 10))
+        
+        ttk.Label(coords_frame, text="Longitude/X:").grid(row=2, column=0, sticky=tk.W, padx=(10, 5))
+        self.ll_lon_var = tk.DoubleVar()
+        self.ll_lon_entry = ttk.Entry(coords_frame, textvariable=self.ll_lon_var, width=15)
+        self.ll_lon_entry.grid(row=2, column=1, sticky=tk.W, padx=(0, 10))
+        
+        # Upper Right coordinates
+        ttk.Label(coords_frame, text="Upper Right:").grid(row=0, column=2, columnspan=2, sticky=tk.W, pady=(0, 5), padx=(20, 0))
+        
+        ttk.Label(coords_frame, text="Latitude/Y:").grid(row=1, column=2, sticky=tk.W, padx=(30, 5))
+        self.ur_lat_var = tk.DoubleVar()
+        self.ur_lat_entry = ttk.Entry(coords_frame, textvariable=self.ur_lat_var, width=15)
+        self.ur_lat_entry.grid(row=1, column=3, sticky=tk.W)
+        
+        ttk.Label(coords_frame, text="Longitude/X:").grid(row=2, column=2, sticky=tk.W, padx=(30, 5))
+        self.ur_lon_var = tk.DoubleVar()
+        self.ur_lon_entry = ttk.Entry(coords_frame, textvariable=self.ur_lon_var, width=15)
+        self.ur_lon_entry.grid(row=2, column=3, sticky=tk.W)
+        
+        # Coordinate type
+        coord_type_frame = ttk.Frame(coords_frame)
+        coord_type_frame.grid(row=3, column=0, columnspan=4, pady=(10, 0), sticky=tk.W)
+        
+        ttk.Label(coord_type_frame, text="Coordinates are:").grid(row=0, column=0, sticky=tk.W)
+        self.coord_type_var = tk.StringVar(value="geographic")
+        coord_geographic = ttk.Radiobutton(coord_type_frame, text="Geographic (Lat/Lon)", 
+                                         variable=self.coord_type_var, value="geographic")
+        coord_geographic.grid(row=0, column=1, sticky=tk.W, padx=(10, 0))
+        coord_projected = ttk.Radiobutton(coord_type_frame, text="Projected (meters/units)", 
+                                        variable=self.coord_type_var, value="projected")
+        coord_projected.grid(row=0, column=2, sticky=tk.W, padx=(10, 0))
+        
+        # Projection section
+        proj_frame = ttk.LabelFrame(main_frame, text="Projection Information", padding="5")
+        proj_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        
+        # Projection type dropdown
+        ttk.Label(proj_frame, text="Projection Type:").grid(row=0, column=0, sticky=tk.W, pady=(0, 5))
+        self.proj_type_var = tk.StringVar()
+        self.proj_type_combo = ttk.Combobox(proj_frame, textvariable=self.proj_type_var, 
+                                          values=["platecarree", "mercator", "stereographic", 
+                                                "lambert_conformal",  "lambert_azimuthal_equal_area", "utm", "custom"], 
+                                          state="readonly", width=20)
+        self.proj_type_combo.grid(row=0, column=1, sticky=tk.W, pady=(0, 5))
+        self.proj_type_combo.bind('<<ComboboxSelected>>', self.on_projection_change)
+        self.proj_type_combo.set("platecarree")  # Default
+        
+        # Dynamic projection parameters frame
+        self.proj_params_frame = ttk.Frame(proj_frame)
+        self.proj_params_frame.grid(row=1, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(10, 0))
+        
+        # Initialize projection parameter widgets
+        self.proj_param_vars = {}
+        self.proj_param_widgets = {}
+        
+        # Initial projection parameters display
+        self.update_projection_parameters()
+        
+        return self.ll_lat_entry  # Initial focus
+    
+    def on_projection_change(self, event=None):
+        """Handle projection type change"""
+        self.update_projection_parameters()
+    
+    def update_projection_parameters(self):
+        """Update the projection parameters based on selected projection"""
+        # Clear existing parameter widgets
+        for widget in self.proj_param_widgets.values():
+            if isinstance(widget, (list, tuple)):
+                for w in widget:
+                    w.destroy()
+            else:
+                widget.destroy()
+        self.proj_param_widgets.clear()
+        self.proj_param_vars.clear()
+        
+        proj_type = self.proj_type_var.get()
+        row = 0
+        
+        if proj_type == "platecarree":
+            # Central longitude
+            ttk.Label(self.proj_params_frame, text="Central Longitude:").grid(row=row, column=0, sticky=tk.W, pady=2)
+            self.proj_param_vars['central_longitude'] = tk.DoubleVar(value=0.0)
+            entry = ttk.Entry(self.proj_params_frame, textvariable=self.proj_param_vars['central_longitude'], width=10)
+            entry.grid(row=row, column=1, sticky=tk.W, padx=(5, 0), pady=2)
+            self.proj_param_widgets['central_longitude'] = entry
+            
+        elif proj_type == "mercator":
+            # Central longitude
+            ttk.Label(self.proj_params_frame, text="Central Longitude:").grid(row=row, column=0, sticky=tk.W, pady=2)
+            self.proj_param_vars['central_longitude'] = tk.DoubleVar(value=0.0)
+            entry = ttk.Entry(self.proj_params_frame, textvariable=self.proj_param_vars['central_longitude'], width=10)
+            entry.grid(row=row, column=1, sticky=tk.W, padx=(5, 0), pady=2)
+            self.proj_param_widgets['central_longitude'] = entry
+            
+        elif proj_type == "stereographic":
+            # Central latitude
+            ttk.Label(self.proj_params_frame, text="Central Latitude:").grid(row=row, column=0, sticky=tk.W, pady=2)
+            self.proj_param_vars['central_latitude'] = tk.DoubleVar(value=90.0)
+            entry1 = ttk.Entry(self.proj_params_frame, textvariable=self.proj_param_vars['central_latitude'], width=10)
+            entry1.grid(row=row, column=1, sticky=tk.W, padx=(5, 0), pady=2)
+            
+            # Central longitude
+            row += 1
+            ttk.Label(self.proj_params_frame, text="Central Longitude:").grid(row=row, column=0, sticky=tk.W, pady=2)
+            self.proj_param_vars['central_longitude'] = tk.DoubleVar(value=0.0)
+            entry2 = ttk.Entry(self.proj_params_frame, textvariable=self.proj_param_vars['central_longitude'], width=10)
+            entry2.grid(row=row, column=1, sticky=tk.W, padx=(5, 0), pady=2)
+            
+            self.proj_param_widgets['stereographic'] = [entry1, entry2]
+            
+        elif proj_type == "lambert_conformal":
+            # Central latitude
+            ttk.Label(self.proj_params_frame, text="Central Latitude:").grid(row=row, column=0, sticky=tk.W, pady=2)
+            self.proj_param_vars['central_latitude'] = tk.DoubleVar(value=39.0)
+            entry1 = ttk.Entry(self.proj_params_frame, textvariable=self.proj_param_vars['central_latitude'], width=10)
+            entry1.grid(row=row, column=1, sticky=tk.W, padx=(5, 0), pady=2)
+            
+            # Central longitude
+            row += 1
+            ttk.Label(self.proj_params_frame, text="Central Longitude:").grid(row=row, column=0, sticky=tk.W, pady=2)
+            self.proj_param_vars['central_longitude'] = tk.DoubleVar(value=-96.0)
+            entry2 = ttk.Entry(self.proj_params_frame, textvariable=self.proj_param_vars['central_longitude'], width=10)
+            entry2.grid(row=row, column=1, sticky=tk.W, padx=(5, 0), pady=2)
+            
+            # Standard parallels
+            row += 1
+            ttk.Label(self.proj_params_frame, text="Standard Parallel 1:").grid(row=row, column=0, sticky=tk.W, pady=2)
+            self.proj_param_vars['std_parallel_1'] = tk.DoubleVar(value=33.0)
+            entry3 = ttk.Entry(self.proj_params_frame, textvariable=self.proj_param_vars['std_parallel_1'], width=10)
+            entry3.grid(row=row, column=1, sticky=tk.W, padx=(5, 0), pady=2)
+            
+            row += 1
+            ttk.Label(self.proj_params_frame, text="Standard Parallel 2:").grid(row=row, column=0, sticky=tk.W, pady=2)
+            self.proj_param_vars['std_parallel_2'] = tk.DoubleVar(value=45.0)
+            entry4 = ttk.Entry(self.proj_params_frame, textvariable=self.proj_param_vars['std_parallel_2'], width=10)
+            entry4.grid(row=row, column=1, sticky=tk.W, padx=(5, 0), pady=2)
+            
+            self.proj_param_widgets['lambert_conformal'] = [entry1, entry2, entry3, entry4]
+        elif proj_type == "lambert_azimuthal_equal_area":
+            # Central latitude
+            ttk.Label(self.proj_params_frame, text="Central Latitude:").grid(row=row, column=0, sticky=tk.W, pady=2)
+            self.proj_param_vars['central_latitude'] = tk.DoubleVar(value=0.0)
+            entry1 = ttk.Entry(self.proj_params_frame, textvariable=self.proj_param_vars['central_latitude'], width=10)
+            entry1.grid(row=row, column=1, sticky=tk.W, padx=(5, 0), pady=2)
+            
+            # Central longitude
+            row += 1
+            ttk.Label(self.proj_params_frame, text="Central Longitude:").grid(row=row, column=0, sticky=tk.W, pady=2)
+            self.proj_param_vars['central_longitude'] = tk.DoubleVar(value=0.0)
+            entry2 = ttk.Entry(self.proj_params_frame, textvariable=self.proj_param_vars['central_longitude'], width=10)
+            entry2.grid(row=row, column=1, sticky=tk.W, padx=(5, 0), pady=2)
+            
+            # False easting
+            row += 1
+            ttk.Label(self.proj_params_frame, text="False Easting:").grid(row=row, column=0, sticky=tk.W, pady=2)
+            self.proj_param_vars['false_easting'] = tk.DoubleVar(value=0.0)
+            entry3 = ttk.Entry(self.proj_params_frame, textvariable=self.proj_param_vars['false_easting'], width=10)
+            entry3.grid(row=row, column=1, sticky=tk.W, padx=(5, 0), pady=2)
+            
+            # False northing
+            row += 1
+            ttk.Label(self.proj_params_frame, text="False Northing:").grid(row=row, column=0, sticky=tk.W, pady=2)
+            self.proj_param_vars['false_northing'] = tk.DoubleVar(value=0.0)
+            entry4 = ttk.Entry(self.proj_params_frame, textvariable=self.proj_param_vars['false_northing'], width=10)
+            entry4.grid(row=row, column=1, sticky=tk.W, padx=(5, 0), pady=2)
+            
+            # Globe radius (optional)
+            row += 1
+            ttk.Label(self.proj_params_frame, text="Globe Radius (optional):").grid(row=row, column=0, sticky=tk.W, pady=2)
+            self.proj_param_vars['globe_radius'] = tk.DoubleVar(value=1.0)
+            entry5 = ttk.Entry(self.proj_params_frame, textvariable=self.proj_param_vars['globe_radius'], width=10)
+            entry5.grid(row=row, column=1, sticky=tk.W, padx=(5, 0), pady=2)
+            
+            self.proj_param_widgets['lambert_azimuthal'] = [entry1, entry2, entry3, entry4, entry5]
+
+        elif proj_type == "utm":
+            # Zone number
+            ttk.Label(self.proj_params_frame, text="UTM Zone:").grid(row=row, column=0, sticky=tk.W, pady=2)
+            self.proj_param_vars['zone'] = tk.IntVar(value=33)
+            entry1 = ttk.Entry(self.proj_params_frame, textvariable=self.proj_param_vars['zone'], width=10)
+            entry1.grid(row=row, column=1, sticky=tk.W, padx=(5, 0), pady=2)
+            
+            # Hemisphere
+            row += 1
+            ttk.Label(self.proj_params_frame, text="Hemisphere:").grid(row=row, column=0, sticky=tk.W, pady=2)
+            self.proj_param_vars['hemisphere'] = tk.StringVar(value="northern")
+            combo = ttk.Combobox(self.proj_params_frame, textvariable=self.proj_param_vars['hemisphere'],
+                               values=["northern", "southern"], state="readonly", width=8)
+            combo.grid(row=row, column=1, sticky=tk.W, padx=(5, 0), pady=2)
+            combo.set("northern")
+            
+            self.proj_param_widgets['utm'] = [entry1, combo]
+            
+        elif proj_type == "custom":
+            # Custom projection string
+            ttk.Label(self.proj_params_frame, text="Custom Projection:").grid(row=row, column=0, sticky=tk.W, pady=2)
+            self.proj_param_vars['custom_string'] = tk.StringVar()
+            entry = ttk.Entry(self.proj_params_frame, textvariable=self.proj_param_vars['custom_string'], width=30)
+            entry.grid(row=row, column=1, sticky=tk.W, padx=(5, 0), pady=2)
+            self.proj_param_widgets['custom'] = entry
+    
+    def validate(self):
+        """Validate the input values"""
+        try:
+            # Validate coordinates
+            ll_lat = self.ll_lat_var.get()
+            ll_lon = self.ll_lon_var.get()
+            ur_lat = self.ur_lat_var.get()
+            ur_lon = self.ur_lon_var.get()
+            
+            # Basic validation - can be expanded
+            if self.coord_type_var.get() == "geographic":
+                if not (-90 <= ll_lat <= 90) or not (-90 <= ur_lat <= 90):
+                    tk.messagebox.showerror("Invalid Input", "Latitude values must be between -90 and 90 degrees")
+                    return 0
+                if not (-180 <= ll_lon <= 180) or not (-180 <= ur_lon <= 180):
+                    tk.messagebox.showerror("Invalid Input", "Longitude values must be between -180 and 180 degrees")
+                    return 0
+            
+            # Validate projection-specific parameters
+            proj_type = self.proj_type_var.get()
+            if proj_type == "utm":
+                zone = self.proj_param_vars['zone'].get()
+                if not (1 <= zone <= 60):
+                    tk.messagebox.showerror("Invalid Input", "UTM zone must be between 1 and 60")
+                    return 0
+            
+            return 1
+            
+        except tk.TclError:
+            tk.messagebox.showerror("Invalid Input", "Please enter valid numeric values")
+            return 0
+    
+    def apply(self):
+        """Process the data when OK is pressed"""
+        # Get coordinates
+        coordinates = {
+            'll_lat': self.ll_lat_var.get(),
+            'll_lon': self.ll_lon_var.get(),
+            'ur_lat': self.ur_lat_var.get(),
+            'ur_lon': self.ur_lon_var.get(),
+        }
+        
+        # Get coordinate type
+        coords_are_geographic = self.coord_type_var.get() == "geographic"
+        
+        # Get projection information
+        proj_type = self.proj_type_var.get()
+        projection = {"type": proj_type}
+        
+        # Add projection-specific parameters
+        if proj_type == "platecarree":
+            projection["central_longitude"] = self.proj_param_vars['central_longitude'].get()
+        elif proj_type == "mercator":
+            projection["central_longitude"] = self.proj_param_vars['central_longitude'].get()
+        elif proj_type == "stereographic":
+            projection["central_latitude"] = self.proj_param_vars['central_latitude'].get()
+            projection["central_longitude"] = self.proj_param_vars['central_longitude'].get()
+        elif proj_type == "lambert_conformal":
+            projection["central_latitude"] = self.proj_param_vars['central_latitude'].get()
+            projection["central_longitude"] = self.proj_param_vars['central_longitude'].get()
+            projection["standard_parallels"] = [
+                self.proj_param_vars['std_parallel_1'].get(),
+                self.proj_param_vars['std_parallel_2'].get()
+            ]
+        elif proj_type == "lambert_azimuthal_equal_area":
+            projection["central_latitude"] = self.proj_param_vars['central_latitude'].get()
+            projection["central_longitude"] = self.proj_param_vars['central_longitude'].get()
+            projection["false_easting"] = self.proj_param_vars['false_easting'].get()
+            projection["false_northing"] = self.proj_param_vars['false_northing'].get()
+            globe_radius = self.proj_param_vars['globe_radius'].get()
+            if globe_radius != 1.0:  # Only include if not default
+                projection["globe_radius"] = globe_radius
+        elif proj_type == "utm":
+            projection["zone"] = self.proj_param_vars['zone'].get()
+            projection["southern_hemisphere"] = self.proj_param_vars['hemisphere'].get() == "southern"
+        elif proj_type == "custom":
+            projection = self.proj_param_vars['custom_string'].get()
+        
+        # Store result
+        self.result = {
+            'coordinates': coordinates,
+            'coordinates_are_geographic': coords_are_geographic,
+            'projection': projection
+        }
+
+
+# Convenience function to use the dialog
+def get_coordinates_and_projection(parent=None, title="Image Coordinates and Projection"):
+    """
+    Show the coordinate and projection dialog and return the results
+    
+    Returns:
+        dict: Contains 'coordinates', 'coordinates_are_geographic', and 'projection' keys
+        None: If dialog was cancelled
+    """
+    dialog = CoordinateProjectionDialog(parent, title)
+    return dialog.result        

@@ -100,8 +100,8 @@
 {'Platform':'g3','names':['g3','G3','G-3','g-3','g 3','G 3','GIII','gIII','giii'],
     'max_alt':12000.0,'base_speed':150.0,'speed_per_alt':0.01,
     'max_speed':231,'max_speed_alt':10000.0,'descent_speed_decrease':25.0,
-    'climb_vert_speed':13.5,'descent_vert_speed':-5.0,'alt_for_variable_vert_speed':8000.0,
-    'vert_speed_base':7.0,'vert_speed_per_alt':7e-05,
+    'climb_vert_speed':52.5,'descent_vert_speed':-5.0,'alt_for_variable_vert_speed':8000.0,
+    'vert_speed_base':8.5,'vert_speed_per_alt':7.5e-05,
     'rate_of_turn':None,'turn_bank_angle':40.0,
     'warning':False,'pilot_format':'DD MM',
 	'preferred_file_format':['foreflight','honeywell']}
@@ -127,3 +127,11 @@
     'vert_speed_base':0,'vert_speed_per_alt':0.0,
     'rate_of_turn':None,'turn_bank_angle':20.0,
     'warning':False,'pilot_format':'DD MM'}
+{'Platform':'n777','names':['n777','777','N-777','N777'],
+    'max_alt':14000.0,'base_speed':150.0,'speed_per_alt':0.01,
+    'max_speed':231,'max_speed_alt':10000.0,'descent_speed_decrease':25.0,
+    'climb_vert_speed':52.5,'descent_vert_speed':-5.0,'alt_for_variable_vert_speed':8000.0,
+    'vert_speed_base':8.5,'vert_speed_per_alt':7.5e-05,
+    'rate_of_turn':None,'turn_bank_angle':20.0,
+    'warning':False,'pilot_format':'DD MM',
+	'preferred_file_format':['foreflight']}

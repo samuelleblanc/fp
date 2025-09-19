@@ -13,5 +13,8 @@
  "tidbits Western Pacific":[-1.85,85.88,69.64,-153.85],
  "tidbits Central Pacific":[-1.15,167.75,37.83,-126.64],
  "tidbits Eastern Pacific":[-1.20,-142.27,37.86,-76.61],
- "GMAO PACE-PAX":[13.085,-151.44,56.286,-84.33]
- }
+ "GMAO PACE-PAX":[13.085,-151.44,56.286,-84.33],
+ "NURTURE Bocachica": {"ll_lon": -6246087,"ll_lat":-4921020,"ur_lon": 6218744,"ur_lat": 4441623,
+    "coordinates_are_geographic": false, "debug":true,
+    "projection": {"type": "LambertAzimuthalEqualArea","central_latitude": 60.0,"central_longitude": -60.0,"false_easting": 0.0,"false_northing": 0.0}}
+}

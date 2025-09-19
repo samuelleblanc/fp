@@ -679,14 +679,16 @@ def init_plot(m,start_lon='14 38.717E',start_lat='22 58.783S',color='red'):
     lat0,lon0 = mi.pll(start_lat), mi.pll(start_lon)
     try:
         import cartopy.crs as ccrs
-        if not isinstance(m.proj, ccrs.Stereographic):
-            line, = m.plot([lat0],[lon0],'o-',color=color,linewidth=3,transform=ccrs.Geodetic())
-        else:
-            print('*** Issue with plotting as great circle in stereographic, reverting to rhumb lines ****: ',e)
-            x0,y0 = m.invert_lonlat(lon0,lat0) #m(lon0,lat0)
-            line, = m.plot([x0],[y0],'o-',color=color,linewidth=3)
+    #    if not isinstance(m.proj, ccrs.Stereographic):
+        #line, = m.plot([lat0],[lon0],'o-',color=color,linewidth=3,transform=ccrs.PlateCarree())
+        line, = m.plot([lon0],[lat0],'o-',color=color,linewidth=3,transform=ccrs.Geodetic())
+        print(f'starting lat:{lat0} lon:{lon0}')
+    #    else:
+    #        print('*** Issue with plotting as great circle in stereographic, reverting to rhumb lines ****: ')
+    #        x0,y0 = m.invert_lonlat(lon0,lat0) #m(lon0,lat0)
+    #        line, = m.plot([x0],[y0],'o-',color=color,linewidth=3)
     except Exception as e:
-        print('*** Issue with plotting as great circle, reverting to rhumb lines ****: ',e)
+        print(f'*** Issue with plotting as great circle, reverting to rhumb lines ****: {e}')
         x0,y0 = m.invert_lonlat(lon0,lat0) #m(lon0,lat0)
         line, = m.plot([x0],[y0],'o-',color=color,linewidth=3)
     line.labels_points = []

@@ -246,13 +246,14 @@ class LineBuilder:
             #print(self.xy,event.xdata,event.ydata,self.xs[-1],self.ys[-1])
             if self.m:
                 lo,la = self.m.convert_latlon(event.xdata,event.ydata) #self.m(event.xdata,event.ydata,inverse=True)
-                self.lons = list(self.lons)
-                self.lats = list(self.lats)
+                self.lons = np.atleast_1d(self.lons).tolist()
+                self.lats = np.atleast_1d(self.lats).tolist()
                 self.lons.append(lo)
                 self.lats.append(la)
             self.line.axes.format_coord = self.format_position_distance
             ilola = -2
-        self.line.set_data(self.xs, self.ys)
+        #self.line.set_data(self.xs, self.ys)
+        self._set_data_transformed(self.xs, self.ys)
         if self.ex:
             try:
                 self.azi = self.ex.azi[ilola+1]
@@ -354,7 +355,8 @@ class LineBuilder:
         self.ys[i] = event.ydata
         if self.m:
             self.lons[i],self.lats[i] = self.m.convert_latlon(event.xdata,event.ydata)# self.m(event.xdata,event.ydata,inverse=True)
-        self.line.set_data(list(self.xs),list(self.ys))
+        #self.line.set_data(list(self.xs),list(self.ys))
+        self._set_data_transformed(self.xs, self.ys)
         if self.contains:
             self.draw_canvas(extra_points=[self.highlight_linepoint,self.line.range_circles,self.line.range_cir_anno])
         else:
@@ -410,7 +412,8 @@ class LineBuilder:
                     self.ys = list(y)
                 except TypeError as ei:
                     import pdb; pdb.set_trace()
-                self.line.set_data(self.xs,self.ys)
+                #self.line.set_data(self.xs,self.ys)
+                self._set_data_transformed(self.xs, self.ys)
                 if get_time: 
                     t2 = time.time()
                     print('after set_datal: {}'.format(t2-t1))
@@ -499,6 +502,22 @@ class LineBuilder:
             x0,y0 = self.xy
             self.r = sqrt((x-x0)**2+(y-y0)**2)
             return 'x=%2.5f, y=%2.5f, d=%2.5f' % (x,y,self.r)
+    
+    def _set_data_transformed(self,x,y):
+        'set the line data with the transformed points'
+        
+        # Convert to arrays
+        x_array = np.atleast_1d(np.array(x))
+        y_array = np.atleast_1d(np.array(y))
+        
+        # Otherwise, vectorize the conversion
+        convert_vectorized = np.vectorize(self.m.convert_latlon)
+        xs, ys = convert_vectorized(x_array, y_array)
+        
+        # Update the line
+        self.line.set_data(xs, ys)
+        
+        return
         
     def update_labels(self,nodraw=False,updatexys=False):
         'method to update the waypoints labels after each recalculations'
@@ -617,12 +636,12 @@ class LineBuilder:
         x,y = self.line.get_data()
         try:
             import cartopy.crs as ccrs
-            if not isinstance(self.m.proj, ccrs.Stereographic):                
-                x0,y0 = self.m.convert_latlon(x[0],y[0])
-                line_new, = self.m.plot(x0,y0,'o-',linewidth=self.line.get_linewidth(),transform=ccrs.Geodetic()) 
-            else:
-                print('*** Issue with great circle plotting on stereographic, reverting to rhumb line ****',e)
-                line_new, = self.m.plot(x[0],y[0],'o-',linewidth=self.line.get_linewidth())
+            #if not isinstance(self.m.proj, ccrs.Stereographic):                
+            x0,y0 = self.m.convert_latlon(x[0],y[0])
+            line_new, = self.m.plot(x0,y0,'o-',linewidth=self.line.get_linewidth(),transform=ccrs.Geodetic()) 
+            #else:
+            #    print('*** Issue with great circle plotting on stereographic, reverting to rhumb line ****',e)
+            #    line_new, = self.m.plot(x[0],y[0],'o-',linewidth=self.line.get_linewidth())
 
         except Exception as e:
             print('*** Issue with great circle plotting, reverting to rhumb line ****',e)
@@ -635,12 +654,24 @@ class LineBuilder:
         self.line_arr[i].set_data([],[])
         self.line_arr[i].remove()
 
-    def addfigure_under(self,img,ll_lat,ll_lon,ur_lat,ur_lon,outside=False,text=None,alpha=0.5,name='None',**kwargs):
+    def addfigure_under(self,img,ll_lat,ll_lon,ur_lat,ur_lon,outside=False,text=None,alpha=0.5,name='None',transform=ccrs.PlateCarree(),debug=False,**kwargs):
         'Program to add a figure under the basemap plot'
+        '''from PIL import Image
         try: 
             self.m.figure_under
         except AttributeError:
             self.m.figure_under = {}
+        
+        import cartopy.crs as ccrs
+        # Debug information
+        print(f"Adding figure '{name}' with:")
+        print(f"  Coordinates: LL({ll_lat}, {ll_lon}) to UR({ur_lat}, {ur_lon})")
+        print(f"  Transform: {transform}")
+        print(f"  Image type: {type(img)}")
+        print(f"  Target projection: {type(self.m.proj)}")
+        #if isinstance(self.m.proj,ccrs.Stereographic):
+        #    kwargs['transform'] = kwargs.get('transform',ccrs.PlateCarree())
+                
         try:
             #import ipdb; ipdb.set_trace()
             if len(img.getbands())>3:
@@ -672,6 +703,90 @@ class LineBuilder:
                 print('Problem adding text on figure, continuning...')
         self.line.figure.canvas.draw()
         self.get_bg()
+        '''
+        try: 
+            self.m.figure_under
+        except AttributeError:
+            self.m.figure_under = {}
+        
+        import cartopy.crs as ccrs
+        import numpy as np
+        from PIL import Image
+        
+        # Debug information
+        if debug:
+            print(f"...Adding figure '{name}' with:")
+            print(f"  ...Coordinates: LL({ll_lat}, {ll_lon}) to UR({ur_lat}, {ur_lon})")
+            print(f"  ...Transform: {transform}")
+            print(f"  ...Image type: {type(img)}")
+            print(f"  ...Target projection: {type(self.m.proj)}")
+
+        extent = [ll_lon, ur_lon, ll_lat, ur_lat]# Handle coordinate order - matplotlib expects [left, right, bottom, top]
+        if debug: print(f"  Extent: {extent}")
+               
+        try:
+            # Handle images with alpha channel (RGBA)
+            img_array = img
+            if isinstance(img, Image.Image) and len(img.getbands()) > 3:
+                if debug: print("  Processing RGBA image with alpha channel")
+                def invert(image):
+                    return image.point(lambda p: 255 - p)
+                r0, g0, b0, a0 = img.split()
+                img_p = Image.merge(img.mode, (r0, g0, b0, invert(a0)))
+                img_array = np.array(img_p)
+            
+            # Add image to plot
+            if debug: print("  Adding image to plot...")
+            #import ipdb; ipdb.set_trace()
+            self.m.figure_under[name] = self.m.imshow(
+                img_array,
+                origin='upper',
+                transform=transform,
+                extent=extent,
+                alpha=alpha,
+                **kwargs
+            )
+            print(f'...figure {name} has been added successfully. {text}')
+            
+        except Exception as e:
+            print(f"Error adding image: {e}")
+            print("Trying fallback method...")
+            try:
+                # Fallback - simpler approach
+                self.m.figure_under[name] = self.m.imshow(
+                    img_array,
+                    origin='upper',
+                    transform=transform,
+                    extent=extent,
+                    **kwargs
+                )
+                print(f'...figure {name} has been added with fallback method. {text}')
+            except Exception as e2:
+                import tkinter.messagebox as tkMessageBox
+                tkMessageBox.showerror('Failed adding image',f'Image :{name} has failed the fallback image adding with error: {e2}')
+                print(f"***Adding Image ERROR: Fallback also failed: {e2}")
+                return False
+        
+        # Add text if provided
+        if text:
+            try: 
+                self.m.figure_under_text
+            except AttributeError:
+                self.m.figure_under_text = {}
+            try:
+                self.m.figure_under_text[name] = self.m.ax.text(
+                    0.0, -0.15, text, 
+                    transform=self.m.ax.transAxes, 
+                    clip_on=False, 
+                    color='grey'
+                )
+            except Exception as e:
+                print(f'Problem adding text on figure: {e}')
+
+        self.line.figure.canvas.draw()
+        self.get_bg()
+        
+        return True
         
     def addlegend_image_below(self,img):
         'Program to add a image legend to a new axis below the current axis'
@@ -755,7 +870,8 @@ class LineBuilder:
         else:
             self.xs.insert(insert_i+1,x)
             self.ys.insert(insert_i+1,y)
-        self.line.set_data(self.xs, self.ys)
+        #self.line.set_data(self.xs, self.ys)
+        self._set_data_transformed(self.xs, self.ys)
         
         if self.ex:
             if alt:
@@ -782,7 +898,8 @@ class LineBuilder:
             x,y = newlon,newlat
         self.xs[i] = x
         self.ys[i] = y
-        self.line.set_data(self.xs, self.ys)
+        #self.line.set_data(self.xs, self.ys)
+        self._set_data_transformed(self.xs, self.ys)
         if self.ex: self.ex.mods(i,self.lats[i],self.lons[i],wpname=' ')
         if last:
             if self.ex:
@@ -1005,7 +1122,12 @@ class LineBuilder:
         
         return combined,distances
         
-def make_projection(profile):
+def make_projection(profile,debug=False):
+    'function to ensure that only the appropriate properties of the projection gets passed'
+    try:
+        from map_interactive import pll
+    except ModuleNotFoundError:
+        from .map_interactive import pll
     name = profile.get('proj', 'PlateCarree')
     proj_cls = getattr(ccrs, name)
 
@@ -1016,13 +1138,21 @@ def make_projection(profile):
 
     # Candidate kwargs (we’ll filter to what the class actually accepts)
     raw_kwargs = {
-        'central_longitude': lon0,
-        'central_latitude': lat0,          # used by Stereographic (not the PolarStereo shortcuts)
-        'true_scale_latitude': lat0,       # used by North/SouthPolarStereo and Stereographic
+        'central_longitude': pll(lon0),
+        'central_latitude': pll(lat0),          # used by Stereographic (not the PolarStereo shortcuts)
+        'true_scale_latitude': pll(lat0),       # used by North/SouthPolarStereo and Stereographic
     }
 
     accepted = set(inspect.signature(proj_cls.__init__).parameters.keys())
     kwargs = {k: v for k, v in raw_kwargs.items() if k in accepted and v is not None}
+    
+    if debug:
+        print(f"Projection: {name}")
+        print(f"Accepted params: {accepted}")
+        print(f"Raw kwargs: {raw_kwargs}")
+        print(f"Filtered kwargs: {kwargs}")
+    
+    
     return proj_cls(**kwargs)
     
 def get_center_lonlat(proj, default_lon=0.0, default_lat=90.0):
@@ -1055,7 +1185,7 @@ def get_center_lonlat(proj, default_lon=0.0, default_lat=90.0):
     return lon, lat
     
         
-def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj='cyl',profile=None,larger=True, use_cartopy=True):
+def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj='cyl',profile=None,larger=True, use_cartopy=True,debug=False):
     """
     First try at a building of the basemap with a 'stere' projection
     Must put in the values of the lower left corner and upper right corner (lon and lat)
@@ -1102,7 +1232,7 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj
         dp = 0
     if use_cartopy:
         #proj = ccrs.PlateCarree()
-        proj = make_projection(profile) #ccrs.__dict__[profile.get('proj','PlateCarree')]() #central_longitude=profile.get('central_longitude',0),central_latitude=profile.get('central_latitude',30))
+        proj = make_projection(profile,debug=debug) #ccrs.__dict__[profile.get('proj','PlateCarree')]() #central_longitude=profile.get('central_longitude',0),central_latitude=profile.get('central_latitude',30))
         m = fig.add_subplot(111,projection=proj)
         m.proj = proj
         m.proj_name = profile.get('proj','PlateCarree')
@@ -1893,6 +2023,10 @@ def parse_and_plot_kml(kml_content, ax,color='tab:pink'):
             coords = [tuple(map(float, coord.split(','))) for coord in geom.strip().split()]
             longitudes, latitudes = zip(*coords)
             # Plot the polygon
+            if hasattr(ax,'proj'):
+                if isinstance(ax.proj,ccrs.Stereographic()):
+                    xs,ys = zip([ax.convert_latlon(*c) for c in coords])
+                    pp_tmp = ax.plot(xs, ys, color=color, linewidth=1) #,transform=ccrs.Geodetic())
             pp_tmp = ax.plot(longitudes, latitudes, color=color, linewidth=1,transform=ccrs.Geodetic())
             plcmrks.append(pp_tmp)
         

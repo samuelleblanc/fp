@@ -15,7 +15,7 @@
 """
 
 from setuptools import setup, find_packages
-long_description = open('README.md').read()
+long_description = open('README.md',encoding='utf-8').read()
 from distutils.util import convert_path
 import os
 

@@ -10,7 +10,7 @@ source:
 build:
   skip: true  # [py<38]
   number: 1000
-  script: "{{ PYTHON }} -m pip install . --no-deps -vv"  # [not win]
+  script: "{{ PYTHON }} -m pip install . --no-deps -vv" 
   entry_points:
     - ml = movinglines:main
 
