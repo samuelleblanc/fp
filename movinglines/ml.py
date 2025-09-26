@@ -563,6 +563,14 @@ def build_buttons(ui,lines,vertical=True):
                          command = g.gui_add_FIR)
     #g.baddfir.pack(in_=g.frame_airspace,padx=0,pady=0,side=tk.LEFT,anchor=tk.CENTER)
     g.baddfir.grid(in_=top_gui,padx=0,pady=0,row=1,column=1,  sticky='w'+'e'+'n'+'s')
+    
+    g.baddnats = ttk.Button(side_bar,text='North Atlantic routes',
+                         command = g.gui_add_NATS)
+    g.baddnats.grid(in_=top_gui,row=1,column=0,  sticky='w'+'e'+'n'+'s')
+    g.baddpocats = ttk.Button(side_bar,text='Pacific-Oceanic routes',
+                         command = g.gui_add_POCATS)
+    g.baddpocats.grid(in_=top_gui,padx=0,pady=0,row=1,column=1,  sticky='w'+'e'+'n'+'s')
+    
     #g.frame_wms = ttk.Frame(top_gui)
     #g.frame_wms.pack(in_=top_gui,side=side,fill=tk.X,pady=2)
     g.baddwms = ttk.Button(side_bar,text='WMS layer',

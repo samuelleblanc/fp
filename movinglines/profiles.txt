@@ -2,7 +2,7 @@
                  'Start_lon':'60 25 33W','Start_lat':'53 19 09N', 
                  'Lon_range':[-100,-30],'Lat_range':[35,80],
                  'UTC_start':12.0,'UTC_conversion':-4.0,
-                 'start_alt':49,'proj':'NorthPolarStereo','lat_0':60.0,'lon_0':-60.0,
+                 'start_alt':49,'proj':'LambertAzimuthalEqualArea','lat_0':60.0,'lon_0':-60.0,
 				 'waypoint_format':'{x.name[0]}{x.datestr.split("-")[2]}{w:02d}'}
 {'Profile':'AirSHARP','Plane_name':'TO',
                  'Start_lon':'121 45.70W','Start_lat':'36 40.89N',

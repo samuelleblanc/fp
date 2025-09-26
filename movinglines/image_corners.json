@@ -13,8 +13,20 @@
  "tidbits Western Pacific":[-1.85,85.88,69.64,-153.85],
  "tidbits Central Pacific":[-1.15,167.75,37.83,-126.64],
  "tidbits Eastern Pacific":[-1.20,-142.27,37.86,-76.61],
+  "tidbits North America": {"ll_lon": -7059000,"ll_lat":-8340000,"ur_lon": 7328000,"ur_lat": 633400,
+				  "coordinates_are_geographic": false, "debug":false,
+				  "projection": {"type": "NorthPolarStereo","central_longitude": -105.0,"true_scale_latitude":40.0}},
+ "tidbits Northern Hemisphere": {"ll_lon": -4815000,"ll_lat":-4680000,"ur_lon": 4994000,"ur_lat": 4935000,
+				  "coordinates_are_geographic": false, "debug":false,
+				  "projection": {"type": "NorthPolarStereo","central_longitude": -90.0,"true_scale_latitude":0.0}},
+ "tidbits Southeast Canada": {"ll_lon": -79.34,"ll_lat":39.54,"ur_lon": -39.974,"ur_lat": 59.1,
+				  "coordinates_are_geographic": false, "debug":false,
+				  "projection": {"type": "PlateCarree"}},
  "GMAO PACE-PAX":[13.085,-151.44,56.286,-84.33],
  "NURTURE Bocachica": {"ll_lon": -6246087,"ll_lat":-4921020,"ur_lon": 6218744,"ur_lat": 4441623,
-    "coordinates_are_geographic": false, "debug":true,
-    "projection": {"type": "LambertAzimuthalEqualArea","central_latitude": 60.0,"central_longitude": -60.0,"false_easting": 0.0,"false_northing": 0.0}}
+    "coordinates_are_geographic": false, "debug":false,
+    "projection": {"type": "LambertAzimuthalEqualArea","central_latitude": 60.0,"central_longitude": -60.0,"false_easting": 0.0,"false_northing": 0.0}},
+ "NURTURE Bocachica Zoomed in": {"ll_lon": -3411575,"ll_lat":-2670817,"ur_lon": 3401003,"ur_lat": 2405400,
+    "coordinates_are_geographic": false, "debug":false,
+    "projection": {"type": "LambertAzimuthalEqualArea","central_latitude": 53.34,"central_longitude": -60.45,"false_easting": 0.0,"false_northing": 0.0}}
 }

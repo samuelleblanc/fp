@@ -76,7 +76,7 @@ class gui:
                   - reformat of flt_module list to have mutiple columns
                   
     """
-    def __init__(self,line=None,root=None,noplt=False):
+    def __init__(self,line=None,root=None,noplt=False,debug=False):
         import tkinter as tk
         import os
         if not line:
@@ -98,6 +98,7 @@ class gui:
 
         self.noplt = noplt
         self.newflight_off = True
+        self.debug = debug
         try:
             self.line.line.figure.canvas.mpl_connect('home_event', self.refresh)
         except ValueError:
@@ -1270,6 +1271,7 @@ class gui:
     def gui_addtidbit(self):
         'GUI handler for adding tropical tidbit foreacast maps to basemap plot'
         import tkinter.messagebox as tkMessageBox
+        import cartopy.crs as ccrs
         try:
             from load_utils import load_from_json
         except ModuleNotFoundError:
@@ -1316,9 +1318,30 @@ class gui:
                          }
         reg_list = list(regions.keys())
         p0 = Popup_list(reg_list,title='Which Region?',Text='Select the region of the figure:',multi=False)
-        ll_lat,ll_lon,ur_lat,ur_lon = regions[reg_list[p0.result]]
+        source_proj = False
+        if reg_list[p0.result] in list(regions.keys()):
+            out_reg = regions[reg_list[p0.result]]
+            if len(out_reg)<5:
+                ll_lat,ll_lon,ur_lat,ur_lon = out_reg 
+            else:
+                region_data = out_reg
+                if isinstance(region_data, dict):
+                    # Dictionary format
+                    ll_lat,ll_lon,ur_lat,ur_lon = region_data['ll_lat'],region_data['ll_lon'],region_data['ur_lat'],region_data['ur_lon']
+                    source_proj = region_data.get('projection', None)
+                    coords_are_geographic = region_data.get('coordinates_are_geographic', True)
+                    debug = region_data.get('debug',self.debug)
+                else:
+                    # List format: [ll_lat, ll_lon, ur_lat, ur_lon, proj_info]
+                    ll_lat, ll_lon, ur_lat, ur_lon = region_data[:4]
+                    source_proj = region_data[4] if len(region_data) > 4 else None
+                    coords_are_geographic = region_data[5] if len(region_data) > 5 else True
+        transform_crs = ccrs.PlateCarree()
+        if source_proj and not coords_are_geographic:
+            transform_crs = self._parse_projection(source_proj)
+        #ll_lat,ll_lon,ur_lat,ur_lon = regions[reg_list[p0.result]]
         #ll_lat,ll_lon,ur_lat,ur_lon = 21.22,-106.64,51.70,-57.46
-        self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon,name=filename,text=filename)
+        self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon,name=filename,text=filename,transform=transform_crs,debug=debug)
         #self.line.addfigure_under(img[710:795,35:535,:],ll_lat-7.0,ll_lon,ll_lat-5.0,ur_lon-10.0,outside=True)
         self.baddtidbit.config(text='Remove Tropical tidbit')
         self.baddtidbit.config(command=lambda: self.gui_rmtidbit(filename),style='Bp.TButton')
@@ -1331,6 +1354,17 @@ class gui:
         except:
             for f in self.line.m.figure_under[name]:
                 f.remove()
+        try:
+            self.line.m.figure_under_text[name].remove()
+        except:
+            try:
+                for f in self.line.m.figure_under_text[name]:
+                    try:
+                        f.remove  
+                    except TypeError:
+                        pass
+            except AttributeError:
+                pass
         self.baddtidbit.config(text='Add Tropical tidbit')
         self.baddtidbit.config(command=self.gui_addtidbit,style=self.bg)
         self.line.get_bg(redraw=True)
@@ -1387,7 +1421,8 @@ class gui:
                 print('Cancelled, no file selected')
                 return
             print('Opening png File: %s' %filename)
-            img = Image.open(filename)
+            #img = Image.open(filename)
+            img = imread(filename)
             if debug: print('... opened')
         except Exception as ei:
             tkMessageBox.showwarning('Sorry',f'Error occurred unable to load file: \n{ei}')
@@ -1454,51 +1489,75 @@ class gui:
     def _parse_projection(self, proj_info):
         """Parse projection information and return cartopy CRS object"""
         import cartopy.crs as ccrs
-        
+        import inspect
+        import tkinter.messagebox as tkMessageBox
         if isinstance(proj_info, str):
             # Handle string-based projection definitions
-            if proj_info.lower() == 'platecarree' or proj_info.lower() == 'geographic':
-                return ccrs.PlateCarree()
-            elif proj_info.lower() == 'mercator':
-                return ccrs.Mercator()
-            elif proj_info.lower().startswith('utm'):
-                # Extract zone number from string like 'utm_33n'
-                zone = int(proj_info.split('_')[1][:-1])
-                southern = proj_info.split('_')[1][-1].lower() == 's'
-                return ccrs.UTM(zone=zone, southern_hemisphere=southern)
-            elif proj_info.lower() == 'lambert_conformal':
-                return ccrs.LambertConformal()
-            elif proj_info.lower() == 'lambert_azimuthal_equal_area':
-                return ccrs.LambertAzimuthalEqualArea()
-            # Add more projections as needed
+            try:
+                return ccrs.__dict__[proj_info]()
+                
+            except:                     
+                if proj_info.lower() == 'platecarree' or proj_info.lower() == 'geographic':
+                    return ccrs.PlateCarree()
+                elif proj_info.lower() == 'mercator':
+                    return ccrs.Mercator()
+                elif proj_info.lower().startswith('utm'):
+                    # Extract zone number from string like 'utm_33n'
+                    zone = int(proj_info.split('_')[1][:-1])
+                    southern = proj_info.split('_')[1][-1].lower() == 's'
+                    return ccrs.UTM(zone=zone, southern_hemisphere=southern)
+                elif proj_info.lower() == 'lambert_conformal' or proj_info.lower() == 'lambertconformal':
+                    return ccrs.LambertConformal()
+                elif proj_info.lower() == 'lambert_azimuthal_equal_area' or proj_info.lower() == 'lambertazimuthalequalarea':
+                    return ccrs.LambertAzimuthalEqualArea()
+                # Add more projections as needed
+                else:
+                    tkMessageBox.showwarning('Bad projection name',f'The projection defined as {proj_info} does not match any available ccrs definition.')
             
         elif isinstance(proj_info, dict):
             # Handle dictionary-based projection definitions
-            proj_type = proj_info.get('type', '').lower()
-            
-            if proj_type == 'platecarree':
-                return ccrs.PlateCarree(
-                    central_longitude=proj_info.get('central_longitude', 0))
-            elif proj_type == 'stereographic':
-                return ccrs.Stereographic(
-                    central_latitude=proj_info.get('central_latitude', 90),
-                    central_longitude=proj_info.get('central_longitude', 0))
-            elif proj_type == 'lambert_conformal':
-                return ccrs.LambertConformal(
-                    central_latitude=proj_info.get('central_latitude', 39),
-                    central_longitude=proj_info.get('central_longitude', -96),
-                    standard_parallels=proj_info.get('standard_parallels', (33, 45)))
-            elif proj_type == 'lambert_azimuthal_equal_area':
-                return ccrs.LambertAzimuthalEqualArea(
-                    central_latitude=proj_info.get('central_latitude', 0),
-                    central_longitude=proj_info.get('central_longitude', 0),
-                    false_easting=proj_info.get('false_easting', 0),
-                    false_northing=proj_info.get('false_northing', 0),
-                    globe=proj_info.get('globe_radius', None))
-            elif proj_type == 'utm':
-                return ccrs.UTM(
-                    zone=proj_info.get('zone', 33),
-                    southern_hemisphere=proj_info.get('southern_hemisphere', False))
+            try:
+                return_ccrs = ccrs.__dict__[proj_info.get('type', '')]
+                sig = inspect.signature (return_ccrs.__init__)
+                kwargs = {}
+                for param_name,param in sig.parameters.items():
+                    if param_name=='self': continue
+                    if param.default != sig.empty:
+                        kwargs[param_name] = proj_info.get(param_name,param.default)
+                    else:
+                        kwargs[param_name] = proj_info.get(param_name,-999)
+                        if kwargs[param_name] == -999:
+                            tkMessageBox.showwarning('Bad projection definition',f'The projection defined as {return_ccrs} is missing the parameter named: {param_name}')
+                return return_ccrs(**kwargs)
+            except Exception as ei:
+                print(f' *** Error getting the projection of the image, error: {ei} ***')
+                proj_type = proj_info.get('type', '').lower()
+                
+                if proj_type == 'platecarree':
+                    return ccrs.PlateCarree(
+                        central_longitude=proj_info.get('central_longitude', 0))
+                elif proj_type == 'stereographic':
+                    return ccrs.Stereographic(
+                        central_latitude=proj_info.get('central_latitude', 90),
+                        central_longitude=proj_info.get('central_longitude', 0))
+                elif proj_type == 'lambert_conformal' or proj_type == 'lambertconformal':
+                    return ccrs.LambertConformal(
+                        central_latitude=proj_info.get('central_latitude', 39),
+                        central_longitude=proj_info.get('central_longitude', -96),
+                        standard_parallels=proj_info.get('standard_parallels', (33, 45)))
+                elif proj_type == 'lambert_azimuthal_equal_area' or proj_type == 'lambertazimuthalequalarea':
+                    return ccrs.LambertAzimuthalEqualArea(
+                        central_latitude=proj_info.get('central_latitude', 0),
+                        central_longitude=proj_info.get('central_longitude', 0),
+                        false_easting=proj_info.get('false_easting', 0),
+                        false_northing=proj_info.get('false_northing', 0),
+                        globe=proj_info.get('globe_radius', None))
+                elif proj_type == 'utm':
+                    return ccrs.UTM(
+                        zone=proj_info.get('zone', 33),
+                        southern_hemisphere=proj_info.get('southern_hemisphere', False))
+                else:
+                    tkMessageBox.showwarning('Bad projection name',f'The projection defined as {proj_type} does not match any available ccrs definition.')
             # Add more dictionary-based projections as needed
     
         return None    
@@ -1651,7 +1710,7 @@ class gui:
         img,label,img_leg = self.add_WMS(website=out[i]['website'],printurl=True,notime=out[i]['notime'],mss_crs=True,bbox=bbox)
         if img:
             transform = self.line.m.proj
-            if self.line.m.usestereformss: transform = self.line.m.usestereformss
+            #if self.line.m.usestereformss: transform = self.line.m.usestereformss
             r = self.add_wms_images(img,img_leg,name='MSS',text=label,transform=transform)
             if r:
                 self.wmsname = out[i]['name']
@@ -1688,6 +1747,78 @@ class gui:
             self.baddfir.config(text='Remove FIR boundaries')
             self.baddfir.config(command=self.gui_rm_fir,style='Bp.TButton')
             
+    def gui_add_NATS(self,color='tan'):
+        'Button function to add NATS tracks'
+        try:
+            from flightnav_utils import get_NATs
+        except ModuleNotFoundError:
+            from .flightnav_utils import get_NATs 
+        try:
+            from map_interactive import plot_tracks
+        except ModuleNotFoundError:
+            from .map_interactive import plot_tracks
+        self.line.tb.set_message('Adding North-Atlantic tracks')    
+        tracks = get_NATs()
+        self.nats = plot_tracks(tracks,self.line.m,color=color)
+        
+        if tracks:
+            self.baddnats.config(text='Remove NAT routes')
+            self.baddnats.config(command=self.gui_rm_nat,style='Bp.TButton')
+            
+    def gui_add_POCATS(self,color='tan'):
+        'Button function to add POCATS tracks'
+        try:
+            from flightnav_utils import get_POCATS
+        except ModuleNotFoundError:
+            from .flightnav_utils import get_POCATS
+        try:
+            from map_interactive import plot_tracks
+        except ModuleNotFoundError:
+            from .map_interactive import plot_tracks
+        self.line.tb.set_message('Adding Pacific-Oceanic tracks')
+        tracks = get_POCATS()
+        self.pocats = plot_tracks(tracks,self.line.m,color=color)    
+       
+        if tracks:
+            self.baddpocats.config(text='Remove POCATS routes')
+            self.baddpocats.config(command=self.gui_rm_pocat,style='Bp.TButton')
+            
+    def gui_rm_nat(self):        
+        'removing the NATS tracks'
+        
+        try:
+            nul = [n.set_visible(False) for n in self.nats]
+        except:
+            pass
+        for s in self.nats:
+            if type(s) is list:
+                for so in s:
+                    so.remove()
+            else:
+                s.remove()
+        
+        self.baddnats.config(text='North Atlantic routes')
+        self.baddnats.config(command=self.gui_add_NATS,style='Bp.TButton')
+        self.line.get_bg(redraw=True)
+        
+    def gui_rm_pocat(self):        
+        'removing the POCATS tracks'
+        
+        try:
+            nul = [n.set_visible(False) for n in self.pocats]
+        except:
+            pass
+        for s in self.pocats:
+            if type(s) is list:
+                for so in s:
+                    so.remove()
+            else:
+                s.remove()
+        
+        self.baddpocats.config(text='Pacific-Oceanic routes')
+        self.baddpocats.config(command=self.gui_add_POCATS,style='Bp.TButton')
+        self.line.get_bg(redraw=True)
+            
     def gui_rm_fir(self):
         'Gui button to remove the satellite tracks'
         self.line.tb.set_message('Removing FIR')
@@ -1701,12 +1832,13 @@ class gui:
                     so.remove()
             else:
                 s.remove()
-        self.baddfir.config(text='Add FIR boundaries')
+        self.baddfir.config(text='FIR boundaries')
         self.baddfir.config(command=self.gui_add_FIR,style=self.bg)
         self.line.get_bg(redraw=True)
             
     def add_kml(self,fname=None,color='tab:pink',name='kmls'):
         'function to add kml'
+        import tkinter.messagebox as tkMessageBox
         try:
             from map_interactive import plot_kml
         except ModuleNotFoundError:
@@ -1718,9 +1850,10 @@ class gui:
             self.line.tb.set_message('Adding kml file:{}'.format(fname))
             self.__dict__[name] = plot_kml(fname,self.line.m,color=color)
             return True
-        except:
-            print(' *** Issue adding the kml file: {}'.format(fname))
+        except Exception as ei:
+            print(' *** Issue adding the kml file: {} - {}'.format(fname,ei))
             self.line.tb.set_message('Problem with kml file:{}'.format(fname))
+            tkMessageBox.showwarning('Problem adding kml',f'Issue adding the kml file: {fname} - {ei}')
             return False
            
     def gui_rm_kml(self,name='kmls'):
@@ -1758,7 +1891,7 @@ class gui:
             res = (2160,1680)
         else:
             res = (1080,720)
-        self.line.m.usestereformss = False
+        #self.line.m.usestereformss = False
         if popup:
             tkMessageBox.showwarning('Downloading from internet','Trying to load data from {}\n with most current model/measurements'.format(website.split('/')[2]))
         self.root.config(cursor='exchange')
@@ -1855,8 +1988,8 @@ class gui:
                     srss = ['mss:stere,{0},{1},{1}'.format(*get_center_lonlat(self.line.m.proj))]
                 if 'lambertazi' in self.line.m.proj_name.lower():
                     lon0,lat0 = get_center_lonlat(self.line.m.proj)
-                    self.line.m.usestereformss = ccrs.NorthPolarStereo(central_longitude=lon0,true_scale_latitude=lat0)
-                    srss = ['mss:stere,{0},{1},{1}'.format(*get_center_lonlat(self.line.m.proj))]
+                    #self.line.m.usestereformss = ccrs.NorthPolarStereo(central_longitude=lon0,true_scale_latitude=lat0)
+                    srss = ['mss:laea,{0},{1}'.format(*get_center_lonlat(self.line.m.proj))]
             if len(srss)>0:
                 srs = srss[0]
             else:

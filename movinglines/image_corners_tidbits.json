@@ -12,5 +12,14 @@
  "Tropical Atlantic":[3.80,-77.23,42.76,-11.63],
  "Western Pacific":[-1.85,85.88,69.64,-153.85],
  "Central Pacific":[-1.15,167.75,37.83,-126.64],
- "Eastern Pacific":[-1.20,-142.27,37.86,-76.61]
+ "Eastern Pacific":[-1.20,-142.27,37.86,-76.61],
+ "North America": {"ll_lon": -7059000,"ll_lat":-8340000,"ur_lon": 7328000,"ur_lat": 633400,
+				  "coordinates_are_geographic": false, "debug":false,
+				  "projection": {"type": "NorthPolarStereo","central_longitude": -105.0,"true_scale_latitude":40.0}},
+ "Northern Hemisphere": {"ll_lon": -4815000,"ll_lat":-4680000,"ur_lon": 4994000,"ur_lat": 4935000,
+				  "coordinates_are_geographic": false, "debug":false,
+				  "projection": {"type": "NorthPolarStereo","central_longitude": -90.0,"true_scale_latitude":0.0}},
+ "Southeast Canada": {"ll_lon": -79.34,"ll_lat":39.54,"ur_lon": -39.974,"ur_lat": 59.1,
+				  "coordinates_are_geographic": false, "debug":false,
+				  "projection": {"type": "PlateCarree"}}
  }

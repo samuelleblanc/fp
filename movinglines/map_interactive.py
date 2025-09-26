@@ -2024,7 +2024,7 @@ def parse_and_plot_kml(kml_content, ax,color='tab:pink'):
             longitudes, latitudes = zip(*coords)
             # Plot the polygon
             if hasattr(ax,'proj'):
-                if isinstance(ax.proj,ccrs.Stereographic()):
+                if isinstance(ax.proj,ccrs.Stereographic):
                     xs,ys = zip([ax.convert_latlon(*c) for c in coords])
                     pp_tmp = ax.plot(xs, ys, color=color, linewidth=1) #,transform=ccrs.Geodetic())
             pp_tmp = ax.plot(longitudes, latitudes, color=color, linewidth=1,transform=ccrs.Geodetic())
@@ -2056,6 +2056,41 @@ def plot_kml(kml_file, ax,color='tab:pink'):
         plots = parse_and_plot_kml(kml_content, ax,color=color)
     print('... Plotted {} lines from KML'.format(len(plots)))
     return plots
+    
+def plot_tracks(tracks, ax,color='tan'):
+    'function to plot multiple tracks (NATS or POCATS)'
+    from matplotlib.patches import FancyArrowPatch
+    print('...Plotting the tracks: {}'.format(len(tracks)))
+    
+    lines = []
+    for name,t in tracks.items():
+        li = ax.plot(t['lons'],t['lats'],marker='o',color=color,linewidth=1,transform=ccrs.Geodetic())
+        st = ax.plot(t['lons'][0],t['lats'][0],marker='o',color='g',linewidth=1,transform=ccrs.Geodetic(),markersize=10)
+        en = ax.plot(t['lons'][-1],t['lats'][-1],marker='s',color='r',linewidth=1,transform=ccrs.Geodetic(),markersize=10)
+        lbls = ','.join([l for l in t['levels']])
+        lbl = ax.text(t['lons'][1],t['lats'][1]-0.15,f' {name} ({lbls})',color=color,transform=ccrs.Geodetic())
+        lines.append(li)
+        lines.append(st)
+        lines.append(en)
+        lines.append(lbl)
+        
+        try:
+            #add arrows:
+            arrow = FancyArrowPatch((t['lons'][1],t['lats'][1]), (t['lons'][2],t['lats'][2]),
+                               arrowstyle='->', mutation_scale=20,
+                               color=color, linewidth=1.5,
+                               transform=ccrs.PlateCarree())
+            lines.append(ax.add_patch(arrow))
+        except:
+            pass
+        if len(t['navaid'])>0:
+            for n in t['navaid']:
+                navs = ax.plot(n[1],n[2],marker='^',color='c',transform=ccrs.Geodetic())
+                navs_lbl = ax.text(n[1],n[2],n[0],color='c',transform=ccrs.Geodetic())
+                lines.append(navs)
+                lines.append(navs_lbl)
+            
+    return lines
 
 def convert_ccrs_to_epsg(ccrs_string):
     'Function to convert the cartopy projection values to an epsg numrical value'

@@ -53,6 +53,9 @@ requirements:
     - simplekml
     - matplotlib<3.6.0
     - python-pptx
+    
+pip:
+    - flightplandb
 
 test:
   commands:
