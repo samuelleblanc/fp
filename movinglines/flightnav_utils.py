@@ -36,7 +36,7 @@ def get_POCATS():
     'function to go and fetch from the flighplandb api the Pacific Oceanic Airborne tracks'
     tkMessageBox.showwarning('Obtaining the POCATS routes','Using data from the Flight Plan Database [https://flightplandatabase.com] \n The route data is for flight simulation use only and is not suitable for real-world aviation or navigation.')
     try:
-        pocat_tracks = asyncio.run(flightplandb.nav.pocats())
+        pocat_tracks = asyncio.run(flightplandb.nav.pacots())
     except Exception as ei:
         tkMessageBox.showwarning('Error obtaining the POCATS routes',f'Error occurred when fetching the POCATS routes: {ei}')
         return None

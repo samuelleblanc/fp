@@ -1764,6 +1764,7 @@ class gui:
         if tracks:
             self.baddnats.config(text='Remove NAT routes')
             self.baddnats.config(command=self.gui_rm_nat,style='Bp.TButton')
+            self.line.get_bg(redraw=True)
             
     def gui_add_POCATS(self,color='tan'):
         'Button function to add POCATS tracks'
@@ -1782,6 +1783,7 @@ class gui:
         if tracks:
             self.baddpocats.config(text='Remove POCATS routes')
             self.baddpocats.config(command=self.gui_rm_pocat,style='Bp.TButton')
+            self.line.get_bg(redraw=True)
             
     def gui_rm_nat(self):        
         'removing the NATS tracks'
@@ -1798,7 +1800,7 @@ class gui:
                 s.remove()
         
         self.baddnats.config(text='North Atlantic routes')
-        self.baddnats.config(command=self.gui_add_NATS,style='Bp.TButton')
+        self.baddnats.config(command=self.gui_add_NATS,style=self.bg)
         self.line.get_bg(redraw=True)
         
     def gui_rm_pocat(self):        
@@ -1816,7 +1818,7 @@ class gui:
                 s.remove()
         
         self.baddpocats.config(text='Pacific-Oceanic routes')
-        self.baddpocats.config(command=self.gui_add_POCATS,style='Bp.TButton')
+        self.baddpocats.config(command=self.gui_add_POCATS,style=self.bg)
         self.line.get_bg(redraw=True)
             
     def gui_rm_fir(self):
