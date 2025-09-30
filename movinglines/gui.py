@@ -436,7 +436,8 @@ class gui:
         fig = self.gui_plotalttime(surf_alt=False,no_extra_axes=True)
         
         #build the waypoints string
-        wp_str =  ['{:2.2f},{:2.2f},'.format(la,self.line.lons[ila]) for ila,la in list(enumerate(self.line.lats))]
+        lons,lats = self.line.ex.interp_points_for_profile()
+        wp_str =  ['{:2.2f},{:2.2f},'.format(la,lons[ila]) for ila,la in list(enumerate(lats))]
         wps = ''.join(wp_str).strip(',')
         
         #get the bbox extent in pressure levels
@@ -465,7 +466,8 @@ class gui:
 
         if label:
             try:
-                fig.ax.text(0.0,-0.15,label,transform=fig.ax.transAxes,clip_on=False,color='grey')
+                fig.axes[0].text(0.0,1.03,label,transform=fig.axes[0].transAxes,clip_on=False,color='grey')
+                fig.canvas.draw()
             except:
                 print('Problem adding text on profile figure, continuning...')
         return fig
@@ -1781,7 +1783,7 @@ class gui:
         self.pocats = plot_tracks(tracks,self.line.m,color=color)    
        
         if tracks:
-            self.baddpocats.config(text='Remove POCATS routes')
+            self.baddpocats.config(text='Remove PACOTS routes')
             self.baddpocats.config(command=self.gui_rm_pocat,style='Bp.TButton')
             self.line.get_bg(redraw=True)
             
@@ -2023,22 +2025,27 @@ class gui:
                 inittime_sel = inittime_sel_fx(wms.getServiceXML(),cont[i],time_sel)
                 if len(inittime_sel) > 1:
                     inittime_sels = inittime_sel
-                    if not vert_crs:
-                        # check which init time works:
-                        print('...verifying init times')
-                        inittime_sels = []
-                        for i_init, dim_init in enumerate(inittime_sel):
-                            try:
-                                nul = wms.getmap(layers=[cont[i]],style='default',bbox=[0,0,1,1],size=(1,1),transparent=True,time=time_sel,srs=srs,format='image/png',dim_init_time=dim_init,CQL_filter=cql_filter,**kwargs)
-                            except:
-                                nul = None
-                                pass
-                            if nul:
-                                inittime_sels.append(dim_init)
+                    if vert_crs:
+                        if 'path' in kwargs:
+                            path_old = kwargs['path']
+                            kwargs['path'] = path_old[0:1]
+                    # check which init time works:
+                    print('...verifying init times')
+                    inittime_sels = []
+                    for i_init, dim_init in enumerate(inittime_sel):
+                        try:
+                            nul = wms.getmap(layers=[cont[i]],style='default',bbox=[0,0,1,1],size=(1,1),transparent=True,time=time_sel,srs=srs,format='image/png',dim_init_time=dim_init,CQL_filter=cql_filter,**kwargs)
+                        except:
+                            nul = None
+                            pass
+                        if nul:
+                            inittime_sels.append(dim_init)
                     if len(inittime_sels) > 1:
                         jpop = Popup_list(inittime_sels,title='Select INIT_TIME')
                         inittime_sel_1 = inittime_sels[jpop.var.get()]
                         inittime_sel = [inittime_sel_1]
+                    if vert_crs:
+                        kwargs['path'] = path_old
             else:
                 inittime_sel = [datetime.now().strftime('%Y-%m-%d')+'T18:00Z',
                             datetime.now().strftime('%Y-%m-%d')+'T12:00Z', 

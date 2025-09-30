@@ -1352,6 +1352,16 @@ class dict_position:
                 dict_in[k]['data'] = fx(utcs)
         return dict_in      
 
+    def interp_points_for_profile(self):
+        'Program to make an array of evenly padded waypoints in time, for input into the vertical MSS'
+        temp_dict = {'Start_UTC':{'original_data':self.utc*3600.0},
+                   'Latitude':{'original_data':self.lat},
+                   'Longitude':{'original_data':self.lon},
+                   'Altitude':{'original_data':self.alt}}
+        dt = min([min(np.diff(self.utc)),0.1])*3600
+        dict_out = self.interp_points_for_ict(temp_dict,dt=dt)
+        return dict_out['Longitude']['data'],dict_out['Latitude']['data']
+
     def utc2datetime(self,utc):
         'Program to convert the datestr and utc to valid datetime class'
         from datetime import datetime
