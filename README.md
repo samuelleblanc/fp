@@ -1,6 +1,6 @@
 # Name:
 
-Moving Lines, version 1.56
+Moving Lines, version 1.60
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1478125.svg)](https://doi.org/10.5281/zenodo.1478125)
 
@@ -33,6 +33,7 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 	```
  	conda config --add channels conda-forge
  	```    
+ for ensuring that you only use conda-forge, without breaching licensing issues with anaconda default channels, please look at: [https://conda-forge.org/docs/user/transitioning_from_defaults/]
   
 3)  Go through and accept the install of the required packages
 4)  at the command line, start the lines software by typing `ml`
@@ -50,11 +51,11 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 
    *or*  
 ## For python installs:
-1) `pip install movinglines`
+1) `pip install movinglines` (or the conda method descried above)
 2) at a command line, start the moving lines software by typing `ml`  
 	
 # Quick Start: 
-    1) Select the mapping profile (defaults to ORACLES), can change the map boundaries, take-off time, utc offset
+    1) Select the mapping profile (defaults to most recent campaign), can change the map boundaries, take-off time, utc offset, projection
     2) wait about 30seconds
     3) Enter date of planned flight in dialog in format yyyy-mm-dd
     4) wait for map to initialize and excel to load
@@ -72,7 +73,7 @@ Takes advantage of clickable map for creating a flight plan, and already existin
   *or*
   
     1) Press the 'add' button next to 'points:'
-    2) Follow the dialog
+    2) Follow the dialog *tip: use the 'between 2 points' for easy adding*
   *or*
 	
 	1) add a flight module with the button 'flt_module'
@@ -116,9 +117,22 @@ Takes advantage of clickable map for creating a flight plan, and already existin
     3) New flight path will have different color
 
 ## Adding figures and model maps:
-	1) select add WMS
-	2) choose which website to load the web map service. For MSS select that one which has the corresponding title
+	1) select 'WMS layer' for widely availabel layers.
+*or*
+    1) select 'MSS models' or 'MSS Profile' to use bespoke map layers. MSS Profile loads the vertical profile.
+
+	2) choose which website to load the web map service (from the WMS.txt or MSS.txt file). 
 	3) follow dialogs for selecting the right times, layer, level, etc.
+
+## Edding any image
+    1) Select the image add buttons (Froecast from Bocachica, trajectory image, image, or Tropical tidbit). For general images select 'image button'
+    2) Select the image file
+    3) if prompts, select the most appropriate image style, if not then use the 'manual' selection and follow those prompts to indicate projection and image file corners.
+    4) wait a few moments for image to appear, if not use the 'image' button. Not all image files are compatible, however most .png work.
+
+## Adding image corner definition for easier future loading.  
+    1) open the file 'image_corners.json'. 
+    2) this json file contains, list of named images, with the corner of the image file in a list (lower-left latitude, lower-left longitude, upper-right latitude, upper-right longitude), or in a dict-like with projection information. 
     
 ## Adding platform default information:
     1) locate the platform.txt file.
@@ -230,7 +244,6 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 # Known Bugs:
 
     - Sometime slow starting up, especiallly when excel is not open 
-	- Adding figures when not in platecaree / cylindrical / mercator projections is buggy
     
 # Modification History:
 
@@ -349,6 +362,30 @@ Takes advantage of clickable map for creating a flight plan, and already existin
     Modified: Samuel LeBlanc, v1.54, 2024-08-04, Pituffik, Greenland
                 - Bug fix to table removed extra lines
                 - change kml generation to be named waypoints
+    Modified: Samuel LeBlanc, v1.54, Pituffik, Greenland
+                - Bug fix to table removed extra lines
+                - change kml generation to be named waypoints
+                - added feature to change day when loading previous file.
+    Modified: Samuel LeBlanc, v1.55, Pituffik, Greenland + Santa Cruz, CA
+                - Added fix to coloring of the for_pilots file, and formatting.
+                - added an ER2 specific file format.
+                - Added longer timeout for mss profile
+                - Added ability to add magnetic heading indicator to pilot formats, with magnetic declination in profiles.txt
+    Modified: Samuel LeBlanc, v1.56, NASA Langley Research Center, Virginia
+                - Added 2 bespoke NURTURE flight modules.
+                - Added modifications to zeroth longitude of the North Polar Stereo.
+                - Slight modifications to turn bank angles for G3.
+                - setup files for NURTURE 2026.
+    Modified: Samuel LeBlanc, v1.60, 2025-10-01 (first day of a government shutdown) Santa Cruz, CA 
+                - bug fix for plotting in multiple different projections, while keeping the great circle lines. 
+                - New feature - North Atlantic and Pacific-Oceanic routes, based on flightplandb API. 
+                - New feature - modified the image_corners.json file format to handle different types of projections from input images. 
+                - Bug fixes to MSS Profile init time checking. 
+                - Added projection handling in MSS models.  
+                - Updated the labels.txt for arctic locations that may be important to NURTURE. 
+                - Added an initial try at a parameterized NASA 777 flight characteristics. 
+                - Changed defaults of NURTURE projection to lamber azimuthal equal area. 
+
 
 # To cite:
 
