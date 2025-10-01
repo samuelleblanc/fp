@@ -147,6 +147,20 @@
                 - added an ER2 specific file format.
                 - Added longer timeout for mss profile
                 - Added ability to add magnetic heading indicator to pilot formats, with magnetic declination in profiles.txt
+        Modified: Samuel LeBlanc, v1.56, NASA Langley Research Center, Virginia
+                - Added 2 bespoke NURTURE flight modules.                                                                                                 
+                - Added modifications to zeroth longitude of the North Polar Stereo.
+                - Slight modifications to turn bank angles for G3.
+                - setup files for NURTURE 2026.
+        Modified: Samuel LeBlanc, v1.60, 2025-10-01 (first day of a government shutdown) Santa Cruz, CA
+                - bug fix for plotting in multiple different projections, while keeping the great circle lines.
+                - New feature - North Atlantic and Pacific-Oceanic routes, based on flightplandb API.
+                - New feature - modified the image_corners.json file format to handle different types of projections from input images.
+                - Bug fixes to MSS Profile init time checking.
+                - Added projection handling in MSS models.
+                - Updated the labels.txt for arctic locations that may be important to NURTURE.
+                - Added an initial try at a parameterized NASA 777 flight characteristics.
+                - Changed defaults of NURTURE projection to lamber azimuthal equal area.
                  
 """
 try:
