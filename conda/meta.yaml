@@ -9,10 +9,13 @@ source:
 
 build:
   skip: true  # [py<38]
-  number: 1000
+  number: 1001
   script: "{{ PYTHON }} -m pip install . --no-deps -vv" 
   entry_points:
     - ml = movinglines:main
+    - movinglines = movinglines:main
+    - movinglines-cli = movinglines:main
+    - ml-movinglines = movinglines:main
 
 requirements:
   build:
@@ -35,7 +38,7 @@ requirements:
     - pytz
     - requests >=2.31.0
     - scipy
-    - tk
+    - tk >=8.6
     - owslib >=0.24
     - cftime >=1.0.1
     - gpxpy >=1.4.2
@@ -48,18 +51,25 @@ requirements:
     - pykml
     - rasterio
     - bs4
+    - beautifulsoup4
     - xlwings
     - json_tricks
     - simplekml
     - matplotlib<3.6.0
+    - matplotlib-base >=3.5
     - python-pptx
-    
-pip:
-    - flightplandb
+    - pip
+    - aiohttp 
+    - typing_extensions
+    - python-dateutil >=2.8.2,<2.9
+
 
 test:
   commands:
     - ml -d
+    - python -c "import movinglines; print(getattr(movinglines, '__version__', 'ok'))"
+    - python -c "import flightplandb; print(getattr(flightplandb, '__version__', 'ok'))"
+    
 
 about:
   summary: 'Moving Lines - Research flight planner'

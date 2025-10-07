@@ -1702,10 +1702,13 @@ class gui:
         except ModuleNotFoundError:
             from .map_interactive import load_WMS_file
         out = load_WMS_file(filename)
-        arr = ['{} : {}'.format(dict['name'],dict['website']) for dict in out]
-        popup = Popup_list(arr,title='Select WMS server to load graphics capabilities')
-        i = popup.var.get()
-        self.line.tb.set_message('Selected WMS server: {}'.format(out[i]['name']))
+        if len(out)>1:
+            arr = ['{} : {}'.format(dict['name'],dict['website']) for dict in out]
+            popup = Popup_list(arr,title='Select MSS server to load graphics capabilities')
+            i = popup.var.get()
+        else:
+            i=0
+        self.line.tb.set_message('Selected MSS server: {}'.format(out[i]['name']))
         bbo0 = self.line.m.convert_latlon(self.line.m.llcrnrlon,self.line.m.llcrnrlat)
         bbo1 = self.line.m.convert_latlon(self.line.m.urcrnrlon,self.line.m.urcrnrlat)      
         bbox = (bbo0[0],bbo0[1],bbo1[0],bbo1[1])
@@ -2024,15 +2027,17 @@ class gui:
             if use_init_time_fx:
                 inittime_sel = inittime_sel_fx(wms.getServiceXML(),cont[i],time_sel)
                 if len(inittime_sel) > 1:
-                    inittime_sels = inittime_sel
+                    print('...verifying init times')
+                    self.init_progress = ProgressWindow(self.root,total_steps=len(inittime_sel),title='Verifying init times')
+                    #self.init_progress._show_completion_animation(text=f'Setting up...')
                     if vert_crs:
                         if 'path' in kwargs:
                             path_old = kwargs['path']
                             kwargs['path'] = path_old[0:1]
                     # check which init time works:
-                    print('...verifying init times')
                     inittime_sels = []
                     for i_init, dim_init in enumerate(inittime_sel):
+                        self.init_progress.step(f'trying {dim_init}')
                         try:
                             nul = wms.getmap(layers=[cont[i]],style='default',bbox=[0,0,1,1],size=(1,1),transparent=True,time=time_sel,srs=srs,format='image/png',dim_init_time=dim_init,CQL_filter=cql_filter,**kwargs)
                         except:
@@ -2041,6 +2046,7 @@ class gui:
                         if nul:
                             inittime_sels.append(dim_init)
                     if len(inittime_sels) > 1:
+                        self.init_progress._show_completion_animation(text=f'Select init time.')
                         jpop = Popup_list(inittime_sels,title='Select INIT_TIME')
                         inittime_sel_1 = inittime_sels[jpop.var.get()]
                         inittime_sel = [inittime_sel_1]
@@ -2064,10 +2070,14 @@ class gui:
             #xlim = self.line.line.axes.get_xlim()
             if not ylim: ylim = self.line.m.llcrnrlat,self.line.m.urcrnrlat
             if not xlim: xlim = self.line.m.llcrnrlon,self.line.m.urcrnrlon
-        except:
+        except Exception as ie:
             self.root.config(cursor='')
             self.root.update()
+            if hasattr(self, 'init_progress') and self.init_progress.window.winfo_exists():
+                self.init_progress.close_immediately()
+                
             tkMessageBox.showwarning('Sorry','Problem getting the limits and time of the image')
+            import ipdb; ipdb.set_trace()
             return False, None, False
         if not bbox: bbox = (xlim[0],ylim[0],xlim[1],ylim[1])
         #import ipdb; ipdb.set_trace()
@@ -2076,6 +2086,8 @@ class gui:
                 #print('trying the wms get map')
                 if not use_init_time_fx:
                     dim_init = None
+                if hasattr(self, 'init_progress') and self.init_progress.window.winfo_exists():
+                    self.init_progress._show_completion_animation(text=f'Downloading {label}...',title='Downloading')
                 img = wms.getmap(layers=[cont[i]],style='default',
                                   bbox=bbox, #(ylim[0],xlim[0],ylim[1],xlim[1]),
                                   size=res,
@@ -2091,6 +2103,7 @@ class gui:
                     label = label+', init:'+str(dim_init)
                     if printurl:
                         print(img.geturl())
+                    self.init_progress._close_window()
                     break
             except Exception as ie:
                 if i_init>len(inittime_sel)-2:
@@ -2148,6 +2161,72 @@ class gui:
                 return False, None, False
         return geos, label, geos_legend
         
+        
+    def verify_init_times_threaded(self, wms, cont, i, time_sel, inittime_sel, srs, cql_filter, vert_crs, kwargs):
+        """
+        Verify init times in a background thread.
+        Returns a Queue that will contain the result.
+        """
+        import threading
+        from queue import Queue
+        result_queue = Queue()
+        
+        def worker():
+            path_old = None
+            if vert_crs and 'path' in kwargs:
+                path_old = kwargs['path']
+                kwargs['path'] = path_old[0:1]
+            
+            inittime_sels = []
+            
+            for i_init, dim_init in enumerate(inittime_sel):
+                if hasattr(self, 'init_progress') and self.init_progress.window.winfo_exists():
+                    self.root.after(0, lambda d=dim_init: self.init_progress.step(f'Trying {d}...'))
+                
+                try:
+                    nul = wms.getmap(
+                        layers=[cont[i]],
+                        styles=['default'],
+                        bbox=[0, 0, 1, 1],
+                        size=(1, 1),
+                        transparent=True,
+                        time=time_sel,
+                        srs=srs,
+                        format='image/png',
+                        dim_init_time=dim_init,
+                        CQL_FILTER=cql_filter,
+                        **kwargs
+                    )
+                    if nul:
+                        inittime_sels.append(dim_init)
+                except Exception as e:
+                    print(f"Init time {dim_init} failed: {e}")
+            
+            # Restore path
+            if vert_crs and path_old:
+                kwargs['path'] = path_old
+            
+            # Handle results on main thread
+            def handle_results():
+                if len(inittime_sels) > 1:
+                    jpop = Popup_list(inittime_sels, title='Select INIT_TIME')
+                    inittime_sel_1 = inittime_sels[jpop.var.get()]
+                    final_inittime_sel = [inittime_sel_1]
+                elif len(inittime_sels) == 1:
+                    final_inittime_sel = inittime_sels
+                else:
+                    final_inittime_sel = []
+                    print("No valid init times found!")
+                
+                # Put result in queue
+                result_queue.put(final_inittime_sel)
+            
+            self.root.after(0, handle_results)
+        
+        thread = threading.Thread(target=worker, daemon=True)
+        thread.start()
+        
+        return result_queue
         
     def add_wms_images(self,geos,geos_legend,name='GEOS',alpha=1.0,text='',flip=False,**kwargs):
         'adding the wms images to the plots'
@@ -2255,39 +2334,7 @@ class gui:
             print('flt_module selection cancelled',ie)
             #import pdb; pdb.set_trace()
             return
-    
-   # def gui_python(self):
-   #     'Program to open a new window with a python command line'
-   #     import tkinter as tk
-   #     from gui import prompt
-   #     root = tk.Toplevel()
-   #     root.wm_title('Python command line')
-   #     root.geometry('800x650')
-   #     termf = tk.Frame(root,height=800,width=650)
-   #     termf.pack(fill=tk.BOTH,expand=tk.YES)
-   #     wid = termf.winfo_id()
-        
-    
-# def prompt(vars, message):
-    # 'function that calls for a python prompt'
-    # #prompt_message = "Welcome!  Useful: G is the graph, DB, C"
-    # prompt_message = message
-    # try:
-        # from IPython.Shell import IPShellEmbed
-        # ipshell = IPShellEmbed(argv=[''],banner=prompt_message,exit_msg="Goodbye")
-        # return  ipshell
-    # except ImportError:
-        # ## this doesn't quite work right, in that it doesn't go to the right env
-        # ## so we just fail.
-        # import code
-        # import rlcompleter
-        # import readline
-        # readline.parse_and_bind("tab: complete")
-        # # calling this with globals ensures we can see the environment
-        # print(prompt_message)
-        # shell = code.InteractiveConsole(vars)
-        # return shell.interact
-
+ 
 def inittime_sel_fx(xml,content,select_time):
     'Function to parse out the WMS xml for getting the init time'
     from bs4 import BeautifulSoup
@@ -3272,6 +3319,106 @@ class CoordinateProjectionDialog(tkSimpleDialog.Dialog):
             'projection': projection
         }
 
+class ProgressWindow:
+    def __init__(self, parent, total_steps, title="Progress",xsize=200,ysize=80):
+        """
+        Create a progress window with a progress bar.
+        
+        Args:
+            parent: The parent tkinter window
+            total_steps: Total number of steps expected
+            title: Window title (default: "Progress")
+        """
+        self.total_steps = total_steps
+        self.current_step = 0
+        self._destroyed = False
+        
+        # Create a new top-level window
+        self.window = tk.Toplevel(parent)
+        self.window.title(title)
+        self.window.geometry(f"{xsize}x{ysize}")
+        
+        # Make it modal (optional - prevents interaction with main window)
+        self.window.transient(parent)
+        self.window.grab_set()
+        self.window.focus_force()
+        
+        # Center the window
+        self.window.update_idletasks()
+        parent.update_idletasks()
+        parent_x = parent.winfo_x()
+        parent_y = parent.winfo_y()
+        parent_width = parent.winfo_width()
+        parent_height = parent.winfo_height()
+        x = parent_x + (parent_width // 2) - (xsize // 2)
+        y = parent_y + (parent_height // 2) - (ysize // 2)
+        self.window.geometry(f"{xsize}x{ysize}+{x}+{y}")
+        
+        # Create and pack the status label
+        self.status_label = tk.Label(
+            self.window,
+            text="",
+            font=("Arial", 9)
+        )
+        self.status_label.pack(pady=(15, 5))
+        
+        # Create and pack the progress bar
+        self.progress_bar = ttk.Progressbar(
+            self.window, 
+            orient="horizontal", 
+            length=190, 
+            mode="determinate",
+            maximum=70
+        )
+        self.progress_bar.pack(pady=10, padx=25)
+        
+        # Update the window to ensure it's displayed
+        self.window.update()
+    
+    def step(self, status_text=None):
+        """
+        Increment the progress bar by one step.
+        Automatically closes the window when all steps are complete.
+        
+        Args:
+            status_text: Optional text to display above the progress bar
+        """
+        self.current_step += 1
+        progress_percentage = (self.current_step / self.total_steps) * 100
+        self.progress_bar['value'] = progress_percentage
+        
+        # Update status text if provided
+        if status_text is not None:
+            self.status_label.config(text=status_text)
+        
+        self.window.update()
+        
+        # Close the window when complete
+        if self.current_step >= self.total_steps:
+            self._show_completion_animation()
+            
+    def _show_completion_animation(self,text="Finalizing...",title=None):
+        """Show an animated wave effect when complete"""        
+        # Switch to indeterminate mode for wave animation
+        self.progress_bar.config(mode='indeterminate')
+        self.progress_bar.start(10)  # Speed of animation (lower = faster)
+        
+        self.status_label.config(text=text)
+        if title:
+             self.window.title(title)
+        self.window.update()
+        self.progress_bar.start(10)
+    
+    def _close_window(self):
+        """Close the progress window"""
+        self.progress_bar.stop()  # Stop the animation
+        self._destroyed = True
+        self.window.destroy()
+    
+    def close_immediately(self):
+        """Close without animation"""
+        self._destroyed = True
+        self.window.destroy()
 
 # Convenience function to use the dialog
 def get_coordinates_and_projection(parent=None, title="Image Coordinates and Projection"):
