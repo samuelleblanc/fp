@@ -129,6 +129,7 @@ class dict_position:
             UTC_conversion,alt0,name,campaign = profile['UTC_conversion'],profile['start_alt'],profile['Plane_name'],profile['Campaign']
             self.profile = profile
         self.__version__ = version
+        self.datestr_cell = 'AB1'
         self.comments = [' ']
         self.wpname = [' ']
         self.lon = np.array([pll(lon0)])
@@ -151,6 +152,7 @@ class dict_position:
         self.endbearing = self.lon*0.0
         self.turn_deg = self.lon*0.0
         self.turn_time = self.lon*0.0
+        self.turn_type = [' ']
         self.climb_time = self.lon*0.0
         self.sza = self.lon*0.0
         self.azi = self.lon*0.0
@@ -158,6 +160,9 @@ class dict_position:
         self.speed_kts = self.speed*1.94384449246
         self.alt_kft = self.alt*3.28084/1000.0
         self.head = self.legt
+        self.headwind = self.lon*0.0
+        self.headwind_kts = self.headwind*1.94384449246
+        self.timepoint = self.UTC*0.0
         self.color = color
         self.googleearthopened = False
         self.netkml = None
@@ -332,9 +337,10 @@ class dict_position:
             rate_of_turn = 1091.0*np.tan(default_bank_angle*np.pi/180)/self.speed_kts[i] # degree per second
         return rate_of_turn
         
-    def get_time_to_fly_turn_radius(self,i=0):
-        'Function to calculate the time in minutes to fly the radius of the turn, to account for extra time needed in flying that distance from turn, appliesd to turns greater than 100 degrees'
-        if self.turn_deg[i+1]<100:
+    def get_time_to_fly_turn_radius_by_turn_type(self,i=0,turn_type='flyby'):
+        'Function to calculate the time in minutes to fly the radius of the turn, to account for extra time needed in flying that distance from turn, Dependent on type of turn (can be negative)'
+        kts_to_ftpermin = 101.269
+        if self.turn_deg[i]<15:
             return 0
         if np.isfinite(self.speed_kts[i]):
             speed_kts = self.speed_kts[i]
@@ -345,10 +351,27 @@ class dict_position:
         
         if self.p_info.get('turn_bank_angle'):
             turn_radius = speed_kts*speed_kts/(11.26*np.tan(self.p_info['turn_bank_angle']*np.pi/180.0)) #in feet
-        else:            
-            default_bank_angle = 15.0
-            turn_radius = speed_kts*speed_kts/(11.26*np.tan(default_bank_angle*np.pi/180.0)) # in feet
-        return turn_radius/(speed_kts * 101.269) #convert knots to feet per minute, then return minutes
+        else:
+            turn_radius = speed_kts*speed_kts/(11.26*np.tan(20.0*np.pi/180.0)) #in feet
+        if turn_type=='flyby':
+            #calculate the distance of the cut corner
+            cut_length = 2.0*turn_radius/np.sin(self.turn_deg[i]*np.pi/180.0)
+            delta_time = cut_length*(-2.0) / (speed_kts*kts_to_ftpermin)
+        elif turn_type=='over':
+            #here the the additionaly distance is when turn is immediatly started, then turned back to path, so about another turn radius distance
+            delta_time = turn_radius/(speed_kts * kts_to_ftpermin)
+        elif turn_type=='90-270':
+            #here the time is for one basically an extra 2 radius (total of 2 out, 2 in)
+            delta_time = 2.0*(turn_radius/(speed_kts * kts_to_ftpermin))
+        else:
+            delta_time = 0.0
+        
+        if abs(delta_time)>30:
+            print(f'*** Issue with time calculation for turn {i} - setting max turn time to 30 minutes - currently at: {delta_time} ***')
+            sign = np.sign(delta_time) 
+            delta_time = 30*sign
+            
+        return turn_radius/(speed_kts * kts_to_ftpermin)+delta_time #convert knots to feet per minute, then return minutes
 
     def calculate(self):
         """
@@ -390,6 +413,26 @@ class dict_position:
             else:
                 self.speed[i+1] = self.calcspeed(self.alt[i],self.alt[i+1])
                 self.speed_kts[i+1] = self.speed[i+1]*1.94384449246  
+            
+            if np.isfinite(self.headwind.astype(float)[i+1]) and np.isfinite(self.headwind_kts.astype(float)[i+1]): #both are there, check if there are user changes
+                headwind_kts_temp = self.headwind[i+1]*1.94384449246
+                headwind_temp = self.headwind_kts[i+1]/1.94384449246
+                if (headwind_kts_temp != self.headwind_kts[i+1]) and (headwind_temp==self.headwind[i+1]): #same do nothing
+                    nul = 0
+                if (headwind_kts_temp != self.headwind_kts[i+1]) and (headwind_temp==self.headwind[i+1]): #kts changed, keep that
+                    self.headwind[i+1] = headwind_temp
+                elif (headwind_kts_temp == self.headwind_kts[i+1]) and (headwind_temp!=self.headwind[i+1]): #m/s changed, keep that
+                    self.headwind_kts[i+1] = self.headwind[i+1]*1.94384449246
+                else: #both aren't the same, keep kts
+                    self.headwind[i+1] = headwind_temp
+            elif np.isfinite(self.headwind.astype(float)[i+1]):
+                self.headwind_kts[i+1] = self.headwind[i+1]*1.94384449246
+            elif np.isfinite(self.headwind_kts.astype(float)[i+1]):
+                self.headwind[i+1] = self.headwind_kts[i+1]/1.94384449246
+            else:
+                self.headwind[i+1] = 0.0
+                self.headwind_kts[i+1] = 0.0
+            
             self.rate_of_turn = self.get_rate_of_turn(i)
             if not np.isfinite(self.rate_of_turn):
                 self.rate_of_turn = 2.4
@@ -403,11 +446,24 @@ class dict_position:
                 self.turn_deg[i+1] = abs(self.endbearing[i]-self.bearing[i+1])
             except:
                 self.turn_deg[i+1] = 0.0
-            if self.turn_deg[i+1] > 100.0:
+                
+            if not (self.turn_type[i+1].lower() == 'over' or self.turn_type[i+1].lower() == 'flyby' or self.turn_type[i+1].lower() == '90-270') and (i<=(self.n-1)):
+                self.turn_type[i+1] = 'Flyby'
+                if self.turn_deg[i+1] > 105.0:
+                    self.turn_type[i+1] = '90-270'
+                elif self.turn_deg[i+1] < 2.0:
+                    self.turn_type[i+1] = ' '
+                    
+            # adjust turn deg for turn type for over 30 degrees
+            if self.turn_deg[i+1] > 30.0:
                 if self.turn_deg[i+1] > 180.0:
                     self.turn_deg[i+1] = 360 - self.turn_deg[i+1] #for the shortest turn side
-                self.turn_deg[i+1] += 180.0 # to account for a 90-270 turn for near 180 turns
-            self.turn_time[i+1] = (self.turn_deg[i+1]*self.rate_of_turn)/60.0 + self.get_time_to_fly_turn_radius(i)
+                if self.turn_type[i+1].lower() == '90-270':
+                    self.turn_deg[i+1] += 180.0 # to account for a 90-270 turn for near 180 turns
+                elif self.turn_type[i+1].lower() == 'over':
+                    self.turn_deg[i+1] = 2*self.turn_deg[i+1] #roughly double the turn deg
+                    
+            self.turn_time[i+1] = (self.turn_deg[i+1]*self.rate_of_turn)/60.0 + self.get_time_to_fly_turn_radius_by_turn_type(i+1,self.turn_type[i+1].lower())
             turn_time_as_delay = False
             if not np.isfinite(self.delayt.astype(float)[i+1]):
                 self.delayt[i+1] = self.turn_time[i+1]
@@ -415,19 +471,34 @@ class dict_position:
             #else:
             #    self.delayt[i+1] = self.delayt[i+1]+self.turn_time[i+1]
             self.climb_time[i+1] = self.calc_climb_time(self.alt[i],self.alt[i+1]) #defaults to P3 speed
-            self.legt[i+1] = (self.dist[i+1]/(self.speed[i+1]/1000.0))/3600.0
+            speed = self.speed[i+1]-self.headwind[i+1]
+            if not np.isfinite(speed): 
+                if not np.isfinite(self.speed[i+1]): print(f'*** self.speed[i+1] for {i+1} is not finite ***')
+                if not np.isfinite(self.headwind[i+1]): print(f'*** self.headwind[i+1] for {i+1} is not finite ***')
+            self.legt[i+1] = (self.dist[i+1]/(speed/1000.0))/3600.0
+            
+            if not np.isfinite(self.dist[i+1]): print(f'*** dist for {i+1} is not finite ***') 
             spiral = False
             if self.legt[i+1] < self.climb_time[i+1]/60.0:
                 self.legt[i+1] = self.climb_time[i+1]/60.0
                 spiral = True
+                if not np.isfinite(self.climb_time[i+1]): print(f'*** climb_time for {i+1} is not finite ***')
             self.legt[i+1] += self.delayt[i+1]/60.0
+            if not np.isfinite(self.delayt[i+1]):
+                print(f'*** delayt for {i+1} is not finite ***')
             if not spiral and not turn_time_as_delay and not previous_spiral:
                 self.legt[i+1] += self.turn_time[i+1]/60.0
+                if not np.isfinite(self.turn_time[i+1]):
+                    print(f'*** turn_time for {i+1} is not finite ***')
             if spiral:
                 previous_spiral = True
+            if not np.isfinite(self.legt[i+1]):
+                print(f'*** legt for {i+1} is not finite ***')
             self.utc[i+1] = self.utc[i]+self.legt[i+1]
             if not np.isfinite(self.utc[i+1]):
                 print(self.utc)
+                import tkinter.messagebox as tkMessageBox
+                tkMessageBox.showwarning('Non-finite UTC values','Problem with non real UTC values. See command line for debug interface')
                 import pdb; pdb.set_trace()
             
         self.local = self.utc+self.UTC_conversion
@@ -606,37 +677,33 @@ class dict_position:
         #self.wb.sh.activate(steal_focus=False)
         sh = self.wb.sh
         sh.range('A2').value = np.array([self.WP,
-                                      self.lat,
-                                      self.lon,
-                                      self.speed,
-                                      self.delayt,
-                                      self.alt,
-                                      self.cumlegt_xl,
-                                      self.utc_xl,
-                                      self.local_xl,
-                                      self.legt_xl,
-                                      self.dist,
-                                      self.cumdist,
-                                      self.dist_nm,
-                                      self.cumdist_nm,
-                                      self.speed_kts,
-                                      self.alt_kft,
-                                      self.sza,
-                                      self.azi,
-                                      self.bearing,
-                                      self.climb_time
+                                      self.lat, self.lon,
+                                      self.speed, self.delayt,
+                                      self.alt, self.cumlegt_xl,
+                                      self.utc_xl, self.local_xl,
+                                      self.legt_xl, self.dist,
+                                      self.cumdist, self.dist_nm,
+                                      self.cumdist_nm, self.speed_kts,
+                                      self.alt_kft, self.sza, self.azi,
+                                      self.bearing, self.climb_time
                                       ]).T
         for i,c in enumerate(self.comments):
             sh.range('U%i'%(i+2)).value = c
         if hasattr(self,'wpname'):
             for i,w in enumerate(self.wpname):
                 sh.range('V%i'%(i+2)).value = w
+        
+        sh.range('W2').value = np.array([self.headwind_kts,self.headwind]).T
+        if hasattr(self,'turn_type'):
+            for i,tt in enumerate(self.turn_type):
+                sh.range('Y%i'%(i+2)).value = tt
+        sh.range('Z2').value = np.array([self.turn_time]).T            
         sh.range('G2:J%i'% (self.n+1)).number_format = 'hh:mm'
         sh.range('E2:E%i'% (self.n+1)).number_format = '0'
-        sh.range('B:B').autofit()
-        sh.range('C:C').autofit()
-        sh.range('B:B').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
-        sh.range('C:C').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
+       # sh.range('B:B').autofit()
+       # sh.range('C:C').autofit()
+       # sh.range('B:B').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
+       # sh.range('C:C').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
 
 
     def check_xl(self):
@@ -661,7 +728,7 @@ class dict_position:
         #self.wb.sh.activate(steal_focus=False) #self.wb.set_current()
         row_start = 2
         last_row = sh.range((self.wb.sheets.active.cells.last_cell.row,2)).end('up').row
-        tmp = sh.range((row_start,1),(last_row,27)).value 
+        tmp = sh.range((row_start,1),(last_row,30)).value 
         
         if len(np.shape(tmp))==1: tmp = [tmp]
         # run through each line to check for updates
@@ -673,31 +740,28 @@ class dict_position:
             if t[1] is None or t[2] is None:#lat or lon is deleted
                 self.dels(i)
                 self.n = self.n-1
-                sh.range((i+row_start,1),(i+row_start,26)).delete() 
+                sh.range((i+row_start,1),(i+row_start,29)).delete() 
                 deleted = True
         # double check if end point is deleted.
         if self.n > len(tmp):
             for j in range(self.n,len(tmp)-1,-1):
-                #print('delelting point: {}, len(tmp):{}, self.n:{}'.format(j,len(tmp),self.n))
                 self.dels(j-1)
-                self.n = self.n-1    
-                #import pdb; pdb.set_trace()
-        
+                self.n = self.n-1            
         # check updated sheets (after deletions)
         last_row = sh.range((self.wb.sheets.active.cells.last_cell.row,2)).end('up').row
-        tmp = sh.range((row_start,1),(last_row,27)).value
+        tmp = sh.range((row_start,1),(last_row,30)).value
         if len(np.shape(tmp))==1: tmp = [tmp]
         num = 0
         for i,t in enumerate(tmp):
             if i>self.n-1: #new points
-                if not t[20]:
-                    t[20] = ' '
-                if not t[21]:
-                    t[21] = ' '
-                self.appends(*t[1:16],comm=t[20],wpname=t[21])
+                if not t[20]: t[20] = ' '
+                if not t[21]: t[21] = ' '
+                if not t[24]: t[24] = ' '
+                   
+                self.appends(*t[1:16],comm=t[20],wpname=t[21],turn_type=t[24],headwind=t[23],headwind_kts=t[22],timepoint=t[25])
                 num = num + 1
             else: # check if modifications
-                changed = self.mods(i,t[1],t[2],t[3],t[14],t[4],t[5],t[15],t[20],t[21])
+                changed = self.mods(i,t[1],t[2],t[3],t[14],t[4],t[5],t[15],t[20],t[21],t[23],t[22],t[24]) 
                 if i == 0:
                     if self.utc[i] != t[7]*24.0:
                         self.utc[i] = t[7]*24.0
@@ -711,13 +775,6 @@ class dict_position:
             self.calculate()
             self.write_to_excel()
         self.num_changed = num+deleted
-#        if self.num_changed>0: print(self.num_changed)
-        
-        # wp,lat,lon,sp,dt,alt,clt,utc,loc,lt,d,cd,dnm,cdnm,spkt,altk = t[0:16]
-        # try:
-            # sza,azi,bear,clbt,comm = t[16:21]
-        # except:
-            # sza,azi,comm = t[16:19]
         return deleted
 
     def move_xl(self,i):
@@ -725,7 +782,7 @@ class dict_position:
         Program that moves up all excel rows by one line overriding the ith line
         """
         sh = self.wb.sh
-        linesbelow = sh.range('A%i:V%i'%(i+3,self.n+1)).value
+        linesbelow = sh.range('A%i:Z%i'%(i+3,self.n+1)).value
         n_rm = (self.n+1)-(i+3)
         linelist = False
         for j,l in enumerate(linesbelow):
@@ -741,8 +798,8 @@ class dict_position:
                 linesbelow[0] = linesbelow[0]-1
             except:
                 yup = True
-        sh.range('A%i:V%i'%(i+2,i+2)).value = linesbelow
-        sh.range('A%i:V%i'%(self.n+1,self.n+1)).clear_contents()
+        sh.range('A%i:Z%i'%(i+2,i+2)).value = linesbelow
+        sh.range('A%i:Z%i'%(self.n+1,self.n+1)).clear_contents()
 
     def dels(self,i):
         """
@@ -774,7 +831,12 @@ class dict_position:
         self.climb_time = np.delete(self.climb_time,i)
         self.sza = np.delete(self.sza,i)
         self.azi = np.delete(self.azi,i)
-        self.comments.pop(i)          
+        self.comments.pop(i)         
+        self.turn_type.pop(i)
+        self.headwind = np.delete(self.headwind,i)
+        self.headwind_kts = np.delete(self.headwind_kts,i)
+        self.timepoint = np.delete(self.timepoint,i)
+             
         try:
             self.WP = np.delete(self.WP,i)
         except:
@@ -793,7 +855,8 @@ class dict_position:
                 clt=None,utc=None,loc=None,lt=None,d=None,cd=None,
                 dnm=None,cdnm=None,spkt=None,altk=None,
                 bear=0.0,endbear=0.0,turnd=0.0,turnt=0.0,climbt=0.0,
-                sza=None,azi=None,comm=None,wpname=None):
+                sza=None,azi=None,comm=None,wpname=None,
+                turn_type=' ',headwind=0.0,headwind_kts=0.0,timepoint=None):
         """
         Program that appends to the current class with values supplied, or with defaults from the command line
         """
@@ -807,6 +870,7 @@ class dict_position:
         if not utc: utc = np.nan
         if not loc: loc = np.nan
         if not lt: lt = np.nan
+        if not timepoint: timepoint = np.nan
         self.cumlegt = np.append(self.cumlegt,clt*24.0)
         self.utc = np.append(self.utc,utc*24.0)
         self.local = np.append(self.local,loc*24.0)
@@ -825,6 +889,12 @@ class dict_position:
         self.sza = np.append(self.sza,sza)
         self.azi = np.append(self.azi,azi)
         self.comments.append(comm)
+        
+        self.turn_type.append(turn_type)
+        self.headwind = np.append(self.headwind,headwind)
+        self.headwind_kts = np.append(self.headwind_kts,headwind_kts)
+        self.timepoint = np.append(self.timepoint,timepoint*24.0)
+        
         try:
             self.wpname.append(wpname)
         except:
@@ -835,7 +905,8 @@ class dict_position:
                 clt=None,utc=None,loc=None,lt=None,d=None,cd=None,
                 dnm=None,cdnm=None,spkt=None,altk=None,
                 bear=0.0,endbear=0.0,turnd=0.0,turnt=0.0,climbt=0.0,
-                sza=None,azi=None,comm=None,wpname=None):
+                sza=None,azi=None,comm=None,wpname=None,
+                turn_type=' ',headwind=0.0,headwind_kts=0.0,timepoint=None):
         """
         Program that appends to the current class with values supplied, or with defaults from the command line
         """
@@ -867,6 +938,12 @@ class dict_position:
         self.sza = np.insert(self.sza,i,sza)
         self.azi = np.insert(self.azi,i,azi)
         self.comments.insert(i,comm)
+        
+        self.turn_type.insert(i,turn_type)
+        self.headwind = np.insert(self.headwind,i,headwind)
+        self.headwind_kts = np.insert(self.headwind_kts,i,headwind_kts)
+        self.timepoint = np.insert(self.timepoint,i,timepoint*24.0)
+        
         try:
             self.wpname.insert(i,wpname)
         except:
@@ -874,7 +951,8 @@ class dict_position:
             self.wpname.insert(i,wpname)
 
     def mods(self,i,lat=None,lon=None,sp=None,spkt=None,
-             dt=None,alt=None,altk=None,comm=None,wpname=None):
+             dt=None,alt=None,altk=None,comm=None,wpname=None,
+             hdwind=None,hdwindkt=None,turntype=None):
         """
         Program to modify the contents of the current class if
         there is an update on the line, defned by i
@@ -888,7 +966,8 @@ class dict_position:
         changed = False
         compare_altk = True
         compare_speedk = True
-        self.toempty = {'speed':0,'delayt':0,'alt':0,'speed_kts':0,'alt_kft':0}
+        compare_hdwindk = True
+        self.toempty = {'speed':0,'delayt':0,'alt':0,'speed_kts':0,'alt_kft':0,'headwind':0,'headwind_kts':0}
         if lat is None: lat = np.nan
         if lon is None: lon = np.nan
         if sp is None: sp = np.nan
@@ -896,6 +975,8 @@ class dict_position:
         if dt is None: dt = np.nan
         if alt is None: alt = np.nan
         if altk is None: altk = np.nan
+        if hdwind is None: hdwind = np.nan
+        if hdwindkt is None: hdwindkt = np.nan
         if self.lat[i] != lat:
             self.lat[i] = pll(lat)
             changed = True
@@ -918,6 +999,23 @@ class dict_position:
                 changed = True
             else:
                 self.toempty['speed_kts'] = 1
+                changed = True
+        if self.headwind[i] != hdwind:
+            if np.isfinite(hdwind):
+                self.headwind[i] = hdwind
+                self.toempty['headwind_kts'] = 1
+                compare_hdwindk = False
+                changed = True
+            else:
+                self.toempty['headwind'] = 1
+                changed = True
+        if self.headwind_kts[i] != hdwindkt:
+            if np.isfinite(hdwindkt)&compare_hdwindk:
+                self.headwind_kts[i] = hdwindkt
+                self.toempty['headwind'] = 1
+                changed = True
+            else:
+                self.toempty['headwind_kts'] = 1
                 changed = True
         if self.delayt[i] != dt:
             if i != 0:
@@ -948,10 +1046,18 @@ class dict_position:
                 changed = True
         if not self.wpname[i] == wpname:
             if wpname: 
+                if wpname==' ' and self.comments[i] and self.wpname[i]: self.comments[i].replace(self.wpname[i],' ')
                 self.wpname[i] = wpname
                 changed = True
             if wpname==' ':
                 self.wpname[i] = None
+                changed = True
+        if not self.turn_type[i] == turntype:
+            if turntype: 
+                self.turn_type[i] = turntype
+                changed = True
+            if turntype==' ':
+                self.turn_type[i] = ' '
                 changed = True
         return changed
 
@@ -984,6 +1090,7 @@ class dict_position:
         #from xlwings import Workbook, Sheet, Range
         import xlwings as xw
         import numpy as np
+        from datetime import datetime
         if not filename:
             print('No filename found')
             return
@@ -998,33 +1105,50 @@ class dict_position:
         print('Activating sheet:%i, name:%s'%(sheet_num,wb.sheets(sheet_num).name))
         self.platform, self.p_info,use_file = self.get_platform_info(self.name,platform_file)
         print('Using platform data for: %s' %self.platform)
-        self.datestr = str(wb.sh.range('W1').value).split(' ')[0]
+        header_row = wb.sh.range((1,1),(1,50)).value
+        datestr_cellcol = [i for i,element in enumerate(header_row) if type(element) is datetime][0]
+        if not datestr_cellcol:
+            datestr_cellcol = [i for i,element in enumerate(header_row) if element=='Comment'][0]+2
+        cell_datestr = wb.sh.range((1,datestr_cellcol+1)) # select one to the right because xlwings is base 1 instead of base 0 for python
+        self.datestr = str(cell_datestr.value).split(' ')[0]
         self.verify_datestr()
-        wb.sh.range('W1').value = self.datestr
+        cell_datestr.value = self.datestr
         if campaign != 'None':
             self.campaign
         else:
-            self.campaign = str(wb.sh.range('X1').value).split(' ')[0]
+            self.campaign = str(cell_datestr.offset(0,1).value).split(' ')[0]
             self.verify_campaign()
         try:
-            self.__version__ = str(wb.sh.range('Z3').value).split(' ')[0]
+            self.__version__ = str(cell_datestr.offset(2,3).value).split(' ')[0]
         except:
             pass
         self.wb = wb
         self.UTC_conversion = self.verify_UTC_conversion()
+        if self.verify_not_extended_version(cell_datestr):
+            wb.sh.range((1,cell_datestr.column),(1,cell_datestr.column+5)).insert(shift='right')
+            wb.sh.range((1,datestr_cellcol+1)).value = ['HdWind\n[kt]','HdWind\n[m/s]','Turn type','TurnT\n[min]','TimePt\n[hh:mm]']
+            wb.sh.range((2,datestr_cellcol+5),(wb.sh.cells.last_cell.row,datestr_cellcol+5)).color = (50,50,50)
+            #wb.sh.range((1,datestr_cellcol+1),(wb.sh.cells.last_cell.row,datestr_cellcol+1)).autofit()
+            #wb.sh.range((1,datestr_cellcol+2),(wb.sh.cells.last_cell.row,datestr_cellcol+2)).autofit()
+            #wb.sh.range((1,datestr_cellcol+3),(wb.sh.cells.last_cell.row,datestr_cellcol+3)).autofit()
+            #wb.sh.range((1,datestr_cellcol+4),(wb.sh.cells.last_cell.row,datestr_cellcol+4)).autofit()
+            #wb.sh.range((1,datestr_cellcol+4),(wb.sh.cells.last_cell.row,datestr_cellcol+5)).autofit()
+            nul = [wb.sh.range((1,i),(wb.sh.cells.last_cell.row,i)).autofit() for i in range(1,30)]
+            wb.sh.range((2,datestr_cellcol+3),(wb.sh.cells.last_cell.row,datestr_cellcol+3)).api.Validation.Add(Type=3,AlertStyle=1,Operator=1, Formula1='" ",Over,Flyby,90-270')
         return wb
         
     def verify_datestr(self):
         'Verify the input datestr is correct'
         import re
         import tkinter.simpledialog as tkSimpleDialog
+        from datetime import datetime
         if not self.datestr:
             self.datestr = tkSimpleDialog.askstring('Flight Date','No datestring found!\nPlease input Flight Date (yyyy-mm-dd):')
         if not re.match('[0-9]{4}-[0-9]{2}-[0-9]{2}',self.datestr):
             self.datestr = tkSimpleDialog.askstring('Flight Date','No datestring found!\nPlease input Flight Date (yyyy-mm-dd):')
         if not self.datestr:
             print('No datestring found! Using todays date')
-            from datetime import datetime
+            
             self.datestr = datetime.utcnow().strftime('%Y-%m-%d')
         if not self.datestr_verified:
             self.datestr = tkSimpleDialog.askstring('Flight Date','Please verify Flight Date (yyyy-mm-dd):',initialvalue=self.datestr)
@@ -1041,6 +1165,10 @@ class dict_position:
         tmp0 = self.wb.sh.range('A2:U2').value
         _,_,_,_,_,_,_,utc,loc,_,_,_,_,_,_,_ = tmp0[0:16]
         return loc*24-utc*24
+        
+    def verify_not_extended_version(self,cell_datestr):
+        'verify if this excel is not the extended version, by checking the location of the datestr'
+        return cell_datestr.column<self.wb.sh.range(self.datestr_cell).column
 
     def Create_excel(self,name='P3 Flight path',newsheetonly=False):
         """
@@ -1090,21 +1218,38 @@ class dict_position:
                              'LegT\n[hh:mm]','Dist\n[km]','CumDist\n[km]',
                              'Dist\n[nm]','CumDist\n[nm]','Speed\n[kt]',
                              'Altitude\n[kft]','SZA\n[deg]','AZI\n[deg]',
-                             'Bearing\n[deg]','ClimbT\n[min]','Comments','WP names']
+                             'Bearing\n[deg]','ClimbT\n[min]','Comments','WP names',
+                             'HdWind\n[kt]','HdWind\n[m/s]','Turn type','TurnT\n[min]','TimePt\n[hh:mm]'] # new ones for version 1.62
         freeze_top_pane(wb)
         
+        sh.range('B:B').autofit()
+        sh.range('C:C').autofit()
+        sh.range('B:B').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
+        sh.range('C:C').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
+        
         sh.range('G2:J2').number_format = 'hh:mm'
-        sh.range('W1').value = self.datestr
-        sh.range('X1').value = self.campaign
-        sh.range('Z1').value = 'Created with'
-        sh.range('Z2').value = 'moving_lines'
-        sh.range('Z3').value = self.__version__
-        sh.range('W:W').autofit()
-        sh.range('W:W').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
-        sh.range('X:X').autofit()
-        sh.range('X:X').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
-        sh.range('Z:Z').autofit()
-        sh.range('Z:Z').api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
+        sh.range('AA2:AA2').number_format = 'hh:mm'
+        sh.range('Z:Z').number_format = '0.0'
+        
+        cell_datestr = sh.range(self.datestr_cell)
+        cell_datestr.value = self.datestr
+        sh.range(self.datestr_cell).offset(0,1).value = self.campaign
+        sh.range(self.datestr_cell).offset(0,2).value = 'Created with'
+        sh.range(self.datestr_cell).offset(1,2).value = 'moving_lines'
+        sh.range(self.datestr_cell).offset(2,2).value = self.__version__
+        nul = [sh.range((1,i),(sh.cells.last_cell.row,i)).autofit() for i in range(1,30)]
+        sh.range((1,cell_datestr.column-4),(sh.cells.last_cell.row,cell_datestr.column-4)).autofit()
+        sh.range((1,cell_datestr.column-3),(sh.cells.last_cell.row,cell_datestr.column-3)).autofit()
+        sh.range((1,cell_datestr.column-2),(sh.cells.last_cell.row,cell_datestr.column-2)).autofit()
+        sh.range((1,cell_datestr.column-1),(sh.cells.last_cell.row,cell_datestr.column-1)).autofit()
+        sh.range((1,cell_datestr.column),(sh.cells.last_cell.row,cell_datestr.column)).autofit()
+        sh.range((1,cell_datestr.column),(sh.cells.last_cell.row,cell_datestr.column)).api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
+        sh.range((1,cell_datestr.column+1),(sh.cells.last_cell.row,cell_datestr.column+1)).autofit()
+        sh.range((1,cell_datestr.column+2),(sh.cells.last_cell.row,cell_datestr.column+2)).api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
+        sh.range((1,cell_datestr.column+3),(sh.cells.last_cell.row,cell_datestr.column+3)).autofit()
+        sh.range((1,cell_datestr.column+3),(sh.cells.last_cell.row,cell_datestr.column+3)).api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
+        sh.range((2,cell_datestr.column-1),(sh.cells.last_cell.row,cell_datestr.column-1)).color = (75,75,75)
+        sh.range((2,25),(sh.cells.last_cell.row,25)).api.Validation.Add(Type=3,AlertStyle=1,Operator=1, Formula1='" ",Over,Flyby,90-270')
         #Range('A2').value = np.arange(50).reshape((50,1))+1
         wb.sh = sh
         return wb
@@ -1124,7 +1269,7 @@ class dict_position:
 
     def get_datestr_from_xl(self):
         'Simple program to get the datestr from the excel spreadsheet'
-        self.datestr = str(self.wb.sh.range('W1').value).split(' ')[0]
+        self.datestr = str(self.wb.sh.range(self.datestr_cell).value).split(' ')[0]
         
     def save2txt(self,filename=None):
         """ 
@@ -1400,7 +1545,6 @@ class dict_position:
             #compare only the non numerics
             wpname[j] = wp_str
             if hasattr(self,'labels_points'): #check if the labeled points are near the points already identified
-                #import ipdb; ipdb.set_trace()
                 for lp in self.labels_points:
                     if (lp[1]-self.lat[j])**2+(lp[2]-self.lon[j])**2 < 0.001:
                         wpname[j] = '{:X<5.5s}'.format(alphanum(lp[0].upper()))

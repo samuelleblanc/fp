@@ -204,6 +204,12 @@ class LineBuilder:
                                                             self.ys[self.contains_index],'bo',zorder=40)
                 self.draw_canvas(extra_points=[self.highlight_linepoint])
                 if self.point_name:
+                    try:
+                        self.ex.comments[self.contains_index] = self.ex.comments[self.contains_index].replace(self.ex.wpname[self.contains_index],' ')
+                    except Exception as ei:
+                        print(f'*** Problem renaming the comment line: {ei} ***')
+                        import ipdb;ipdb.set_trace()
+                        pass
                     self.ex.wpname[self.contains_index] = None
             else:
                 self.line.axes.format_coord = self.format_position_simple
@@ -425,7 +431,6 @@ class LineBuilder:
         if self.ex.points_changed>0: 
             self.line.figure.canvas.draw()
             self.get_bg()
-            #import ipdb; ipdb.set_trace()
         if get_time: 
             t4 = time.time()
             print('after update_labels: {}'.format(t4-t3))
@@ -1000,14 +1005,7 @@ class LineBuilder:
                     wpname = wpname.strip()
                 else:
                     wpname = None
-                #if len(l.split('@'))>1:
-                #    l,l1 = l.split('@')
-                #    insert_i = int(l1.split(',')[0])+wp_num-1
-                #    l = l+','+l1.split(',')[1]
-                #    import ipdb; ipdb.set_trace()
-                #else:
-                #    insert_i = -1
-                    
+
                 if l.lower().find('time')>=0: #check if there is a time slot instead of distance
                     try:
                         if len(l.split(','))>2:
@@ -2017,8 +2015,7 @@ def parse_and_plot_kml(kml_content, ax,color='tab:pink'):
             geom = placemark.find('.//google_kml:Polygon/google_kml:outerBoundaryIs/google_kml:LinearRing/google_kml:coordinates', namespaces)
         if geom is None:
             geom = placemark.find('.//gx:Polygon/gx:outerBoundaryIs/gx:LinearRing/gx:coordinates', namespaces)
-        
-        #import ipdb; ipdb.set_trace()
+
         if geom is not None:
             coords = [tuple(map(float, coord.split(','))) for coord in geom.strip().split()]
             longitudes, latitudes = zip(*coords)
