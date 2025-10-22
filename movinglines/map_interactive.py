@@ -1612,6 +1612,10 @@ def plot_sat_tracks(m,sat,label_every=5,max_num=60):
     """
     Program that goes through and plots the satellite tracks
     """
+    from shapely import wkt
+    import cartopy.crs as ccrs
+    from matplotlib.patches import Patch
+    from matplotlib import cm
     try:
         import map_utils as mu
     except ModuleNotFoundError:
@@ -1620,7 +1624,9 @@ def plot_sat_tracks(m,sat,label_every=5,max_num=60):
     sat_lines = {}
     sat_text = {}
     sat_keys = []
+    geos_handles, geos_labels = [],[]
     for k in sat.keys():
+        if k=='geos': continue
         if type(sat[k]) is dict:
             lon = sat[k]['lon']
             lat = sat[k]['lat']
@@ -1666,31 +1672,74 @@ def plot_sat_tracks(m,sat,label_every=5,max_num=60):
                         if ((lat[i]>=latrange[0])&(lat[i]<=latrange[1])&(lon[i]>=lonrange[0])&(lon[i]<=lonrange[1])):#((lat[i]>=llcrnr[1])&(lat[i]<=urcrnr[1])&(lon[i]>=llcrnr[0])&(lon[i]<=urcrnr[0])):
                             sat_obj.append(m.ax.text(x[i],y[i],'%02i:%02i' % (d.tuple()[3],d.tuple()[4]),color=co,transform=m.merc))
                             sat_text[k].append(sat_obj[-1])
-    if len(sat.keys())>4:
+    if 'geos' in sat:   ## plot the geostationary
+        for i,k in enumerate(sat['geos']):
+            try:
+                geom = wkt.loads(sat['geos'][k]['wkt'])
+                crsm = ccrs.CRS(sat['geos'][k]['crs'])
+                tmp_m = m.add_geometries([geom],crs=crsm, alpha=0.1,linewidth=2,label=k,facecolor=cm.Set1(i),edgecolor=cm.Set1(i))
+                sat_obj.append(tmp_m)
+                sat_lines[k] = tmp_m
+                sat_keys.append(k)
+                geos_labels.append(k)
+                geos_handles.append(Patch(facecolor=cm.Set1(i), edgecolor=cm.Set1(i), alpha=0.2,linewidth=2, label=k))
+                sat_text[k] = []
+                try:
+                    coords = geom.boundary.coords[::label_every*10]
+                except:
+                    coords = geom.coords[::label_every*10]
+                for j, (lon,lat) in enumerate(coords): 
+                    sat_obj.append(m.ax.text(lon,lat,k,color=cm.Set1(i),transform=crsm,fontsize=5,alpha=0.2))
+                    sat_text[k].append(sat_obj[-1])
+            except Exception as ei:
+                print(f'*** Error adding the geos satellite: {k}, error: {ei} ***')
+        
+    if len(sat.keys())>12:
+        ncol = 3
+    elif len(sat.keys())>4:
         ncol = 2
     else:
         ncol = 1
-    sat_legend = m.ax.legend(loc='upper right',bbox_to_anchor=(0.98,0.98),ncol=ncol,fancybox=True, shadow=True,bbox_transform=m.ax.figure.transFigure)
+       
+    handles, labels = m.get_legend_handles_labels()       
+    if len(geos_handles)>0:    
+        handles += geos_handles
+        labels += geos_labels
+
+    sat_legend = m.ax.legend(handles=handles,labels=labels,loc='upper right',bbox_to_anchor=(0.98,0.98),ncol=ncol,fancybox=True, shadow=True,bbox_transform=m.ax.figure.transFigure)
 
     #handle the toggle visibility
     sat_leg_lines = sat_legend.get_lines()
+    if len(geos_handles)>0: sat_leg_lines += sat_legend.get_patches()
     graphs = {}
     texts = {}
     for i,k in enumerate(sat_keys):
         graphs[sat_leg_lines[i]] = sat_lines[k]
         texts[sat_leg_lines[i]] = sat_text[k]
-        sat_leg_lines[i].set_picker(7)
         sat_leg_lines[i].set_lw(0.8)
-        sat_leg_lines[i].set_marker('s')
-        sat_leg_lines[i].set_markersize(6)
-        sat_leg_lines[i].set_markeredgewidth(2.0)
+        try:
+            sat_leg_lines[i].set_marker('s')
+            sat_leg_lines[i].set_markersize(6)
+            sat_leg_lines[i].set_markeredgewidth(2.0)
+            sat_leg_lines[i].set_picker(7)
+        except:
+            sat_leg_lines[i].set_picker(2)
+            pass
         if i>0:
-            sat_leg_lines[i].set_markerfacecolor('#ffffff')
+            try:
+                sat_leg_lines[i].set_markerfacecolor('#ffffff')
+            except AttributeError:
+                sat_leg_lines[i].set_facecolor('#ffffff')
+                pass
             sat_leg_lines[i].set_alpha(0.2)
-            [g.set_visible(False) for g in graphs[sat_leg_lines[i]]]
-            [g.set_alpha(0) for g in graphs[sat_leg_lines[i]]]
+            try:
+                [g.set_visible(False) for g in graphs[sat_leg_lines[i]]]
+                [g.set_alpha(0) for g in graphs[sat_leg_lines[i]]]
+            except TypeError:
+                graphs[sat_leg_lines[i]].set_visible(False)
+                graphs[sat_leg_lines[i]].set_alpha(0)
             [(te.set_visible(False),te.set_alpha(0)) for te in texts[sat_leg_lines[i]]]
-        #sat_leg_lines[i].set_pickradius(5)
+            
     graphs['lastserial'] = 0
     
     def on_pick_legend(event):
@@ -1698,19 +1747,24 @@ def plot_sat_tracks(m,sat,label_every=5,max_num=60):
 #        global lastserial
         if event.guiEvent.serial == graphs['lastserial']: return
         graphs['lastserial'] = event.guiEvent.serial
-        isVisible = True if graphs[legend0][0].get_alpha() is None else (True if graphs[legend0][0].get_alpha() else False)
-        [g.set_visible(not isVisible) for g in graphs[legend0]]
-        [g.set_alpha(1.0 if not isVisible else 0) for g in graphs[legend0]]
+        try:
+            isVisible = True if graphs[legend0][0].get_alpha() is None else (True if graphs[legend0][0].get_alpha() else False)
+            [g.set_visible(not isVisible) for g in graphs[legend0]]
+            [g.set_alpha(1.0 if not isVisible else 0) for g in graphs[legend0]]
+        except TypeError:
+            isVisible = True if graphs[legend0].get_alpha() is None else (True if graphs[legend0].get_alpha() else False)
+            graphs[legend0].set_visible(not isVisible)
+            graphs[legend0].set_alpha(0.2 if not isVisible else 0)
 
         for te in texts[legend0]: 
             te.set_visible(not isVisible)
             te.set_alpha(1.0 if not isVisible else 0)
         legend0.set_alpha(1.0 if not isVisible else 0.2) #set_visible(not isVisible)
-        legend0.set_markerfacecolor(legend0.get_markeredgecolor() if not isVisible else '#ffffff')
-        #print(legend0,'toggled, for line:',graphs[legend0],isVisible,legend0.get_alpha)
-        #import pdb; pdb.set_trace()
+        try:
+            legend0.set_markerfacecolor(legend0.get_markeredgecolor() if not isVisible else '#ffffff')
+        except AttributeError:
+            legend0.set_facecolor(legend0.get_edgecolor() if not isVisible else '#ffffff')
         m.figure.canvas.draw()
-        #m.get_bg(redraw=True)
     
     leg_onpick = m.figure.canvas.mpl_connect('pick_event',on_pick_legend)
     #try:    
@@ -1719,8 +1773,23 @@ def plot_sat_tracks(m,sat,label_every=5,max_num=60):
     #    sat_legend.set_draggable(True)
     m.ax.add_artist(sat_legend)
     sat_obj.append(sat_legend)
-    #sat_obj.append(leg_onpick)
     return sat_obj
+    
+def get_geostationary_footprint(geostationary_file='sat.json'):
+    'function that loads the wkt of the geostationary definitions in a json file'
+    import os
+    import json
+    
+    if not os.path.isfile(geostationary_file): 
+        print(f'No {geostationary_file} file found')
+        return None
+    
+    with open(geostationary_file,'r') as fp:
+        geos = json.load(fp)    
+    print(f'... Loaded the geostationary satellite footprints from {geostationary_file}')
+    return geos
+        
+    #now to transform that into something that can be plotted
 
 def get_sat_tracks_from_tle(datestr,fraction_minute_interval=2,sat_filename='sat.tle'):
     """

@@ -13,3 +13,4 @@ NOWCOAST_radar_ALASKA,https://opengeo.ncep.noaa.gov/geoserver/alaska/alaska_bref
 NOWCOAST_radar_Hawaii,https://opengeo.ncep.noaa.gov/geoserver/hawaii/hawaii_bref_qcd/ows?
 NOWCOAST_radar_Carribean,https://opengeo.ncep.noaa.gov/geoserver/carib/carib_bref_qcd/ows?
 NOWCOAST_radar_GUAM,https://opengeo.ncep.noaa.gov/geoserver/guam/guam_bref_qcd/ows?
+EUTMETSAT,https://view.eumetsat.int/geoserver/wms?

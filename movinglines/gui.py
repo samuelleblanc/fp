@@ -1129,11 +1129,17 @@ class gui:
     def gui_addsat_tle(self):
         'Gui button to add the satellite tracks'
         try:
-            from map_interactive import get_sat_tracks_from_tle, plot_sat_tracks
+            from map_interactive import get_sat_tracks_from_tle, plot_sat_tracks,get_geostationary_footprint
         except ModuleNotFoundError:
-            from .map_interactive import get_sat_tracks_from_tle, plot_sat_tracks
+            from .map_interactive import get_sat_tracks_from_tle, plot_sat_tracks,get_geostationary_footprint
         self.line.tb.set_message('Loading satellite info from sat.tle file')
         sat = get_sat_tracks_from_tle(self.line.ex.datestr)
+        self.line.tb.set_message('Loading geostationary satellite footprint from sat.json file')
+        geo_sat = get_geostationary_footprint()                
+        if geo_sat:
+            sat['geos'] = geo_sat
+        else:
+            print('--- no geostationary satellite footprint was loaded ---')
         self.line.tb.set_message('Plotting Satellite tracks')
         self.sat_obj = plot_sat_tracks(self.line.m,sat)
         self.line.get_bg(redraw=True)

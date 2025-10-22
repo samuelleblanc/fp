@@ -161,6 +161,17 @@
                 - Updated the labels.txt for arctic locations that may be important to NURTURE.
                 - Added an initial try at a parameterized NASA 777 flight characteristics.
                 - Changed defaults of NURTURE projection to lamber azimuthal equal area.
+        Modified: Samuel LeBlanc, v1.61, 2025-10-07, Santa Cruz, CA
+                - Modifying the build environment for ensuring deployment to mac os, via conda
+                - Add the simplying read of mss.txt to skip interface if only one url is present.
+        Modified: Samuel LeBlanc, v1.62, 2025-10-20, Santa Cruz, CA
+                - Adding manual headwind inputs and calculations
+                - Adding explicit turn type and turn time descriptions.
+                - Improved turn time calculations for the different turn types
+                - Adding new excel columns to habndle the headwind, turn types, and potential for time points.
+                - Added sat.json for handling the geostationary satellite types
+                - Adding multiple new satellites descriptions.
+                
                  
 """
 try:
@@ -380,7 +391,7 @@ class VerticalScrolledFrame(ttk.Frame):
         vscrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL)
         vscrollbar.pack(fill=tk.Y, side=tk.RIGHT, expand=tk.FALSE)
         self.canvas = tk.Canvas(self, bd=0, highlightthickness=0, 
-                                width = 200, height = 300,
+                                width = 200, height = 360,
                                 yscrollcommand=vscrollbar.set)
         self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.TRUE)
         vscrollbar.config(command = self.canvas.yview)
