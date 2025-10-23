@@ -2058,6 +2058,18 @@ def get_elev(utc,lat,lon,dt=60,geotiff_path='elevation_10KMmd_GMTEDmd.tif'):
     elev = extract_elevation_from_geotiff(lat_new,lon_new,geotiff_path=fname)
     return elev,lat_new,lon_new,utcs/3600.0,fname
     
+def _get_nsmap(root):
+    import re
+    # Detect default KML namespace, fall back to 2.2
+    m = re.match(r"\{(.+)\}", root.tag)
+    ns_default = m.group(1) if m else "http://www.opengis.net/kml/2.2"
+    return {
+        "kml": ns_default,
+        "gx": "http://www.google.com/kml/ext/2.2",
+        'google_kml': 'http://earth.google.com/kml/2.0',
+        '': 'http://earth.google.com/kml/2.0'
+    }
+    
 def parse_and_plot_kml(kml_content, ax,color='tab:pink'):
     'function to plot the kml content (either kml file or as part of kmz'
     import xml.etree.ElementTree as ET
@@ -2065,37 +2077,46 @@ def parse_and_plot_kml(kml_content, ax,color='tab:pink'):
     # Parse the KML content
     root = ET.fromstring(kml_content)
         # Define the namespaces
-    namespaces = {
-        'kml': 'http://www.opengis.net/kml/2.2',
-        'google_kml': 'http://earth.google.com/kml/2.0',
-        'gx': 'http://www.google.com/kml/ext/2.2',
-        '': 'http://earth.google.com/kml/2.0'
-    }
+    namespaces = _get_nsmap(root)
+    
     # Find the Placemark elements in KML
     placemarks = root.findall('.//kml:Placemark', namespaces) + root.findall('.//google_kml:Placemark', namespaces) + root.findall('.//gx:Placemark', namespaces)
     # Iterate over each Placemark and plot its geometry
     print('... Found {} placemarks in the kml/kmz file'.format(len(placemarks)))
     plcmrks = []
     for placemark in placemarks:
+        filled = False
         geom = placemark.findtext('.//coordinates', namespaces=namespaces)
         if geom is None:
             geom = placemark.findtext('.//kml:Point/kml:coordinates', namespaces=namespaces)
         if geom is None:
             geom = placemark.find('.//google_kml:Polygon/google_kml:outerBoundaryIs/google_kml:LinearRing/google_kml:coordinates', namespaces)
+            filled = True
         if geom is None:
             geom = placemark.find('.//gx:Polygon/gx:outerBoundaryIs/gx:LinearRing/gx:coordinates', namespaces)
-
+            filled = True
+        if geom is None:
+            polyspace = placemark.findall(".//gx:Polygon",namespaces=namespaces)+placemark.findall(".//kml:Polygon",namespaces=namespaces)
+            for poly in polyspace:
+                geom = poly.findtext(".//kml:outerBoundaryIs/kml:LinearRing/kml:coordinates", default="",namespaces=namespaces)+\
+                           poly.findtext(".//gx:outerBoundaryIs/gx:LinearRing/gx:coordinates", default="",namespaces=namespaces)
+            filled = True
         if geom is not None:
+            name = placemark.findtext("kml:name",default="",namespaces=namespaces)
             coords = [tuple(map(float, coord.split(','))) for coord in geom.strip().split()]
-            longitudes, latitudes = zip(*coords)
+            if len(coords[0])>2:
+                longitudes, latitudes,alts = zip(*coords)
+            else:
+                longitudes, latitudes = zip(*coords)
             # Plot the polygon
             if hasattr(ax,'proj'):
                 if isinstance(ax.proj,ccrs.Stereographic):
                     xs,ys = zip([ax.convert_latlon(*c) for c in coords])
                     pp_tmp = ax.plot(xs, ys, color=color, linewidth=1) #,transform=ccrs.Geodetic())
-            pp_tmp = ax.plot(longitudes, latitudes, color=color, linewidth=1,transform=ccrs.Geodetic())
-            plcmrks.append(pp_tmp)
-        
+                #xs,ys = zip(*[ax.convert_latlon(lo,latitudes[j]) for j,lo in enumerate(longitudes)])
+                
+            pp_tmp = ax.plot(longitudes, latitudes, color=color, linewidth=1,transform=ccrs.Geodetic())            
+            plcmrks.append(pp_tmp)        
     return plcmrks
 
 def plot_kml(kml_file, ax,color='tab:pink'):

@@ -171,6 +171,7 @@
                 - Adding new excel columns to habndle the headwind, turn types, and potential for time points.
                 - Added sat.json for handling the geostationary satellite types
                 - Adding multiple new satellites descriptions.
+                - Added Canadian restricted airspace plotting
                 
                  
 """
@@ -580,73 +581,75 @@ def build_buttons(ui,lines,vertical=True):
    # g.frame_airspace = ttk.Frame(top_gui)
    # g.frame_airspace.pack(in_=top_gui,side=side,fill=tk.X,pady=2)
     
-    g.baddsua = ttk.Button(side_bar,text='Special Use Airspace',
+    g.baddsua = ttk.Button(side_bar,text='Special Use Airspace\n[USA]',
                          command = g.gui_add_SUA_WMS)
-    #g.baddsua.pack(in_=g.frame_airspace,padx=0,pady=0,side=tk.LEFT,anchor=tk.CENTER)
     g.baddsua.grid(in_=top_gui,row=1,column=0,  sticky='w'+'e'+'n'+'s')
+    g.baddcanair = ttk.Button(side_bar,text='Restricted Airspace\n[CAN]',
+                         command = g.gui_add_CAN_Air)
+    g.baddcanair.grid(in_=top_gui,row=1,column=1,  sticky='w'+'e'+'n'+'s')
     g.baddfir = ttk.Button(side_bar,text='FIR boundaries',
                          command = g.gui_add_FIR)
     #g.baddfir.pack(in_=g.frame_airspace,padx=0,pady=0,side=tk.LEFT,anchor=tk.CENTER)
-    g.baddfir.grid(in_=top_gui,padx=0,pady=0,row=1,column=1,  sticky='w'+'e'+'n'+'s')
+    g.baddfir.grid(in_=top_gui,padx=0,pady=0,row=2,column=1,  sticky='w'+'e'+'n'+'s')
     
     g.baddnats = ttk.Button(side_bar,text='North Atlantic routes',
                          command = g.gui_add_NATS)
-    g.baddnats.grid(in_=top_gui,row=1,column=0,  sticky='w'+'e'+'n'+'s')
+    g.baddnats.grid(in_=top_gui,row=3,column=0,  sticky='w'+'e'+'n'+'s')
     g.baddpocats = ttk.Button(side_bar,text='Pacific-Oceanic routes',
                          command = g.gui_add_POCATS)
-    g.baddpocats.grid(in_=top_gui,padx=0,pady=0,row=1,column=1,  sticky='w'+'e'+'n'+'s')
+    g.baddpocats.grid(in_=top_gui,padx=0,pady=0,row=3,column=1,  sticky='w'+'e'+'n'+'s')
     
     #g.frame_wms = ttk.Frame(top_gui)
     #g.frame_wms.pack(in_=top_gui,side=side,fill=tk.X,pady=2)
     g.baddwms = ttk.Button(side_bar,text='WMS layer',
                          command = g.gui_add_any_WMS)
     #g.baddwms.pack(in_=g.frame_wms,side=tk.LEFT,anchor=tk.CENTER)
-    g.baddwms.grid(in_=top_gui,padx=0,pady=0,row=2,column=0,  sticky='w'+'e'+'n'+'s')
+    g.baddwms.grid(in_=top_gui,padx=0,pady=0,row=4,column=0,  sticky='w'+'e'+'n'+'s')
     g.baddkml = ttk.Button(side_bar,text='KML/KMZ',
                          command = g.gui_add_kml)
     #g.baddkml.pack(in_=g.frame_wms,padx=0,pady=0,side=tk.LEFT,anchor=tk.CENTER)
-    g.baddkml.grid(in_=top_gui,padx=0,pady=0,row=2,column=1,  sticky='w'+'e'+'n'+'s')
+    g.baddkml.grid(in_=top_gui,padx=0,pady=0,row=4,column=1,  sticky='w'+'e'+'n'+'s')
     
     g.baddmss = ttk.Button(side_bar,text='MSS models',
                          command = g.gui_add_MSS)
-    g.baddmss.grid(in_=top_gui,padx=0,pady=0,row=3,column=0,columnspan=2,sticky='w'+'e'+'n'+'s')
+    g.baddmss.grid(in_=top_gui,padx=0,pady=0,row=5,column=0,columnspan=2,sticky='w'+'e'+'n'+'s')
     #tk.Frame(side_bar,height=h,width=w,bg='black',relief='sunken'
     #         ).pack(in_=top_gui,side=side,padx=8,pady=5)
     tk.Frame(side_bar,height=h,width=w,bg='black',relief='sunken'
-             ).grid(in_=top_gui,padx=8,pady=5,row=4,column=0,columnspan=2,sticky=tk.W+tk.E)
+             ).grid(in_=top_gui,padx=8,pady=5,row=6,column=0,columnspan=2,sticky=tk.W+tk.E)
     
     g.bupsat = ttk.Button(side_bar,text='Update sat.tle',
                          command = g.dummy_func)
     #g.baddsat.pack(in_=top_gui)
-    g.bupsat.grid(in_=top_gui,row=5,column=0,  sticky='w'+'e'+'n'+'s')
+    g.bupsat.grid(in_=top_gui,row=7,column=0,  sticky='w'+'e'+'n'+'s')
     g.bupsat.config(command=g.gui_update_tle)
     g.bconfig_folder = ttk.Button(side_bar,text='Open config\nfolder',
                          command = g.dummy_func)
     #g.baddaeronet.pack(in_=top_gui)
-    g.bconfig_folder.grid(in_=top_gui,row=5,  column=1,  sticky='w'+'e'+'n'+'s')
+    g.bconfig_folder.grid(in_=top_gui,row=7,  column=1,  sticky='w'+'e'+'n'+'s')
     g.bconfig_folder.config(command=g.gui_openconfig)
              
     tk.Frame(side_bar,height=h,width=w,bg='black',relief='sunken'
-             ).grid(in_=top_gui,padx=8,pady=5,row=6,column=0,columnspan=2,sticky=tk.W+tk.E)
+             ).grid(in_=top_gui,padx=8,pady=5,row=8,column=0,columnspan=2,sticky=tk.W+tk.E)
     #ttk.Label(side_bar,text='from local images:').pack(in_=top_gui,side=tk.BOTTOM)
     #g.frame_boc = ttk.Frame(top_gui)
     #g.frame_boc.pack(in_=top_gui,side=side,fill=tk.X,pady=2)
     g.baddbocachica = ttk.Button(side_bar,text='Forecast\nfrom Bocachica',
                          command = g.gui_addbocachica)
     #g.baddbocachica.pack(in_=g.frame_boc,padx=0,pady=0,side=tk.LEFT,anchor=tk.CENTER)
-    g.baddbocachica.grid(in_=top_gui,padx=0,pady=0,row=7,column=0,  sticky='w'+'e'+'n'+'s')
+    g.baddbocachica.grid(in_=top_gui,padx=0,pady=0,row=9,column=0,  sticky='w'+'e'+'n'+'s')
     g.baddtrajectory = ttk.Button(side_bar,text='trajectory\nImage',
                          command = g.gui_addtrajectory)
     #g.baddtrajectory.pack(in_=g.frame_boc,padx=0,pady=0,side=tk.LEFT,anchor=tk.CENTER)
-    g.baddtrajectory.grid(in_=top_gui,padx=0,pady=0,row=7,column=1,  sticky='w'+'e'+'n'+'s')
+    g.baddtrajectory.grid(in_=top_gui,padx=0,pady=0,row=9,column=1,  sticky='w'+'e'+'n'+'s')
     g.baddfigure = ttk.Button(side_bar,text='image',
                          command = g.gui_addfigure)
     #g.baddfigure.pack(in_=top_gui)
-    g.baddfigure.grid(in_=top_gui,padx=0,pady=0,row=8,column=0,columnspan=2,  sticky='w'+'e'+'n'+'s')
+    g.baddfigure.grid(in_=top_gui,padx=0,pady=0,row=10,column=0,columnspan=2,  sticky='w'+'e'+'n'+'s')
     g.baddtidbit = ttk.Button(side_bar,text='Tropical tidbit',
                          command = g.gui_addtidbit)
     #g.baddtidbit.pack(in_=top_gui)
-    g.baddtidbit.grid(in_=top_gui,padx=0,pady=0,row=9,column=0,columnspan=2,  sticky='w'+'e'+'n'+'s')
+    g.baddtidbit.grid(in_=top_gui,padx=0,pady=0,row=11,column=0,columnspan=2,  sticky='w'+'e'+'n'+'s')
     
     
     #g.bipython = tk.Button(side_bar,text='open iPython',
@@ -663,11 +666,11 @@ def build_buttons(ui,lines,vertical=True):
     #tk.Frame(side_bar,height=h,width=w,bg='black',relief='sunken'
     #         ).pack(in_=top_gui,side=side,padx=8,pady=5)
     tk.Frame(side_bar,height=h,width=w,bg='black',relief='sunken'
-             ).grid(in_=top_gui,padx=8,pady=5,row=10,column=0,columnspan=2,sticky=tk.W+tk.E)
+             ).grid(in_=top_gui,padx=8,pady=5,row=12,column=0,columnspan=2,sticky=tk.W+tk.E)
     quit_style = ttk.Style()
     quit_style.configure('B3.TButton',background='lightcoral',foreground='darkred')
     ttk.Button(side_bar,text='Quit',command=g.stopandquit,style='B3.TButton'
-              ).grid(in_=top_gui,padx=8,pady=5,row=11,column=0,columnspan=2,sticky=tk.W+tk.E)
+              ).grid(in_=top_gui,padx=8,pady=5,row=13,column=0,columnspan=2,sticky=tk.W+tk.E)
     g.active_style = ttk.Style()
     g.active_style.configure('Ba.TButton',background='grey',foreground='black')
     g.pressed_style = ttk.Style()
@@ -794,6 +797,8 @@ def Create_interaction(test=False,profile=None,**kwargs):
         print(" ... exists: ",isfile(faero))
         print("satellite TLE file:",'sat.tle')
         print(" ... exists: ",isfile('sat.tle'))
+        print("satellite JSON file:",'sat.json')
+        print(" ... exists: ",isfile('sat.json'))
         print("WMS list file:",'WMS.txt')
         print(" ... exists: ",isfile('WMS.txt'))
         

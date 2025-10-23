@@ -1740,7 +1740,31 @@ class gui:
             if r:
                 self.baddsua.config(text='Remove SUA')
                 self.baddsua.config(command=self.gui_rm_SUA_WMS,style='Bp.TButton')
+
+    def gui_add_CAN_Air(self):
+        'Button to add the Canadian restricted airspaces'
+        import tkinter.messagebox as tkMessageBox
+        try:
+            from plot_canadian_airspace import plot_filled_kml
+        except ModuleNotFoundError:
+            from .plot_canadian_airspace import plot_filled_kml
             
+        kmz_file = './Canadian_classF_Airspaces.kmz'
+        try:
+            self.line.tb.set_message('Reading the Canadian Airspace Class F KMZ')
+            self.can_air = plot_filled_kml(kmz_file,self.line.m,addlabels=False,color='coral')
+        except Exception as ei:
+            print(' *** Issue adding the kmz file: {} - {}'.format(kmz_file,ei))
+            self.line.tb.set_message('Problem with kmz file:{}'.format(kmz_file))
+            tkMessageBox.showwarning('Problem adding kmz',f'Issue adding the kml file: {kmz_file} - {ei}') 
+            self.can_air = None
+        
+        if self.can_air:
+            self.baddcanair.config(text='Remove Canadian Airspace')
+            self.baddcanair.config(command=self.gui_rm_CAN_Air,style='Bp.TButton')
+            self.line.get_bg(redraw=True)
+            
+        
     def gui_add_kml(self):
         'Button function to add any kml/kmz file'
         r = self.add_kml()
@@ -1757,6 +1781,7 @@ class gui:
         if r:
             self.baddfir.config(text='Remove FIR boundaries')
             self.baddfir.config(command=self.gui_rm_fir,style='Bp.TButton')
+            self.line.get_bg(redraw=True)
             
     def gui_add_NATS(self,color='tan'):
         'Button function to add NATS tracks'
@@ -1831,6 +1856,24 @@ class gui:
         self.baddpocats.config(text='Pacific-Oceanic routes')
         self.baddpocats.config(command=self.gui_add_POCATS,style=self.bg)
         self.line.get_bg(redraw=True)
+        
+    def gui_rm_CAN_Air(self):        
+        'removing the Canadian Airspace'
+        
+        try:
+            nul = [n.set_visible(False) for n in self.can_air]
+        except:
+            pass
+        for s in self.can_air:
+            if type(s) is list:
+                for so in s:
+                    so.remove()
+            else:
+                s.remove()
+        
+        self.baddcanair.config(text='Restricted Airspace\n[CAN]')
+        self.baddcanair.config(command=self.gui_add_CAN_Air,style=self.bg)
+        self.line.get_bg(redraw=True)
             
     def gui_rm_fir(self):
         'Gui button to remove the satellite tracks'
@@ -1882,7 +1925,7 @@ class gui:
                     so.remove()
             else:
                 s.remove()
-        self.baddkml.config(text='Add KML/KMZ')
+        self.baddkml.config(text='KML/KMZ')
         self.baddkml.config(command=self.gui_add_kml,style=self.bg)
         self.line.get_bg(redraw=True)
             

@@ -1,6 +1,6 @@
 # Name:
 
-Moving Lines, version 1.60
+Moving Lines, version 1.62
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1478125.svg)](https://doi.org/10.5281/zenodo.1478125)
 
@@ -124,7 +124,7 @@ Takes advantage of clickable map for creating a flight plan, and already existin
 	2) choose which website to load the web map service (from the WMS.txt or MSS.txt file). 
 	3) follow dialogs for selecting the right times, layer, level, etc.
 
-## Edding any image
+## Adding any image
     1) Select the image add buttons (Froecast from Bocachica, trajectory image, image, or Tropical tidbit). For general images select 'image button'
     2) Select the image file
     3) if prompts, select the most appropriate image style, if not then use the 'manual' selection and follow those prompts to indicate projection and image file corners.
@@ -139,6 +139,11 @@ Takes advantage of clickable map for creating a flight plan, and already existin
     2) in the file, there is a series of python dict formats with each a defined list of variables that sets the flight characteristics of the plane/platform
     3) modify exisiting pltform dict, or create a new one based on the template and the guidance shown in the file.
     
+## Adding satellite tracks:
+	1) select the button: "Satellite Tracks"
+	2) wait for a moment until the sat.tle and sat.json is loaded. 
+	3) toggle the satellite tracks that you wish to see by clicking on the legend entry next to that satellite
+	
 ## Change which flight path is active:
     1) Press the button related to the flight path desired just above the 'New Flight Path' button
 **do not switch with Excel Spreadsheet**
@@ -214,6 +219,7 @@ Takes advantage of clickable map for creating a flight plan, and already existin
     - labels.txt : csv files with points on map to be labelled. Each line represent one point, Format: name, longitude, latitude, marker and color symbol
     - aeronet_locations.txt: csv files with location of aeronet sites. found from : http://aeronet.gsfc.nasa.gov/aeronet_locations.txt
     - sat.tle: Selected data for satellite tracks in form of Two Line Element set from http://www.celestrak.com
+	- sat.json: (new in v1.62) for geostationary satellite footprint definition, saved as a json, with wkt format of their footprint, and proj4 for its projections.
     - profiles.txt: text file containing dictionary assignment for map setup defaults. each profile linked to a field mission, python dict format.
     - platform.txt: text file containing dictionary assignment for details on each platform: max altitude, max speed, speed profile, vertical speed profile, turning rate
     - WMS.txt: list of possible WMS servers for getting map images from the internet.
@@ -385,6 +391,16 @@ Takes advantage of clickable map for creating a flight plan, and already existin
                 - Updated the labels.txt for arctic locations that may be important to NURTURE. 
                 - Added an initial try at a parameterized NASA 777 flight characteristics. 
                 - Changed defaults of NURTURE projection to lamber azimuthal equal area. 
+    Modified: Samuel LeBlanc, v1.61, 2025-10-07, Santa Cruz, CA
+                - Modifying the build environment for ensuring deployment to mac os, via conda
+                - Add the simplying read of mss.txt to skip interface if only one url is present.
+    Modified: Samuel LeBlanc, v1.62, 2025-10-20, Santa Cruz, CA
+                - Adding manual headwind inputs and calculations
+                - Adding explicit turn type and turn time descriptions.
+                - Improved turn time calculations for the different turn types
+                - Adding new excel columns to habndle the headwind, turn types, and potential for time points.
+                - Added sat.json for handling the geostationary satellite types
+                - Adding multiple new satellites descriptions.
 
 
 # To cite:
