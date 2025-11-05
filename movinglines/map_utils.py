@@ -4,6 +4,7 @@
 # In[ ]:
 
 __version__ = 1.21
+import numpy as np 
 
 def __init__():
     """
@@ -43,6 +44,55 @@ def spherical_dist(pos1, pos2, r=6378.1,use_mi=False):
     cos_lat_d = np.cos(pos1[..., 0] - pos2[..., 0])
     cos_lon_d = np.cos(pos1[..., 1] - pos2[..., 1])
     return r * np.arccos(cos_lat_d - cos_lat1 * cos_lat2 * (1 - cos_lon_d))
+
+def compute_cumdist_for_any(latitudes, longitudes, dist_func, *, start_value=0.0):
+    """
+    Compute cumulative distance along a track of points using an existing
+    point-to-point distance function (e.g., mu.spherical_dist).
+
+    Parameters
+    ----------
+    latitudes : array-like of float
+        Sequence of latitudes (degrees).
+    longitudes : array-like of float
+        Sequence of longitudes (degrees).
+    dist_func : callable
+        A function taking two [lat, lon] pairs and returning distance in meters (or km).
+        Example: mu.spherical_dist([lat1, lon1], [lat2, lon2]).
+    start_value : float, optional
+        Starting cumulative distance (default 0.0). Useful if you’re stitching segments.
+
+    Returns
+    -------
+    np.ndarray
+        Cumulative distance array of shape (N,), same length as lat/lon inputs.
+        The first value equals start_value, then increases monotonically.
+    """
+    lat = np.asarray(latitudes, dtype=float)
+    lon = np.asarray(longitudes, dtype=float)
+
+    if lat.size != lon.size:
+        raise ValueError("latitudes and longitudes must have the same length")
+    if lat.size < 2:
+        return np.array([float(start_value)], dtype=float)
+
+    cumdist = np.empty(lat.size, dtype=float)
+    cumdist[0] = start_value
+
+    for i in range(lat.size - 1):
+        d = dist_func([lat[i], lon[i]], [lat[i + 1], lon[i + 1]])
+        cumdist[i + 1] = cumdist[i] + d
+
+    return cumdist
+
+def compute_cumdist(latitudes, longitudes):
+    """
+    wrapper for the cumulative distance
+    """
+    
+    return compute_cumdist_for_any(latitudes, longitudes, spherical_dist)
+
+
 
 
 # In[1]:
@@ -420,3 +470,91 @@ def mplot_spec(m,lon,lat,*args,**kwargs):
         lines.append(m.plot(x,y,*args,**kwargs))
     return lines  
 
+def aggregate_headwind_by_segments(
+    orig_cumdist_m: np.ndarray,
+    fine_cumdist_m: np.ndarray,
+    headwind_fine: np.ndarray,
+) -> dict:
+    """
+    Distance-weighted aggregation of headwind from densified samples back to original legs.
+
+    Parameters
+    ----------
+    orig_cumdist_m : (N,) array
+        Cumulative distance (meters) for ORIGINAL waypoints (monotonic non-decreasing).
+        Typically: [0, d1, d1+d2, ..., total].
+    fine_cumdist_m : (M,) array
+        Cumulative distance (meters) for densified points (monotonic non-decreasing)
+        along the same polyline.
+    headwind_fine : (M,) or (M-1,) array
+        If (M,), it's per fine POINT; we'll convert to per-subsegment by averaging neighbors.
+        If (M-1,), it's already per fine SUBSEGMENT (between i and i+1).
+
+    Returns
+    -------
+    dict with:
+      mean_hw      : (N-1,) float  distance-weighted mean headwind per original leg
+      seg_len_m    : (N-1,) float  original segment lengths
+      coverage_w   : (N-1,) float  total fine-subsegment length contributing to each leg
+      counts       : (N-1,) int    number of contributing subsegments
+      seg_id_of_sub: (M-1,) int    mapping of each fine subsegment to original leg id
+    """
+    orig = np.asarray(orig_cumdist_m, float)
+    fine = np.asarray(fine_cumdist_m, float)
+    hw   = np.asarray(headwind_fine,  float)
+
+    if orig.ndim != 1 or fine.ndim != 1:
+        raise ValueError("orig_cumdist_m and fine_cumdist_m must be 1-D arrays.")
+    if orig.size < 2 or fine.size < 2:
+        raise ValueError("Need at least two points in original and fine polylines.")
+    if not (np.all(np.diff(orig) >= 0) and np.all(np.diff(fine) >= 0)):
+        raise ValueError("Cumulative distances must be non-decreasing.")
+
+    # Original segment lengths & bins
+    seg_len = np.diff(orig)                           # (N-1,)
+    if (seg_len <= 0).any():
+        raise ValueError("Zero/negative-length original segment found.")
+    Nseg = seg_len.size
+
+    # Fine subsegments
+    sub_len = np.diff(fine)                           # (M-1,)
+    # Filter out zero-length subsegments (duplicates/tiny numeric noise)
+    mask = sub_len > 0
+    if not np.any(mask):
+        raise ValueError("All fine subsegments have zero length.")
+    sub_len = sub_len[mask]
+
+    # Convert headwind to per-subsegment if needed
+    if hw.size == fine.size:                          # per-point -> per-subsegment via midpoint average
+        hw_sub = 0.5 * (hw[:-1] + hw[1:])[mask]
+    elif hw.size == fine.size - 1:
+        hw_sub = hw[mask]
+    else:
+        raise ValueError("headwind_fine must have length M (per point) or M-1 (per subsegment).")
+
+    # Subsegment midpoints in cumulative distance
+    fine_mid = 0.5 * (fine[:-1] + fine[1:])[mask]     # (K,), K = number of nonzero subsegments
+
+    # Map each subsegment midpoint to an original leg:
+    # seg k satisfies orig[k] <= mid < orig[k+1]
+    seg_id = np.searchsorted(orig, fine_mid, side="right") - 1
+    seg_id = np.clip(seg_id, 0, Nseg - 1)            # guard endpoints
+
+    # Distance-weighted mean via bincounts
+    sum_w   = np.bincount(seg_id, weights=sub_len, minlength=Nseg)           # total contributing length per seg
+    sum_hw  = np.bincount(seg_id, weights=hw_sub * sub_len, minlength=Nseg)  # integral of headwind
+    counts  = np.bincount(seg_id, minlength=Nseg).astype(int)
+
+    # If a segment got zero coverage (shouldn’t happen if the fine path spans all),
+    # fall back to NaN for that segment; caller can decide how to fill (e.g., nearest).
+    with np.errstate(invalid="ignore", divide="ignore"):
+        mean_hw = sum_hw / sum_w
+    mean_hw[sum_w == 0] = np.nan
+
+    return {
+        "mean_hw":     mean_hw,   # (N-1,)
+        "seg_len_m":   seg_len,   # (N-1,)
+        "coverage_w":  sum_w,     # (N-1,)
+        "counts":      counts,    # (N-1,)
+        "seg_id_of_sub": seg_id,  # (K,)
+    }

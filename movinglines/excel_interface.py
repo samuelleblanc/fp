@@ -1230,6 +1230,13 @@ class dict_position:
         sh.range('G2:J2').number_format = 'hh:mm'
         sh.range('AA2:AA2').number_format = 'hh:mm'
         sh.range('Z:Z').number_format = '0.0'
+        sh.range('L:L').number_format = '0.0'
+        sh.range('N:N').number_format = '0.0'
+        sh.range('P:P').number_format = '0.0'
+        sh.range('S:S').number_format = '0.0'
+        sh.range('T:T').number_format = '0.0'
+        sh.range('W:W').number_format = '0.0'
+        sh.range('X:X').number_format = '0.0'
         
         cell_datestr = sh.range(self.datestr_cell)
         cell_datestr.value = self.datestr
@@ -1497,15 +1504,19 @@ class dict_position:
                 dict_in[k]['data'] = fx(utcs)
         return dict_in      
 
-    def interp_points_for_profile(self):
+    def interp_points_for_profile(self,return_alt=False,dt=None):
         'Program to make an array of evenly padded waypoints in time, for input into the vertical MSS'
         temp_dict = {'Start_UTC':{'original_data':self.utc*3600.0},
                    'Latitude':{'original_data':self.lat},
                    'Longitude':{'original_data':self.lon},
                    'Altitude':{'original_data':self.alt}}
-        dt = min([min(np.diff(self.utc)),0.1])*3600
+        if not dt:
+            dt = min([min(np.diff(self.utc)),0.1])*3600
         dict_out = self.interp_points_for_ict(temp_dict,dt=dt)
-        return dict_out['Longitude']['data'],dict_out['Latitude']['data']
+        if return_alt:
+            return dict_out['Longitude']['data'],dict_out['Latitude']['data'],dict_out['Altitude']['data']
+        else:
+            return dict_out['Longitude']['data'],dict_out['Latitude']['data']
 
     def utc2datetime(self,utc):
         'Program to convert the datestr and utc to valid datetime class'

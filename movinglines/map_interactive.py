@@ -728,6 +728,7 @@ class LineBuilder:
 
         extent = [ll_lon, ur_lon, ll_lat, ur_lat]# Handle coordinate order - matplotlib expects [left, right, bottom, top]
         if debug: print(f"  Extent: {extent}")
+        if name.split('.')[-1].lower() =='jpg': alpha = 1.0
                
         try:
             # Handle images with alpha channel (RGBA)

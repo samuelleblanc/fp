@@ -2078,14 +2078,17 @@ class gui:
                 if len(inittime_sel) > 1:
                     print('...verifying init times')
                     self.init_progress = ProgressWindow(self.root,total_steps=len(inittime_sel),title='Verifying init times')
-                    #self.init_progress._show_completion_animation(text=f'Setting up...')
                     if vert_crs:
                         if 'path' in kwargs:
                             path_old = kwargs['path']
                             kwargs['path'] = path_old[0:1]
                     # check which init time works:
                     inittime_sels = []
-                    for i_init, dim_init in enumerate(inittime_sel):
+                    for i_init, dim_init in enumerate(inittime_sel[::-1]):
+                        if self.init_progress._destroyed:
+                            tkMessageBox.showwarning('Cancelled','Image canceled by user.')
+                            return False, None, False
+                            
                         self.init_progress.step(f'trying {dim_init}')
                         try:
                             nul = wms.getmap(layers=[cont[i]],style='default',bbox=[0,0,1,1],size=(1,1),transparent=True,time=time_sel,srs=srs,format='image/png',dim_init_time=dim_init,CQL_filter=cql_filter,**kwargs)
@@ -2094,6 +2097,8 @@ class gui:
                             pass
                         if nul:
                             inittime_sels.append(dim_init)
+                        if len(inittime_sels)>1:
+                            break
                     if len(inittime_sels) > 1:
                         self.init_progress._show_completion_animation(text=f'Select init time.')
                         jpop = Popup_list(inittime_sels,title='Select INIT_TIME')
@@ -2383,6 +2388,50 @@ class gui:
             print('flt_module selection cancelled',ie)
             #import pdb; pdb.set_trace()
             return
+            
+    def gui_get_headwind(self):
+        'Interpolates to a small set of times, then pulls and calculates the headwinds from GFS for nearest forecast time'
+        import GFS_interp_utils as gfs
+        from datetime import datetime, timedelta
+        import map_utils as mu
+        import tkinter.messagebox as tkMessageBox
+        
+        #interpolate to a finer grid
+        #fine_lon,fine_lat,fine_alt = self.line.ex.interp_points_for_profile(return_alt=True,dt=0.5)
+        #fine_cum = mu.compute_cumdist(fine_lat, fine_lon)
+        latlons = np.array(list(zip(self.line.ex.lat,self.line.ex.lon)))
+        
+        # setup the progress bar and get the url
+        Progress = ProgressWindow(self.root,total_steps=100,title='Loading the GFS headwind calc')
+        url = gfs.gfs_opendap_url(datetime.now().strftime('%Y-%m-%d'))
+        val_time = datetime.strptime(self.line.ex.datestr,'%Y-%m-%d')+timedelta(np.nanmean(self.line.ex.utc)/24.0)
+        
+        #now load the GFS from the external helper python
+        try:
+            
+            res = gfs.compute_headwinds(source=url,latlons=latlons,headings_deg=None,altitudes_m=self.line.ex.alt,
+                                    target_valid_time=val_time, forecast_hour=None,allow_extrapolation=True,
+                                    progress_cb=Progress.set_val,cancel_cb=Progress.cancel_cb)
+        except Exception as ie:
+            Progress.close_immediately()
+            tkMessageBox.showwarning('Sorry',f'Problem getting headwind: {ie}')
+            return
+            #import ipdb; ipdb.set_trace()
+        
+        # now remap the 
+        #headwind_fine = res["headwind_ms"]
+        #agg = mu.aggregate_headwind_by_segments(orig_cumdist_m=self.line.ex.cumdist,fine_cumdist_m=fine_cum,headwind_fine=headwind_fine)
+        
+        mean_headwind = res["headwind_ms"]
+       
+        # now set the excel headwinds:
+        self.line.ex.headwind = mean_headwind
+        self.line.ex.headwind_kts = mean_headwind*1.94384449246
+        
+        #print it out to excel and calculate
+        self.line.ex.calculate()
+        self.line.ex.write_to_excel()
+        Progress.close_immediately()
  
 def inittime_sel_fx(xml,content,select_time):
     'Function to parse out the WMS xml for getting the init time'
@@ -3368,8 +3417,11 @@ class CoordinateProjectionDialog(tkSimpleDialog.Dialog):
             'projection': projection
         }
 
+import time
+import threading
+
 class ProgressWindow:
-    def __init__(self, parent, total_steps, title="Progress",xsize=200,ysize=80):
+    def __init__(self, parent, total_steps, title="Progress",xsize=260,ysize=140):
         """
         Create a progress window with a progress bar.
         
@@ -3378,9 +3430,15 @@ class ProgressWindow:
             total_steps: Total number of steps expected
             title: Window title (default: "Progress")
         """
+        self._cancel_event = threading.Event()
         self.total_steps = total_steps
         self.current_step = 0
         self._destroyed = False
+        self._tick_job = None
+        self._spinner_frames = ['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏']
+        self._spin_idx = 0
+        
+        self._start_time = time.perf_counter()
         
         # Create a new top-level window
         self.window = tk.Toplevel(parent)
@@ -3404,24 +3462,20 @@ class ProgressWindow:
         self.window.geometry(f"{xsize}x{ysize}+{x}+{y}")
         
         # Create and pack the status label
-        self.status_label = tk.Label(
-            self.window,
-            text="",
-            font=("Arial", 9)
-        )
-        self.status_label.pack(pady=(15, 5))
+        self.status_label = tk.Label(self.window,text="")
+        self.status_label.pack(pady=6, padx=12)
+        self.overlay = tk.Label(self.window,text="",anchor="center")
+        self.overlay.pack(pady=6, padx=12)
         
         # Create and pack the progress bar
-        self.progress_bar = ttk.Progressbar(
-            self.window, 
-            orient="horizontal", 
-            length=190, 
-            mode="determinate",
-            maximum=70
-        )
-        self.progress_bar.pack(pady=10, padx=25)
+        self.progress_bar = ttk.Progressbar(self.window, 
+            orient="horizontal", length=190, 
+            mode="determinate", maximum=100)
+        self.progress_bar.pack(pady=4, padx=25)
+        self._schedule_tick()
         
         # Update the window to ensure it's displayed
+        self.window.protocol("WM_DELETE_WINDOW", self._on_user_cancel)
         self.window.update()
     
     def step(self, status_text=None):
@@ -3446,28 +3500,143 @@ class ProgressWindow:
         if self.current_step >= self.total_steps:
             self._show_completion_animation()
             
+    def set_val(self, i, status_text=None):
+        """
+        Increment the progress bar by any abritrary value.
+        Automatically closes the window when all steps are complete.
+        
+        Args:
+            status_text: Optional text to display above the progress bar
+        """
+        self.current_step = i
+        progress_percentage = (self.current_step / self.total_steps) * 100
+        self.progress_bar['value'] = progress_percentage
+        
+        # Update status text if provided
+        if status_text is not None:
+            self.status_label.config(text=status_text)
+        
+        self.window.update()
+        self.window.update_idletasks()
+        
+        # Close the window when complete
+        if self.current_step >= self.total_steps:
+            self._show_completion_animation()
+            
     def _show_completion_animation(self,text="Finalizing...",title=None):
         """Show an animated wave effect when complete"""        
         # Switch to indeterminate mode for wave animation
-        self.progress_bar.config(mode='indeterminate')
-        self.progress_bar.start(10)  # Speed of animation (lower = faster)
+        try:
+            self.progress_bar.config(mode='indeterminate')
+            self.progress_bar.start(10)  # Speed of animation (lower = faster)
+        except:
+            pass
         
         self.status_label.config(text=text)
         if title:
              self.window.title(title)
+        
+        elapsed = self._format_duration(time.perf_counter() - self._start_time)
+        self.overlay.config(text=f"{elapsed} elapsed • finishing…")     
+        
         self.window.update()
         self.progress_bar.start(10)
+        
+    def _on_user_cancel(self):
+        """User clicked X/Cancel: mark cancelled and close."""
+        self._cancel_event.set()
+        try:
+            self.status_label.config(text="Cancelling…")
+        except Exception:
+            pass
+        self.close_immediately()
+        
+    def cancel_cb(self) -> bool:
+        """Return True if user requested cancel."""
+        return self._cancel_event.is_set()
     
     def _close_window(self):
         """Close the progress window"""
-        self.progress_bar.stop()  # Stop the animation
+        self._stop_tick()
+        try:
+            self.progress_bar.stop()  # Stop the animation
+        except:
+            pass
         self._destroyed = True
         self.window.destroy()
     
     def close_immediately(self):
         """Close without animation"""
+        self._stop_tick()
         self._destroyed = True
+        try:
+            self.progress_bar.stop()
+        except Exception:
+            pass
         self.window.destroy()
+    
+    def _schedule_tick(self):
+        """Periodic UI tick to refresh elapsed/ETA + spinner."""
+        if self._destroyed:
+            return
+        self._tick()
+        # refresh ~5 times per second
+        self._tick_job = self.window.after(250, self._schedule_tick)
+        
+    def _stop_tick(self):
+        if self._tick_job is not None:
+            try:
+                self.window.after_cancel(self._tick_job)
+            except Exception:
+                pass
+            self._tick_job = None
+            
+    def _tick(self):
+        """Update spinner + elapsed/ETA text."""
+        if self._destroyed:
+            return
+
+        elapsed_s = max(0.0, time.perf_counter() - self._start_time)
+        # Simple ETA estimate: linear rate based on steps done so far
+        if self.current_step > 0 and self.current_step < self.total_steps:
+            rate = elapsed_s / self.current_step              # seconds per step
+            remaining_steps = self.total_steps - self.current_step
+            eta_s = remaining_steps * rate
+            eta_txt = self._format_duration(eta_s)
+        elif self.current_step >= self.total_steps:
+            eta_txt = "0s"
+        else:
+            eta_txt = "—"
+
+        spin = self._spinner_frames[self._spin_idx]
+        self._spin_idx = (self._spin_idx + 1) % len(self._spinner_frames)
+
+        elapsed_txt = self._format_duration(elapsed_s)
+        # Compose overlay: spinner + percent + elapsed/ETA
+        pct = (self.current_step / self.total_steps) * 100.0
+        if elapsed_s > 20:
+            self.overlay.config(text=f"{spin}  {pct:5.1f}%   {elapsed_txt} elapsed • ETA {eta_txt}")
+        else:
+            self.overlay.config(text=f"{spin}  {pct:5.1f}%   {elapsed_txt} elapsed")
+
+    @staticmethod
+    def _format_duration(seconds):
+        """Human-friendly duration like 1h 02m 05s, 2m 14s, 7s."""
+        seconds = int(round(seconds))
+        h, rem = divmod(seconds, 3600)
+        m, s = divmod(rem, 60)
+        parts = []
+        if h > 0:
+            parts.append(f"{h}h")
+        if m > 0 or h > 0:
+            parts.append(f"{m:02d}m" if h > 0 else f"{m}m")
+        if h > 0 or m > 0:
+            parts.append(f"{s:02d}s" if m > 0 or h > 0 else f"{s}s")
+        else:
+            parts.append(f"{s}s")
+        return " ".join(parts)
+
+    
 
 # Convenience function to use the dialog
 def get_coordinates_and_projection(parent=None, title="Image Coordinates and Projection"):

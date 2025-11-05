@@ -392,7 +392,7 @@ class VerticalScrolledFrame(ttk.Frame):
         vscrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL)
         vscrollbar.pack(fill=tk.Y, side=tk.RIGHT, expand=tk.FALSE)
         self.canvas = tk.Canvas(self, bd=0, highlightthickness=0, 
-                                width = 200, height = 360,
+                                width = 200, height = 400,
                                 yscrollcommand=vscrollbar.set)
         self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.TRUE)
         vscrollbar.config(command = self.canvas.yview)
@@ -574,12 +574,6 @@ def build_buttons(ui,lines,vertical=True):
     #g.baddaeronet.pack(in_=top_gui)
     g.baddaeronet.grid(in_=top_gui,row=0,  column=1,  sticky='w'+'e'+'n'+'s')
     g.baddaeronet.config(command=g.gui_addaeronet)
-    #g.baddgeos = tk.Button(g.root,text='Add GEOS Forecast',
-    #                     command = g.gui_addgeos)
-    #g.baddgeos.pack(in_=top_gui)
-
-   # g.frame_airspace = ttk.Frame(top_gui)
-   # g.frame_airspace.pack(in_=top_gui,side=side,fill=tk.X,pady=2)
     
     g.baddsua = ttk.Button(side_bar,text='Special Use Airspace\n[USA]',
                          command = g.gui_add_SUA_WMS)
@@ -628,49 +622,40 @@ def build_buttons(ui,lines,vertical=True):
     #g.baddaeronet.pack(in_=top_gui)
     g.bconfig_folder.grid(in_=top_gui,row=7,  column=1,  sticky='w'+'e'+'n'+'s')
     g.bconfig_folder.config(command=g.gui_openconfig)
+    
+    g.bheadwind = ttk.Button(side_bar,text='Calculate Headwinds',
+                         command = g.dummy_func)
+    g.bheadwind.grid(in_=top_gui,padx=0,pady=0,row=8,column=0,columnspan=2,sticky='w'+'e'+'n'+'s')
+    g.bheadwind.config(command=g.gui_get_headwind)
              
     tk.Frame(side_bar,height=h,width=w,bg='black',relief='sunken'
-             ).grid(in_=top_gui,padx=8,pady=5,row=8,column=0,columnspan=2,sticky=tk.W+tk.E)
+             ).grid(in_=top_gui,padx=8,pady=5,row=9,column=0,columnspan=2,sticky=tk.W+tk.E)
     #ttk.Label(side_bar,text='from local images:').pack(in_=top_gui,side=tk.BOTTOM)
     #g.frame_boc = ttk.Frame(top_gui)
     #g.frame_boc.pack(in_=top_gui,side=side,fill=tk.X,pady=2)
     g.baddbocachica = ttk.Button(side_bar,text='Forecast\nfrom Bocachica',
                          command = g.gui_addbocachica)
     #g.baddbocachica.pack(in_=g.frame_boc,padx=0,pady=0,side=tk.LEFT,anchor=tk.CENTER)
-    g.baddbocachica.grid(in_=top_gui,padx=0,pady=0,row=9,column=0,  sticky='w'+'e'+'n'+'s')
+    g.baddbocachica.grid(in_=top_gui,padx=0,pady=0,row=10,column=0,  sticky='w'+'e'+'n'+'s')
     g.baddtrajectory = ttk.Button(side_bar,text='trajectory\nImage',
                          command = g.gui_addtrajectory)
     #g.baddtrajectory.pack(in_=g.frame_boc,padx=0,pady=0,side=tk.LEFT,anchor=tk.CENTER)
-    g.baddtrajectory.grid(in_=top_gui,padx=0,pady=0,row=9,column=1,  sticky='w'+'e'+'n'+'s')
+    g.baddtrajectory.grid(in_=top_gui,padx=0,pady=0,row=10,column=1,  sticky='w'+'e'+'n'+'s')
     g.baddfigure = ttk.Button(side_bar,text='image',
                          command = g.gui_addfigure)
     #g.baddfigure.pack(in_=top_gui)
-    g.baddfigure.grid(in_=top_gui,padx=0,pady=0,row=10,column=0,columnspan=2,  sticky='w'+'e'+'n'+'s')
+    g.baddfigure.grid(in_=top_gui,padx=0,pady=0,row=11,column=0,columnspan=2,  sticky='w'+'e'+'n'+'s')
     g.baddtidbit = ttk.Button(side_bar,text='Tropical tidbit',
                          command = g.gui_addtidbit)
     #g.baddtidbit.pack(in_=top_gui)
-    g.baddtidbit.grid(in_=top_gui,padx=0,pady=0,row=11,column=0,columnspan=2,  sticky='w'+'e'+'n'+'s')
+    g.baddtidbit.grid(in_=top_gui,padx=0,pady=0,row=12,column=0,columnspan=2,  sticky='w'+'e'+'n'+'s')
     
-    
-    #g.bipython = tk.Button(side_bar,text='open iPython',
-    #                     command = IPython.start_ipython([],user_ns=locals()))
-    #g.bipython.pack(in_=top_gui)
-
-    #g.bpythoncmd = tk.Button(side_bar,text='Python command line',
-    #                     command = g.gui_python)
-    #g.bpythoncmd.pack(in_=top_gui)
-    
-    #g.label = tk.Label(side_bar,text='by Samuel LeBlanc\n NASA Ames')
-    #g.label.pack(in_=top_gui)
-    
-    #tk.Frame(side_bar,height=h,width=w,bg='black',relief='sunken'
-    #         ).pack(in_=top_gui,side=side,padx=8,pady=5)
     tk.Frame(side_bar,height=h,width=w,bg='black',relief='sunken'
-             ).grid(in_=top_gui,padx=8,pady=5,row=12,column=0,columnspan=2,sticky=tk.W+tk.E)
+             ).grid(in_=top_gui,padx=8,pady=5,row=13,column=0,columnspan=2,sticky=tk.W+tk.E)
     quit_style = ttk.Style()
     quit_style.configure('B3.TButton',background='lightcoral',foreground='darkred')
     ttk.Button(side_bar,text='Quit',command=g.stopandquit,style='B3.TButton'
-              ).grid(in_=top_gui,padx=8,pady=5,row=13,column=0,columnspan=2,sticky=tk.W+tk.E)
+              ).grid(in_=top_gui,padx=8,pady=5,row=14,column=0,columnspan=2,sticky=tk.W+tk.E)
     g.active_style = ttk.Style()
     g.active_style.configure('Ba.TButton',background='grey',foreground='black')
     g.pressed_style = ttk.Style()
