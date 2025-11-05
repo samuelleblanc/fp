@@ -23,13 +23,19 @@
 				  "coordinates_are_geographic": false, "debug":false,
 				  "projection": {"type": "PlateCarree"}},
  "GMAO PACE-PAX":[13.085,-151.44,56.286,-84.33],
+ "WXCharts North Atlantic":{"ll_lon": -12010241,"ll_lat":-555978,"ur_lon": 1597340,"ur_lat": 9857405,
+    "coordinates_are_geographic": false, "debug":false,
+    "projection": {"type": "Mercator"}},
+ "WXCharts Canada East":{"ll_lon": -10770000,"ll_lat":4361000,"ur_lon": -5711000,"ur_lat": 8232000,
+    "coordinates_are_geographic": false, "debug":false,
+    "projection": {"type": "Mercator"}},
  "NURTURE Bocachica": {"ll_lon": -6246087,"ll_lat":-4921020,"ur_lon": 6218744,"ur_lat": 4441623,
     "coordinates_are_geographic": false, "debug":false,
     "projection": {"type": "LambertAzimuthalEqualArea","central_latitude": 60.0,"central_longitude": -60.0,"false_easting": 0.0,"false_northing": 0.0}},
  "NURTURE Bocachica Zoomed in": {"ll_lon": -3411575,"ll_lat":-2670817,"ur_lon": 3401003,"ur_lat": 2405400,
     "coordinates_are_geographic": false, "debug":false,
-    "projection": {"type": "LambertAzimuthalEqualArea","central_latitude": 53.34,"central_longitude": -60.45,"false_easting": 0.0,"false_northing": 0.0}}
- "NURTURE mbray": {"ll_lon": -5285087,"ll_lat":-5001020,"ur_lon": 5073744,"ur_lat": 4656623,
+    "projection": {"type": "LambertAzimuthalEqualArea","central_latitude": 53.34,"central_longitude": -60.45,"false_easting": 0.0,"false_northing": 0.0}},
+ "NURTURE mbray": {"ll_lon": -5285087,"ll_lat":-5001020,"ur_lon": 5083744,"ur_lat": 4656623,
     "coordinates_are_geographic": false, "debug":false,
     "projection": {"type": "LambertAzimuthalEqualArea","central_latitude": 60.0,"central_longitude": -60.00,"false_easting": 0.0,"false_northing": 0.0}
 	}
