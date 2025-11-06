@@ -1256,7 +1256,14 @@ class dict_position:
         sh.range((1,cell_datestr.column+3),(sh.cells.last_cell.row,cell_datestr.column+3)).autofit()
         sh.range((1,cell_datestr.column+3),(sh.cells.last_cell.row,cell_datestr.column+3)).api.HorizontalAlignment = xw.constants.HAlign.xlHAlignCenter
         sh.range((2,cell_datestr.column-1),(sh.cells.last_cell.row,cell_datestr.column-1)).color = (75,75,75)
-        sh.range((2,25),(sh.cells.last_cell.row,25)).api.Validation.Add(Type=3,AlertStyle=1,Operator=1, Formula1='" ",Over,Flyby,90-270')
+        try:
+            sh.range((2,25),(sh.cells.last_cell.row,25)).api.Validation.Add(Type=3,AlertStyle=1,Operator=1, Formula1='" ",Over,Flyby,90-270')
+        except AttributeError:
+            sh.range((2,25)).value = " "
+            sh.range((3,25)).value = "Over"
+            sh.range((4,25)).value = "Flyby"
+            sh.range((5,25)).value = "90-270"
+            
         #Range('A2').value = np.arange(50).reshape((50,1))+1
         wb.sh = sh
         return wb
