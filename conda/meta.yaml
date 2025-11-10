@@ -9,7 +9,7 @@ source:
 
 build:
   skip: true  # [py<38]
-  number: 1001
+  number: 1002
   script: "{{ PYTHON }} -m pip install . --no-deps -vv" 
   entry_points:
     - ml = movinglines:main
@@ -46,6 +46,7 @@ requirements:
     - geopy
     - ephem
     - cartopy =0.20.0
+    - xarray
     - pyproj
     - GEOS
     - pykml
@@ -62,8 +63,6 @@ requirements:
     - aiohttp 
     - typing_extensions
     - python-dateutil >=2.8.2,<2.9
-    - xarray
-
 
 test:
   commands:
