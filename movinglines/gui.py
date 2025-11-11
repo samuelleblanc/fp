@@ -2393,10 +2393,11 @@ class gui:
         'Interpolates to a small set of times, then pulls and calculates the headwinds from GFS for nearest forecast time'
         try:
             import GFS_interp_utils as gfs
+            import map_utils as mu
         except ModuleNotFoundError:
             from . import GFS_interp_utils as gfs
+            from . import map_utils as mu
         from datetime import datetime, timedelta
-        import map_utils as mu
         import tkinter.messagebox as tkMessageBox
         
         #interpolate to a finer grid
