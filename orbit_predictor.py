@@ -55,7 +55,11 @@ satToCatalogNumber = {
     "PACE_OCI": 58928,
     "EARTHCARE": 59908,
     "PREFIRE1":59965,
-    "PREFIRE2":59881
+    "PREFIRE2":59881,
+    "CALIPSO":29108,
+    "CLOUDSAT":29107,
+    "AURA":28376,
+    "ICESAT-2":43613
 }
 
 satToSwath = {
@@ -63,7 +67,10 @@ satToSwath = {
     "PACE_OCI": 1350,
     "EARTHCARE": [35,115],
     "PREFIRE1":132,
-    "PREFIRE2":132
+    "PREFIRE2":132,
+    "CALIPSO":1,
+    "CLOUDSAT":1,
+    "ICESAT-2":1
 }
 
 satToColor = {
@@ -71,7 +78,10 @@ satToColor = {
     "PACE_OCI":{'line':'red','poly':'lightgrey'},
     "EARTHCARE": {'line':'darkgreen','poly':'azure'},
     "PREFIRE1": {'line':'darkred','poly':'orange'},
-    "PREFIRE2": {'line':'black','poly':'orange'}
+    "PREFIRE2": {'line':'black','poly':'orange'},
+    "CALIPSO": {'line':'navy','poly':'lightyellow'},
+    "CLOUDSAT":{'line':'purple','poly':'thistle'},
+    "ICESAT-2":{'line':'blue','poly':'aqua'},
 }
 
 def fetch_latest_tle(sat="PACE"):
@@ -340,7 +350,7 @@ def predict_footprint(tle_lines, dates, swath=50):
 
 
 def create_kml(dates, predicted_positions, track_points, boundary_points,
-               filename="../static/kml/satellite_orbit.kml",poly_color='red',line_color='black'):
+               filename="../static/kml/satellite_orbit.kml",poly_color='red',line_color='black',skip_nightime=True):
     """
     Create a KML document based on timestamps, groundtrack, and polygon bounds.
 
@@ -373,7 +383,7 @@ def create_kml(dates, predicted_positions, track_points, boundary_points,
     point_style.labelstyle.scale = 1.5
 
     for idx, predicted_position in enumerate(predicted_positions):
-        if solar_zeniths[idx] > 90:  # Skip nighttime
+        if skip_nightime and (solar_zeniths[idx] > 90):  # Skip nighttime
             continue
 
         # Add the LineString for the satellite orbit
@@ -405,7 +415,7 @@ def create_kml(dates, predicted_positions, track_points, boundary_points,
     kml.save(filename)
 
 
-def main(satellite="EARTHCARE", num_days=1,start_date=[2024,7,22],number_of_loops=70,path='./',tle_lines=[]):
+def main(satellite="EARTHCARE", num_days=1,start_date=[2024,7,22],number_of_loops=70,path='./',tle_lines=[],skip_nightime=True):
     """Primary driver for standalone version."""
     # Fetch latest TLE for PACE
     if not tle_lines:
@@ -425,7 +435,7 @@ def main(satellite="EARTHCARE", num_days=1,start_date=[2024,7,22],number_of_loop
         # Create the KML file
         create_kml(dates, predicted_positions, track_points, boundary_points,
                    "{path}{satellite}_{y:04}{m:02}{d:02}.kml".format(satellite=satellite,y=dt.year,m=dt.month,d=dt.day,path=path),
-                   poly_color=satToColor[satellite]['poly'],line_color=satToColor[satellite]['line'])
+                   poly_color=satToColor[satellite]['poly'],line_color=satToColor[satellite]['line'],skip_nightime=skip_nightime)
         print("Making kml file for: {path}{satellite}_{y:04}{m:02}{d:02}.kml".format(satellite=satellite,y=dt.year,m=dt.month,d=dt.day,path=path))
 
 def automated(path='./'):
