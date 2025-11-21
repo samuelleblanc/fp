@@ -37,6 +37,11 @@
     "projection": {"type": "LambertAzimuthalEqualArea","central_latitude": 53.34,"central_longitude": -60.45,"false_easting": 0.0,"false_northing": 0.0}},
  "NURTURE mbray": {"ll_lon": -5285087,"ll_lat":-5001020,"ur_lon": 5083744,"ur_lat": 4656623,
     "coordinates_are_geographic": false, "debug":false,
-    "projection": {"type": "LambertAzimuthalEqualArea","central_latitude": 60.0,"central_longitude": -60.00,"false_easting": 0.0,"false_northing": 0.0}
-	}
+    "projection": {"type": "LambertAzimuthalEqualArea","central_latitude": 60.0,"central_longitude": -60.00,"false_easting": 0.0,"false_northing": 0.0}	},
+ "NURTURE ECMWF Sensitivity": {"ll_lon": -2791575,"ll_lat":-2450817,"ur_lon": 2785003,"ur_lat": 2131400,
+    "coordinates_are_geographic": false, "debug":false,
+    "projection": {"type": "LambertAzimuthalEqualArea","central_latitude": 53.34,"central_longitude": -60.45,"false_easting": 0.0,"false_northing": 0.0}	},
+ "NURTURE COAMPS adjoint": {"ll_lon": -121.2,"ll_lat":13.44,"ur_lon": 16.11,"ur_lat": 101.76,
+				  "coordinates_are_geographic": false, "debug":false,
+				  "projection": {"type": "PlateCarree"}}
 }
