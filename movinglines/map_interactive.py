@@ -122,6 +122,7 @@ class LineBuilder:
         self.moving = False
         self.lbl = None
         self.tb = tb
+        self.tb.line = line
         self.verbose = verbose
         self.blit = blit
         self.firstrun = True
@@ -291,7 +292,9 @@ class LineBuilder:
             return
         elif self.tb.mode!='':
             return
-        
+        if self.tb._ignore_next_release:
+            self.tb._ignore_next_release = False
+            return
         if event.inaxes!=self.line.axes: return
         self.press = None
         self.line.axes.format_coord = self.format_position_simple
@@ -1609,7 +1612,7 @@ def get_sat_tracks(datestr,kml):
             print('Skipping %s; no points downloaded' %name)
     return sat
 
-def plot_sat_tracks(m,sat,label_every=5,max_num=60): 
+def plot_sat_tracks(m,sat,label_every=5,max_num=60,get_bg=None,tb=None): 
     """
     Program that goes through and plots the satellite tracks
     """
@@ -1746,6 +1749,11 @@ def plot_sat_tracks(m,sat,label_every=5,max_num=60):
     def on_pick_legend(event):
         legend0 = event.artist
 #        global lastserial
+        if tb:
+            #print(tb.mode)
+            if tb.mode == 'zoom rect':
+                #print('has tb and zoom is on')
+                tb.zoom()
         if event.guiEvent.serial == graphs['lastserial']: return
         graphs['lastserial'] = event.guiEvent.serial
         try:
@@ -1766,6 +1774,8 @@ def plot_sat_tracks(m,sat,label_every=5,max_num=60):
         except AttributeError:
             legend0.set_facecolor(legend0.get_edgecolor() if not isVisible else '#ffffff')
         m.figure.canvas.draw()
+        if get_bg: 
+            get_bg()
     
     leg_onpick = m.figure.canvas.mpl_connect('pick_event',on_pick_legend)
     #try:    

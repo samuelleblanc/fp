@@ -63,6 +63,8 @@ requirements:
     - aiohttp 
     - typing_extensions
     - python-dateutil >=2.8.2,<2.9
+    - python-docx
+    - xlsxwriter
 
 test:
   commands:

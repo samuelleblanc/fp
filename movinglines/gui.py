@@ -1321,6 +1321,12 @@ class gui:
             from map_interactive import get_sat_tracks_from_tle, plot_sat_tracks,get_geostationary_footprint
         except ModuleNotFoundError:
             from .map_interactive import get_sat_tracks_from_tle, plot_sat_tracks,get_geostationary_footprint
+        try:
+            if self.line.tb.mode == 'zoom rect':
+                self.line.tb.zoom()
+                print('...stopping zoom and loading satellite tracks')
+        except:
+            pass
         self.line.tb.set_message('Loading satellite info from sat.tle file')
         sat = get_sat_tracks_from_tle(self.line.ex.datestr)
         self.line.tb.set_message('Loading geostationary satellite footprint from sat.json file')
@@ -1330,7 +1336,7 @@ class gui:
         else:
             print('--- no geostationary satellite footprint was loaded ---')
         self.line.tb.set_message('Plotting Satellite tracks')
-        self.sat_obj = plot_sat_tracks(self.line.m,sat)
+        self.sat_obj = plot_sat_tracks(self.line.m,sat,get_bg=self.line.get_bg,tb=self.line.tb)
         self.line.get_bg(redraw=True)
         self.baddsat.config(text='Remove Sat tracks')
         self.baddsat.config(command=self.gui_rmsat,style='Bp.TButton')
@@ -3284,6 +3290,261 @@ class ask_option(tkSimpleDialog.Dialog):
         self.out.set(i)
         self.ok()        
         
+        
+class toolbar_with_measure(NavigationToolbar2TkAgg):
+    """
+     - toolbar with the measurement button
+    """
+       
+    def __init__(self, canvas, window, *args, **kwargs):
+        import os
+        super().__init__(canvas, window, *args, **kwargs)
+        
+        self._measure_active = False
+        self._measure_pts = []          # [(lat, lon), (lat, lon)]
+        self._measure_line = None       # matplotlib line artist
+        self._measure_text = None       # matplotlib text artist
+        self._cid_measure_click = None
+        self._cid_measure_key = None
+        self._cid_measure_move = None
+        self._cid_measure_draw = None
+
+        self._measure_bg = None         # cached background (axes bbox)
+        self._measure_ax = None         # axes used for measurement
+        self._measure_has_first = False
+        self._ignore_next_release = False
+        
+        ressource_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),'mpl-data') 
+        toolitems = ((None, None, None, None),
+                     ('Measure', 'Measure distance between 2 clicks', 'ml_measure', 'measure'))
+        for text, tooltip_text, image_file, callback in toolitems:
+            if text is None:
+                # spacer, unhandled in Tk
+                pass
+            else:
+                try:
+                    button = self._Button(text=text, file=image_file,
+                                       command=getattr(self, callback),extension='.gif') # modified extension to use gif
+                except:
+                    button = self._Button(text=text, image_file=os.path.join(ressource_path,image_file+'.png'),
+                                       command=getattr(self, callback),toggle=True) # modified extension to use gif
+                #import ipdb; ipdb.set_trace()
+                self._buttons[callback] = button # modified to save button instances
+                if tooltip_text is not None:
+                    ToolTip.createToolTip(button, tooltip_text)
+        self.bg = button.cget('bg')
+        
+    # -------------------- MEASURE TOOL --------------------
+    def measure(self, *args):
+        """Toggle click-to-measure between two points."""
+        # If turning on: ensure pan/zoom are off
+        turning_on = not self._measure_active
+        if turning_on:
+            if self.mode == 'PAN':
+                super(toolbar_with_measure, self).pan()
+                self._buttons['pan'].config(bg=self.bg)
+            if self.mode == 'ZOOM':
+                super(toolbar_with_measure, self).zoom()
+                self._buttons['zoom'].config(bg=self.bg)
+            self._activate_measure()
+            self.mode = 'MEASURE'
+        else:
+            self._deactivate_measure()
+
+    def _activate_measure(self):
+        self._ignore_next_release = False
+        self._measure_active = True
+        self._measure_pts.clear()
+        self._clear_measure_artists()
+        self._measure_has_first = False
+        self._measure_bg = None
+        self._measure_ax = None
+        self._buttons['measure'].config(bg='dark grey')
+        #self._buttons['measure'].toggle()
+        self.message.set("Measure: click 2 points (ESC to cancel, right-click to clear)")
+       
+        self._cid_measure_click = self.canvas.mpl_connect('button_press_event', self._on_measure_click)
+        self._cid_measure_move  = self.canvas.mpl_connect('motion_notify_event', self._on_measure_move)
+        self._cid_measure_draw  = self.canvas.mpl_connect('draw_event', self._on_measure_draw)
+        self._cid_measure_key = self.canvas.mpl_connect('key_press_event', self._on_measure_key)
+        self.update()
+
+    def _deactivate_measure(self):
+        if not self._measure_active:
+            return
+        self._measure_active = False
+        self._disconnect_measure()
+        self._buttons['measure'].config(bg=self.bg)
+        self._buttons['measure'].toggle()
+        self.message.set("")
+        self._measure_bg = None
+        self._measure_ax = None
+        self._measure_has_first = False
+        self._measure_pts.clear()
+        self._clear_measure_artists()
+        self._ignore_next_release = True
+        self.canvas.draw_idle()
+        self.mode = ''
+        self.update()
+
+    def _disconnect_measure(self):        
+        for attr in ('_cid_measure_click', '_cid_measure_move', '_cid_measure_key', '_cid_measure_draw'):
+            cid = getattr(self, attr)
+            if cid is not None:
+                self.canvas.mpl_disconnect(cid)
+                setattr(self, attr, None)
+        try:
+            self.line.connect()
+        except AttributeError:
+            pass
+    
+    def _on_measure_draw(self, event):
+        # view changed -> cached background invalid
+        self._measure_bg = None
+            
+    def _on_measure_key(self, event):
+        # ESC cancels current measurement (keeps tool on)
+        if event.key == 'escape':
+            self._measure_pts.clear()
+            self._clear_measure_artists()
+            self.message.set("Measure: click 2 points (ESC to cancel, right-click to clear)")
+            self.canvas.draw_idle()
+            self._measure_has_first = False
+            self._measure_bg = None
+            
+    def _ensure_measure_artists(self, ax):
+        """Create animated artists once."""
+        if self._measure_line is None:
+            # create in lon/lat space with your CRS transform
+            (self._measure_line,) = self.m.plot([0, 0], [0, 0],
+                                                linestyle='-', marker='v',
+                                                transform=self.m.merc)
+            self._measure_line.set_animated(True)
+            self._measure_line.set_visible(False)
+
+        if self._measure_text is None:
+            self._measure_text = self.m.text(0, 0, "",
+                                             ha='left', va='bottom',
+                                             transform=self.m.merc)
+            self._measure_text.set_animated(True)
+            self._measure_text.set_visible(False)
+
+        self._measure_ax = ax
+            
+    def _cache_background(self, ax):
+        # One full draw to create renderer + paint base map;
+        # then cache the axes region behind the animated artists.
+        self.canvas.draw()
+        self._measure_bg = self.canvas.copy_from_bbox(ax.bbox)
+        
+    def _update_measure_artists(self, lat0, lon0, lat1, lon1, km):
+        self._measure_line.set_data([lon0, lon1], [lat0, lat1])
+        mid_lon = (lon0 + lon1) * 0.5
+        mid_lat = (lat0 + lat1) * 0.5
+        self._measure_text.set_position((mid_lon, mid_lat))
+        self._measure_text.set_text(f"{km:.2f} km")
+
+        self._measure_line.set_visible(True)
+        self._measure_text.set_visible(True)
+            
+    def _on_measure_click(self, event):
+        if not self._measure_active or event.inaxes is None:
+            return
+        if event.xdata is None or event.ydata is None:
+            return
+
+        # Right-click clears current measurement (keeps tool on)
+        if getattr(event, "button", None) == 3:
+            self._measure_pts.clear()
+            self._measure_has_first = False
+            self._measure_bg = None
+            self._clear_measure_artists()
+            self.message.set("Measure: click 2 points (ESC to cancel, right-click to clear)")
+            self.canvas.draw_idle()
+            return
+
+        x = float(event.xdata)
+        y = float(event.ydata)
+        lon,lat = self.m.convert_latlon(x,y)
+        self._measure_pts.append((lat, lon))
+
+        if not self._measure_has_first:
+            self._measure_pts = [(lat, lon)]
+            self._measure_has_first = True
+
+            ax = event.inaxes
+            self._ensure_measure_artists(ax)
+            self._measure_bg = None  # force recache on first move
+
+            self.message.set(f"First point set (lat={lat:.4f}, lon={lon:.4f}). Move mouse…")
+            return
+
+        # We have two points -> compute distance and draw
+        lat0, lon0 = self._measure_pts[0]
+        lat1, lon1 = lat, lon
+        km = spherical_dist([lat0, lon0], [lat1, lon1])  
+        # Ensure artists exist and update to final state
+        self._ensure_measure_artists(event.inaxes)
+        self._update_measure_artists(lat0, lon0, lat1, lon1, km)
+
+        self.message.set(f"Distance: {km:.2f} km  (click new first point to re-measure)")
+        self.canvas.draw_idle()   # commit final artists into the canvas
+
+        # Reset for next measurement
+        self._measure_pts.clear()
+        self._measure_has_first = False
+        self._measure_bg = None
+        self.measure()
+        
+    def _on_measure_move(self, event):
+        if (not self._measure_active) or (not self._measure_has_first) or (event.inaxes is None):
+            return
+        if event.xdata is None or event.ydata is None:
+            return
+
+        ax = event.inaxes
+        self._ensure_measure_artists(ax)
+
+        # Cache background once per view
+        if self._measure_bg is None or self._measure_ax is not ax:
+            self._measure_ax = ax
+            self._cache_background(ax)
+
+        x = float(event.xdata)
+        y = float(event.ydata)
+        lon1, lat1 = self.m.convert_latlon(x, y)
+
+        lat0, lon0 = self._measure_pts[0]
+        km = spherical_dist([lat0, lon0], [lat1, lon1])
+
+        # BLIT: restore -> draw artists -> blit bbox
+        self.canvas.restore_region(self._measure_bg)
+        self._update_measure_artists(lat0, lon0, lat1, lon1, km)
+
+        ax.draw_artist(self._measure_line)
+        ax.draw_artist(self._measure_text)
+        self.canvas.blit(ax.bbox)
+        
+    def _clear_measure_artists(self):
+        if self._measure_line is not None:
+            try:
+                self._measure_line.remove()
+            except Exception:
+                pass
+            self._measure_line = None
+        if self._measure_text is not None:
+            try:
+                self._measure_text.remove()
+            except Exception:
+                pass
+            self._measure_text = None
+
+            
+try:
+    from map_utils import spherical_dist
+except ModuleNotFoundError:
+    from .map_utils import spherical_dist
+    
 class custom_toolbar(NavigationToolbar2TkAgg):
     """
     Custom set of toolbar points, based on the NavigationToolbar2TkAgg
@@ -3291,6 +3552,7 @@ class custom_toolbar(NavigationToolbar2TkAgg):
      - removes the configure subplots_adjust
      - makes the buttons become grey when selected, and ungray when deselected
     """
+
 
     # Icons for the toolbar used from Minicons Free Vector Icons Pack fround at: www.webalys.com/minicons
     toolitems = (
@@ -3302,13 +3564,25 @@ class custom_toolbar(NavigationToolbar2TkAgg):
         ('Zoom', 'Zoom to rectangle', 'ml_zoom', 'zoom'),
         (None, None, None, None),
         (None, None, None, None),
+        ('Measure', 'Measure distance between 2 clicks', 'ml_measure', 'measure'),
+        (None, None, None, None),
         ('Save', 'Save the figure', 'ml_save', 'save_figure'),
       )
+            
+    #def __init__(self, canvas, window, *args, **kwargs):
+    #    super().__init__(canvas, window, *args, **kwargs)
+    #    self._measure_active = False
+    #    self._measure_pts = []          # [(lat, lon), (lat, lon)]
+    #    self._measure_line = None       # matplotlib line artist
+    #    self._measure_text = None       # matplotlib text artist
+    #    self._cid_measure_click = None
+    #    self._cid_measure_key = None
                  
     def zoom(self, *args):
         'decorator for the zoom function'
         super(custom_toolbar,self).zoom(*args)
         if self.mode=='ZOOM':
+            self._deactivate_measure()
             self.buttons['zoom'].config(bg='dark grey')
             self.buttons['pan'].config(bg=self.bg)
         else:
@@ -3339,6 +3613,7 @@ class custom_toolbar(NavigationToolbar2TkAgg):
         'decorator for the pan function'
         super(custom_toolbar,self).pan(*args)
         if self.mode=='PAN':
+            self._deactivate_measure()
             self.buttons['pan'].config(bg='dark grey')
             self.buttons['zoom'].config(bg=self.bg)
         else:
@@ -3346,6 +3621,112 @@ class custom_toolbar(NavigationToolbar2TkAgg):
         s = 'pan_event'
         event = Event(s, self)
         self.canvas.callbacks.process(s, event)
+        
+    # -------------------- MEASURE TOOL --------------------
+    def measure(self, *args):
+        """Toggle click-to-measure between two points."""
+        # If turning on: ensure pan/zoom are off
+        turning_on = not self._measure_active
+        if turning_on:
+            if self.mode == 'PAN':
+                super(custom_toolbar, self).pan()
+                self.buttons['pan'].config(bg=self.bg)
+            if self.mode == 'ZOOM':
+                super(custom_toolbar, self).zoom()
+                self.buttons['zoom'].config(bg=self.bg)
+            self._activate_measure()
+            self.mode = 'MEASURE'
+        else:
+            self._deactivate_measure()
+
+    def _activate_measure(self):
+        self._measure_active = True
+        self._measure_pts.clear()
+        self._clear_measure_artists()
+        self.buttons['measure'].config(bg='dark grey')
+        self.message.set("Measure: click 2 points (ESC to cancel, right-click to clear)")
+
+        self._cid_measure_click = self.canvas.mpl_connect('button_press_event', self._on_measure_click)
+        self._cid_measure_key = self.canvas.mpl_connect('key_press_event', self._on_measure_key)
+
+    def _deactivate_measure(self):
+        if not self._measure_active:
+            return
+        self._measure_active = False
+        self._disconnect_measure()
+        self.buttons['measure'].config(bg=self.bg)
+        self.message.set("")
+
+    def _disconnect_measure(self):
+        if self._cid_measure_click is not None:
+            self.canvas.mpl_disconnect(self._cid_measure_click)
+            self._cid_measure_click = None
+        if self._cid_measure_key is not None:
+            self.canvas.mpl_disconnect(self._cid_measure_key)
+            self._cid_measure_key = None
+            
+    def _on_measure_key(self, event):
+        # ESC cancels current measurement (keeps tool on)
+        if event.key == 'escape':
+            self._measure_pts.clear()
+            self._clear_measure_artists()
+            self.message.set("Measure: click 2 points (ESC to cancel, right-click to clear)")
+            self.canvas.draw_idle()
+            
+    def _on_measure_click(self, event):
+        if not self._measure_active or event.inaxes is None:
+            return
+        if event.xdata is None or event.ydata is None:
+            return
+
+        # Right-click clears current measurement (keeps tool on)
+        if getattr(event, "button", None) == 3:
+            self._measure_pts.clear()
+            self._clear_measure_artists()
+            self.message.set("Measure: click 2 points (ESC to cancel, right-click to clear)")
+            self.canvas.draw_idle()
+            return
+
+        x = float(event.xdata)
+        y = float(event.ydata)
+        lon,lat = self.m.convert_latlon(x,y)
+        self._measure_pts.append((lat, lon))
+
+        if len(self._measure_pts) == 1:
+            self.message.set(f"Measure: first point set (lat={lat:.4f}, lon={lon:.4f}). Click second point…")
+            return
+
+        # We have two points -> compute distance and draw
+        (lat0, lon0), (lat1, lon1) = self._measure_pts[:2]
+        km = spherical_dist([lat0, lon0], [lat1, lon1])  # your existing function
+
+        ax = event.inaxes
+        self._clear_measure_artists()
+
+        # line
+        (self._measure_line,) = ax.plot([lon0, lon1], [lat0, lat1], linestyle='-', marker='o')
+
+        # label near midpoint
+        mid_lon = (lon0 + lon1) * 0.5
+        mid_lat = (lat0 + lat1) * 0.5
+        self._measure_text = ax.text(mid_lon, mid_lat, f"{km:.2f} km", ha='left', va='bottom')
+
+        self.message.set(f"Distance: {km:.2f} km  (click new first point to re-measure)")
+        self.canvas.draw_idle()
+
+        # Reset for next measurement (keep tool active)
+        self._measure_pts.clear()
+        
+    def _clear_measure_artists(self):
+        if self._measure_line is not None:
+            try: self._measure_line.remove()
+            except Exception: pass
+            self._measure_line = None
+        if self._measure_text is not None:
+            try: self._measure_text.remove()
+            except Exception: pass
+            self._measure_text = None
+            
             
     def _init_toolbar(self):
         import os
@@ -3355,7 +3736,14 @@ class custom_toolbar(NavigationToolbar2TkAgg):
         Tk.Frame.__init__(self, master=self.window,
                           width=int(width), height=int(height),
                           borderwidth=2)
+        self._measure_active = False
+        self._measure_pts = []          # [(lat, lon), (lat, lon)]
+        self._measure_line = None       # matplotlib line artist
+        self._measure_text = None       # matplotlib text artist
+        self._cid_measure_click = None
+        self._cid_measure_key = None
         self.update()  # Make axes menu
+        print('in custom toolbar')
         self.buttons = {}
         for text, tooltip_text, image_file, callback in self.toolitems:
             if text is None:
@@ -3365,9 +3753,11 @@ class custom_toolbar(NavigationToolbar2TkAgg):
                 try:
                     button = self._Button(text=text, file=image_file,
                                        command=getattr(self, callback),extension='.gif') # modified extension to use gif
+                    print(image_file, 'gif')
                 except:
                     button = self._Button(text=text, image_file=os.path.join(ressource_path,image_file+'.png'),
                                        command=getattr(self, callback),toggle=True) # modified extension to use gif
+                    print(image_file, 'png')
                 self.buttons[callback] = button # modified to save button instances
                 if tooltip_text is not None:
                     ToolTip.createToolTip(button, tooltip_text)

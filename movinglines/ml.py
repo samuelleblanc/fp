@@ -181,6 +181,9 @@
                 - added automated docx creation
                 - modified the for piltos excel writer to use xlswriter (offline) instead of xlwings, to prevent mix-ups
                 - Adding the coast buffer indencation
+                - Fixed satellite tracks disapearing, and interplay with zoom button
+                - Added measurement tool
+                - Added help button
                  
 """
 try:
@@ -316,6 +319,16 @@ def Get_default_profile(filename):
                      'start_alt':95.0}]
     return profile
 
+def open_help_pdf():
+    import os
+    import sys
+    import webbrowser
+    pdf_path = os.path.abspath("MovingLines_QuickGuide.pdf")   # adjust path as needed
+    try:
+        webbrowser.open_new(pdf_path)
+    except:
+        print('Problem with loading pdf')
+
 
 class window:
     def __init__(self, root):
@@ -338,7 +351,8 @@ class window:
         self.canvas = FigureCanvasTkAgg(self.fig,right_frame) 
         self.canvas.get_tk_widget().pack(in_=right_frame,side=tk.BOTTOM, fill=tk.BOTH, expand=True)
         self.canvas.draw()
-        self.tb = NavigationToolbar2TkAgg(self.canvas,right_frame)
+        #self.tb = NavigationToolbar2TkAgg(self.canvas,right_frame)
+        self.tb = gui.toolbar_with_measure(self.canvas,right_frame)
         self.tb.pack(in_=right_frame,side=tk.BOTTOM)
         self.tb.update()
         self.canvas._tkcanvas.pack(in_=right_frame,side=tk.TOP,fill=tk.BOTH, expand=1)
@@ -351,8 +365,25 @@ class window:
         w = 20
         self.progressbar = ttk.Progressbar()
         self.progressbar.pack(in_=left_frame,side=tk.BOTTOM)
-        label = ttk.Label(self.root,text='by Samuel LeBlanc\n NASA Ames')
-        label.pack(in_=left_frame,side=tk.BOTTOM)
+        footer = ttk.Frame(left_frame)
+        footer.pack(side=tk.BOTTOM, anchor='w')
+        base_font = tk.font.nametofont("TkDefaultFont")
+        link_font = base_font.copy()
+        link_font.configure(underline=True)
+        label = ttk.Label(footer,text='by Samuel LeBlanc\n NASA Ames',font=base_font)
+        label.pack(side=tk.LEFT) #in_=left_frame,side=tk.BOTTOM)
+        help_label = ttk.Label(footer,text='Help',foreground='blue',cursor='hand2',font=link_font)
+        help_label.pack(side=tk.LEFT)#in_=left_frame,side=tk.BOTTOM)
+        help_label.bind("<Button-1>", lambda e: open_help_pdf())
+        def on_enter(e):
+            help_label.configure(font=link_font)
+
+        def on_leave(e):
+            help_label.configure(font=base_font)
+
+        help_label.bind("<Enter>", on_enter)
+        help_label.bind("<Leave>", on_leave)
+        
         self.left_frame = left_frame
         self.top = left_frame
 
@@ -387,6 +418,7 @@ def Create_gui(vertical=True):
         ui.canvas.draw()
     ui.canvas.get_tk_widget().pack(in_=ui.bot,side=tk.BOTTOM,fill=tk.BOTH,expand=1)
     ui.tb = gui.custom_toolbar(ui.canvas,ui.root)
+    print('.. loaded the gui custom toolbar')
     ui.tb.pack(in_=ui.bot,side=tk.BOTTOM)
     ui.tb.update()
     ui.canvas._tkcanvas.pack(in_=ui.bot,side=tk.TOP,fill=tk.BOTH,expand=1)
@@ -823,6 +855,7 @@ def Create_interaction(test=False,profile=None,**kwargs):
     ui.progressbar.update()
     echo('Creating basemap')
     m = mi.build_basemap(fig=ui.fig,profile=profile)
+    ui.tb.m = m
     ui.progressbar.step(20)
     ui.progressbar.update()
     ui.ax1 = m
