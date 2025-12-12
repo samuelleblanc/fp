@@ -359,10 +359,10 @@ class dict_position:
             delta_time = cut_length*(-2.0) / (speed_kts*kts_to_ftpermin)
         elif turn_type=='over':
             #here the the additionaly distance is when turn is immediatly started, then turned back to path, so about another turn radius distance
-            delta_time = turn_radius/(speed_kts * kts_to_ftpermin)
+            delta_time = 0.66*turn_radius/(speed_kts * kts_to_ftpermin)
         elif turn_type=='90-270':
             #here the time is for one basically an extra 2 radius (total of 2 out, 2 in)
-            delta_time = 2.0*(turn_radius/(speed_kts * kts_to_ftpermin))
+            delta_time = 1.0*(turn_radius/(speed_kts * kts_to_ftpermin))
         else:
             delta_time = 0.0
         
@@ -920,6 +920,7 @@ class dict_position:
         if not utc: utc = np.nan
         if not loc: loc = np.nan
         if not lt: lt = np.nan
+        if not timepoint: timepoint = np.nan
         self.cumlegt = np.insert(self.cumlegt,i,clt*24.0)
         self.utc = np.insert(self.utc,i,utc*24.0)
         self.local = np.insert(self.local,i,loc*24.0)
@@ -1216,7 +1217,7 @@ class dict_position:
                              'Speed\n[m/s]','delayT\n[min]','Altitude\n[m]',
                              'CumLegT\n[hh:mm]','UTC\n[hh:mm]','LocalT\n[hh:mm]',
                              'LegT\n[hh:mm]','Dist\n[km]','CumDist\n[km]',
-                             'Dist\n[nm]','CumDist\n[nm]','Speed\n[kt]',
+                             'Dist\n[Nmi]','CumDist\n[Nmi]','Speed\n[kt]',
                              'Altitude\n[kft]','SZA\n[deg]','AZI\n[deg]',
                              'Bearing\n[deg]','ClimbT\n[min]','Comments','WP names',
                              'HdWind\n[kt]','HdWind\n[m/s]','Turn type','TurnT\n[min]','TimePt\n[hh:mm]'] # new ones for version 1.62
@@ -1294,7 +1295,7 @@ class dict_position:
         f.write('#WP  Lon[+-180]  Lat[+-90]  Speed[m/s]  delayT[min]  Altitude[m]'+
                 '  CumLegT[H]  UTC[H]  LocalT[H]'+
                 '  LegT[H]  Dist[km]  CumDist[km]'+
-                '  Dist[nm]  CumDist[nm]  Speed[kt]'+
+                '  Dist[Nmi]  CumDist[Nmi]  Speed[kt]'+
                 '  Altitude[kft]  SZA[deg]  AZI[deg]  Bearing[deg]  Climbt[min]  Comments WPnames\n')
         for i in range(self.n):
             
@@ -1385,10 +1386,10 @@ class dict_position:
                     pnt.style.iconstyle.icon.href = get_curdir()+'//map_icons//number_{}.png'.format(self.WP[i])
             else:
                  pnt.style.iconstyle.icon.href = 'https://www.samueleleblanc.com/img/icons/{}.png'.format(self.WP[i])
-            pnt.description = """WP=#%02f\nUTC[H]=%2.2f\nWPname=%s\nLocal[H]=%2.2f\nCumDist[km]=%f\nspeed[m/s]=%4.2f\ndelayT[min]=%f\nSZA[deg]=%3.2f\nAZI[deg]=%3.2f\nBearing[deg]=%3.2f\nClimbT[min]=%f\nComments:%s""" % (self.WP[i],
+            pnt.description = """WP=#%02f\nUTC[H]=%2.2f\nWPname=%s\nLocal[H]=%2.2f\nCumDist[km]=%f\nspeed[m/s]=%4.2f\ndelayT[min]=%f\nSZA[deg]=%3.2f\nAZI[deg]=%3.2f\nBearing[deg]=%3.2f\nClimbT[min]=%f\nTurn_type:%s\nComments:%s""" % (self.WP[i],
                                                                    self.utc[i],self.wpname[i],self.local[i],self.cumdist[i],
                                                                    self.speed[i],self.delayt[i],self.sza[i],
-                                                                   self.azi[i],self.bearing[i],self.climb_time[i],self.comments[i])
+                                                                   self.azi[i],self.bearing[i],self.climb_time[i],str(self.turn_type[i]),self.comments[i])
 
     def print_path_kml(self,folder,color='red',j=0):
         """
@@ -1731,6 +1732,8 @@ def save2xl_for_pilots(filename,ex_arr):
                 comment = 'delay: {:2.1f} min, {}'.format(a.delayt[i],a.comments[i])
             else:
                 comment = a.comments[i]
+            if hasattr(a,'turn_type') and type( a.turn_type) is str:
+                comment += ' [{}]'.format(a.turn_type[i].lower())
             if not a.p_info.get('include_mag_heading',False):
                 xw.Range('A{:d}'.format(i+3)).value = [a.WP[i],a.wpname[i],lat_f,lon_f,a.alt_kft[i],a.utc[i]/24.0,comment]
             else:
@@ -1747,6 +1750,160 @@ def save2xl_for_pilots(filename,ex_arr):
         wb_pilot.close()
     except:
         print('** unable to close for_pilots spreadsheet, may need to close manually **')
+        
+def save2xl_for_pilots_xlswriter(filename, ex_arr):
+    """
+    Purpose:
+        Create a new Excel file (xlsx) containing pilot-style waypoints for each
+        entry in ex_arr, one sheet per entry, using xlsxwriter (no Excel UI).
+
+    Input:
+        filename: output .xlsx file path
+        ex_arr: iterable of objects with attributes like:
+                name, datestr, p_info (dict), n, color,
+                lat, lon, alt_kft, utc, comments, WP, wpname,
+                campaign, __version__, pilot_format, delayt,
+                (optional) bearing, turn_type
+
+    Output:
+        Creates/saves the Excel file on disk.
+
+    Dependencies:
+        xlsxwriter, matplotlib.colors.to_rgb,
+        excel_interface.format_lat_lon, excel_interface.one_line_points
+    """
+    import xlsxwriter
+    from matplotlib.colors import to_rgb
+
+    try:
+        from excel_interface import format_lat_lon, one_line_points
+    except ModuleNotFoundError:
+        from .excel_interface import format_lat_lon, one_line_points
+
+    # --- helpers for colors ---
+    make_light = lambda rgb: (rgb[0]*0.9+0.1,rgb[1]*0.9+0.1,rgb[2]*0.9+0.1)
+    make_lighter = lambda rgb: (rgb[0]*0.1+0.9,rgb[1]*0.1+0.9,rgb[2]*0.1+0.9)
+    rgb_to_int = lambda rgb: (int(rgb[0]*255),int(rgb[1]*255),int(rgb[2]*255))
+    rgb_to_hex   = lambda rgb: "#{:02X}{:02X}{:02X}".format(int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
+
+    # Create workbook
+    wb = xlsxwriter.Workbook(filename)
+    wb.default_format_properties = {'font_name': 'Aptos Narrow','font_size': 12}
+
+    for a in ex_arr:
+        # Excel worksheet names are limited to 31 chars
+        sheet_name = (a.name or "Sheet")[:31]
+        ws = wb.add_worksheet(sheet_name)
+
+        # Base colors from a.color
+        base_rgb = to_rgb(a.color)
+        header_hex = rgb_to_hex(base_rgb)
+        alt_row_hex = rgb_to_hex(make_lighter(base_rgb))
+
+        # --- Formats ---
+        title_fmt = wb.add_format({"bold": True,"font_size": 24,"bg_color": header_hex,"font_color": "white","align": "left","valign": "vcenter"})
+        header_fmt = wb.add_format({"bold": True,"text_wrap": True})
+
+        # Normal numeric formats
+        text_fmt = wb.add_format({"bold": False,"text_wrap": False})
+        alt_kft_fmt = wb.add_format({"num_format": "0.00"})
+        time_fmt = wb.add_format({"num_format": "hh:mm","align": "center"})
+        mag_heading_fmt = wb.add_format({"num_format": "0.0"})
+
+        # Alt-row formats with background color
+        text_alt_fmt = wb.add_format({"bg_color": alt_row_hex})
+        alt_kft_fmt_alt = wb.add_format({"num_format": "0.00","bg_color": alt_row_hex})
+        time_fmt_alt = wb.add_format({"num_format": "hh:mm","bg_color": alt_row_hex,"align": "center"})
+        mag_heading_fmt_alt = wb.add_format({"num_format": "0.0","bg_color": alt_row_hex})
+
+        # --- Header row (row 1) ---
+        include_mag_heading = a.p_info.get("include_mag_heading", False)
+        include_turn_type = hasattr(a, "turn_type")
+        headers = ["WP", "WP name", "Lat\n[+-90]", "Lon\n[+-180]","Altitude\n[kft]", "UTC\n[hh:mm]"]
+        if include_mag_heading:
+            headers.append("Mag Heading\n[deg]")
+        if include_turn_type:
+            headers.append("Turn type")
+        headers.append("Comments")
+        ws.set_row(1,32.5)
+        for col, h in enumerate(headers):
+            ws.write(1, col, h, header_fmt)
+        last_col_idx = len(headers) - 1
+        ws.merge_range(0, 0, 0, last_col_idx, f"{a.name} - {a.datestr} - ", title_fmt)
+
+        # Freeze header (row index 2 -> freeze below row 1)
+        ws.freeze_panes(2, 0)
+
+        # --- Column number formats that apply to all rows ---
+        # Altitude (kft) column = 4
+        ws.set_column(4, 4, 10, alt_kft_fmt)
+        # UTC time column = 5
+        ws.set_column(5, 5, 12, time_fmt)
+        # Comments column width
+        ws.set_column(last_col_idx, last_col_idx, 40)
+
+        if include_mag_heading:
+            ws.set_column(6, 6, 12, mag_heading_fmt) # Mag heading column = 6
+
+        # --- Metadata (row 1, columns W, X, Z) ---
+        # Columns: A=0,..., W=22, X=23, Z=25
+        ws.write(1, 22, a.datestr)
+        ws.write(1, 23, a.campaign)
+        ws.write(1, 25, "Created with")
+        ws.write(2, 25, "moving_lines")
+        ws.write(3, 25, getattr(a, "__version__", ""))
+
+        # --- Data rows (starting at row 2) ---
+        mag_decl = a.p_info.get("mag_declination", 13.0)
+        for i in range(len(a.lon)):
+            row = i + 2
+            lat_f, lon_f = format_lat_lon(a.lat[i], a.lon[i],format=a.pilot_format)
+
+            # Comment including delay
+            if a.delayt[i] > 3.0:
+                comment = "delay: {:2.1f} min, {}".format(a.delayt[i], a.comments[i])
+            else:
+                comment = a.comments[i]
+
+            # Build row values
+            row_vals = [a.WP[i],a.wpname[i],lat_f,lon_f,a.alt_kft[i],a.utc[i] / 24.0]
+            if include_mag_heading:
+                mag_heading = (360.0 + a.bearing[i] - mag_decl) % 360.0
+                row_vals.append(mag_heading)
+            if include_turn_type:
+                row_vals.append(str(a.turn_type[i]))
+            row_vals.append(comment)
+
+            # Choose formats per column, with alt-row variant for odd i
+            is_alt_row = bool(i % 2)
+            for col, val in enumerate(row_vals):
+                fmt = text_fmt
+                if col == 4:  # Altitude
+                    fmt = alt_kft_fmt_alt if is_alt_row else alt_kft_fmt
+                elif col == 5:  # UTC
+                    fmt = time_fmt_alt if is_alt_row else time_fmt
+                elif include_mag_heading and col == 6:
+                    fmt = mag_heading_fmt_alt if is_alt_row else mag_heading_fmt
+                elif is_alt_row:
+                    # Text columns in alt rows
+                    fmt = text_alt_fmt
+                ws.write(row, col, val, fmt)
+
+        if len(a.lon) > 0:
+            row_text1 = len(a.lon) + 3
+            row_text2 = len(a.lon) + 4
+        else:
+            row_text1 = 4
+            row_text2 = 5
+
+        ws.write(row_text1, 0, "One line waypoints for foreflight:")
+        ws.write(row_text2, 0, one_line_points(a))
+
+        last_print_row = a.n + 1  # 0-based
+        ws.print_area(0, 0, last_print_row, last_col_idx)
+
+    wb.close()
+
         
 def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
     """ 
@@ -1777,9 +1934,15 @@ def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
         for i in range(ex.n):
             if ex.wpname[i] in ex.wpname[0:i]: continue
 
-            comm = ex.comments[i]
+            comm = str(ex.comments[i])
             if ex.comments[i]:
                 comm = ex.comments[i].replace(',', '')
+            if ex.turn_type[i]:
+                if not ((ex.turn_type[i] in [str(None),None,str(' ')]) and (comm in [str(None),None,str(' ')])):
+                    comm += ':{}'.format(str(ex.turn_type[i]).lower())
+            if comm in [str(None),None,str(' ')]:
+                comm = ''
+               
             f.write("""%s,ALT=%3.2f kft %s ,%+2.12f,%+2.12f\n""" %(
                     ex.wpname[i],ex.alt_kft[i],comm,ex.lat[i],ex.lon[i]))
         f.close()
@@ -1817,6 +1980,8 @@ def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
             comm = ex.comments[i]
             if ex.comments[i]:
                 comm = ex.comments[i].replace(',', '')
+            if ex.turn_type[i]:
+                comm += ' {}'.format(str(ex.turn_type[i]).lower())
             fu.write("""%s,%+2.12f,%+2.12f,ALT=%3.2f kft %s\n""" %(
                     ex.wpname[i],ex.lat[i],ex.lon[i],ex.alt_kft[i],comm))
         fu.close()
@@ -1831,10 +1996,14 @@ def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
             comm = ex.comments[i]
             if ex.comments[i]:
                 comm = ex.comments[i].replace(',', '')
+                if ex.turn_type[i]:
+                    if not ((ex.turn_type[i] in [str(None),None,str(' ')]) and (comm in [str(None),None,str(' ')])):
+                        comm += ' {}'.format(str(ex.turn_type[i]).lower())
+            if comm in [str(None),None,str(' ')]:
+                comm = ''
             fh.write("""x,%s,ALT=%3.2f kft %s,%s,%s\n""" %(
                     ex.wpname[i],ex.alt_kft[i],comm,lat_str,lon_str))
         fh.close()
-    
     
                 
 def format_lat_lon(lat,lon,format='DD MM SS'):

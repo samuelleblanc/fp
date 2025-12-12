@@ -172,7 +172,15 @@
                 - Added sat.json for handling the geostationary satellite types
                 - Adding multiple new satellites descriptions.
                 - Added Canadian restricted airspace plotting
-                
+                - Added the headwind calculations from GFS downloads.
+        Modified: Samuel LeBlanc, v1.63, 2025-11-19, Santa Cruz, CA
+                - Bug fix on tropical tidbits loading
+                - Bug fix on add points
+                - Changed units for nautical miles from [nm] to [Nmi]
+                - Turn time for overlfly and 90-270 refined (reduced)
+                - added automated docx creation
+                - modified the for piltos excel writer to use xlswriter (offline) instead of xlwings, to prevent mix-ups
+                - Adding the coast buffer indencation
                  
 """
 try:
@@ -463,13 +471,15 @@ def build_buttons(ui,lines,vertical=True):
     g.bsave2ict = ttk.Button(g.root,text='ICT',
 			    command=g.gui_save2ict)
     g.bsavepng = ttk.Button(g.root,text='map to PNG',
-			    command=g.gui_savefig)    
+			    command=g.gui_savefig)       
     g.bsaveall_style = ttk.Style()
     g.bsaveall_style.configure('B2.TButton',background='lightskyblue',foreground='blue')
     g.bsaveall = ttk.Button(g.root,text='Save All',
 			    command=g.gui_saveall,style='B2.TButton')
-    g.bsavepptx = ttk.Button(g.root,text='Save pptx',
+    g.bsavepptx = ttk.Button(g.root,text='pptx',
                              command=g.gui_savepptx)
+    g.bsavedocx = ttk.Button(g.root,text='docx',
+                             command=g.gui_savedocx)                         
     g.refresh.pack(in_=ui.top,side=side,fill=tk.X,pady=0)
     g.refreshspeed.pack(in_=ui.top,side=side,fill=tk.X,pady=0)
     ttk.Label(g.root,text='File options').pack(in_=ui.top,side=side) 
@@ -492,9 +502,11 @@ def build_buttons(ui,lines,vertical=True):
     g.bsave2ict.pack(in_=g.frame_save,side=tk.RIGHT)
     g.frame_save2 = ttk.Frame(ui.top)
     g.frame_save2.pack(in_=ui.top,side=side,fill=tk.X,pady=2)
-    g.bsavepng.pack(in_=g.frame_save2,side=tk.RIGHT)
+    g.bsavepng.pack(in_=ui.top,side=side) #g.frame_save2,side=tk.RIGHT)
     g.bsaveall.pack(in_=g.frame_save2,side=tk.LEFT)
-    g.bsavepptx.pack(in_=g.frame_save2,side=tk.LEFT)    
+    ttk.Label(ui.top,text='Save:').pack(in_=g.frame_save2,side=tk.LEFT)
+    g.bsavepptx.pack(in_=g.frame_save2,side=tk.LEFT) 
+    g.bsavedocx.pack(in_=g.frame_save2,side=tk.LEFT)     
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
              ).pack(in_=ui.top,side=side,padx=8,pady=5)
     g.frame_plot = ttk.Frame(ui.top)
@@ -581,6 +593,9 @@ def build_buttons(ui,lines,vertical=True):
     g.baddcanair = ttk.Button(side_bar,text='Restricted Airspace\n[CAN]',
                          command = g.gui_add_CAN_Air)
     g.baddcanair.grid(in_=top_gui,row=1,column=1,  sticky='w'+'e'+'n'+'s')
+    g.baddcoast = ttk.Button(side_bar,text='Coast buffer',
+			    command=g.gui_addcoast) 
+    g.baddcoast.grid(in_=top_gui,padx=0,pady=0,row=2,column=0,  sticky='w'+'e'+'n'+'s')
     g.baddfir = ttk.Button(side_bar,text='FIR boundaries',
                          command = g.gui_add_FIR)
     #g.baddfir.pack(in_=g.frame_airspace,padx=0,pady=0,side=tk.LEFT,anchor=tk.CENTER)

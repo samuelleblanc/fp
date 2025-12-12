@@ -1255,11 +1255,11 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj
         m.artists = []
     if m.use_cartopy:
         m.coastlines()
-        land_50m = cfeature.NaturalEarthFeature('physical', 'land', '50m',edgecolor='k',
+        m.land_50m = cfeature.NaturalEarthFeature('physical', 'land', '50m',edgecolor='k',
                                                 facecolor=cfeature.COLORS['land']+0.0625)
         provinces_50m = cfeature.NaturalEarthFeature('cultural','admin_1_states_provinces_lines','50m',facecolor='none')
         m.gridlines(draw_labels=True,auto_update=True)
-        m.add_feature(land_50m,alpha=0.1)
+        m.add_feature(m.land_50m,alpha=0.1)
         m.add_feature(cfeature.LAKES, facecolor=[0.69375   , 0.81484375, 0.9828125 ],alpha=0.3)
         m.add_feature(cfeature.RIVERS,alpha=0.2)
         m.add_feature(provinces_50m)

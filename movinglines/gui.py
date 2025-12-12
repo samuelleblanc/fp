@@ -231,18 +231,18 @@ class gui:
         self.line.ex.save2xl(filename)
         
     def gui_save_xl_pilot(self):
-        'gui wrapper for calling the save2xl_for_pilots excel_interface method'
+        'gui wrapper for calling the save2xl_for_pilots_xlswriter excel_interface method'
         try:
-            from excel_interface import save2xl_for_pilots,save2csv_for_FOREFLIGHT_UFP
+            from excel_interface import save2xl_for_pilots_xlswriter,save2csv_for_FOREFLIGHT_UFP
         except ModuleNotFoundError:
-            from .excel_interface import save2xl_for_pilots,save2csv_for_FOREFLIGHT_UFP
+            from .excel_interface import save2xl_for_pilots_xlswriter,save2csv_for_FOREFLIGHT_UFP
         filename = self.gui_file_save(ext='.xlsx',ftype=[('All files','*.*'),
                                                          ('Excel 1997-2003','*.xls'),
                                                          ('Excel','*.xlsx')])
         if not filename: return
         self.line.ex.wpname = self.line.ex.get_waypoint_names(fmt=self.line.ex.p_info.get('waypoint_format','{x.name[0]}{x.datestr.split("-")[2]}{w:02d}'))
         print('Saving Pilot Excel file to :'+filename)
-        save2xl_for_pilots(filename,self.line.ex_arr)
+        save2xl_for_pilots_xlswriter(filename,self.line.ex_arr)
         self.line.ex.wb.sh.activate()
         
         for ex in self.line.ex_arr:
@@ -748,9 +748,9 @@ class gui:
         'gui program to run through and save all the file formats, without verbosity, for use in distribution'
         from os import path
         try:
-            from excel_interface import save2xl_for_pilots, save2csv_for_FOREFLIGHT_UFP
+            from excel_interface import save2xl_for_pilots_xlswriter, save2csv_for_FOREFLIGHT_UFP
         except ModuleNotFoundError:
-            from .excel_interface import save2xl_for_pilots, save2csv_for_FOREFLIGHT_UFP
+            from .excel_interface import save2xl_for_pilots_xlswriter, save2csv_for_FOREFLIGHT_UFP
         try:
             from write_utils import create_generic_pptx
         except ModuleNotFoundError:
@@ -775,7 +775,7 @@ class gui:
             tkMessageBox.showwarning('Excel not saved','Error in saving excel file: {}'.format(f_name+'.xlsx'))
         print('Saving Excel file for pilots to :'+f_name+'_for_pilots.xlsx')
         try:
-            save2xl_for_pilots(f_name+'_for_pilots.xlsx',self.line.ex_arr)
+            save2xl_for_pilots_xlswriter(f_name+'_for_pilots.xlsx',self.line.ex_arr)
         except Exception as ie:
             tkMessageBox.showwarning('Excel not saved','Error in saving excel pilot file: {} \n error:{}'.format(f_name+'_for_pilots.xlsx',ie))
         try:
@@ -788,7 +788,8 @@ class gui:
         try:
             self.line.ex.wb.set_current()
         except:
-            tkMessageBox.showwarning('Unable to close for_pilots spreadsheet, please close manually')
+            print('** Error returning to spreadsheet set, please refresh after saving **')
+            #tkMessageBox.showwarning('Unable to close for_pilots spreadsheet, please close manually')
         print('Saving figure file to :'+f_name+'_map.png')
         if type(self.line.line) is list:
             lin = self.line.line[0]
@@ -832,11 +833,11 @@ class gui:
             table = [[mpt['i'],mpt['utc_str'],mpt['wpname'],mpt['deltat_min'],mpt['Comment']] for mpt in main_points]
             table.insert(0,['WP #','UTC [H]','WP Name','Time delta [minutes]','Comments'])
             float_to_hh_mm = lambda float_hours: '{:02d}:{:02d}'.format(int(float_hours), int((float_hours - int(float_hours)) * 60))
-            slides.append(dict(title='{}: Take-off {} UTC-> landing {} UTC\nflight time {:2.2}h {:4.0f} nm'.format(x.name,\
+            slides.append(dict(title='{}: Take-off {} UTC-> landing {} UTC\nflight time {:2.2}h {:4.0f} Nmi'.format(x.name,\
                                float_to_hh_mm(x.utc[0]),float_to_hh_mm(x.utc[-1]),x.cumlegt[-1],x.cumdist_nm[-1]),image_path=f_name+'_alt_{}.png'.format(x.name),
                                table=table,text='Some important points'))
             slides.append(dict(title='{}'.format(x.name),multiple_images=[f_name+'_sza_{}.png'.format(x.name),f_name+'_alt_lat_{}.png'.format(x.name)]))
-            subtitle += '{}({:2.1f}h T/O@{}UTC {:4.0f} nm) '.format(x.name,x.cumlegt[-1],float_to_hh_mm(x.utc[0]),x.cumdist_nm[-1])
+            subtitle += '{}({:2.1f}h T/O@{}UTC {:4.0f} Nmi) '.format(x.name,x.cumlegt[-1],float_to_hh_mm(x.utc[0]),x.cumdist_nm[-1])
         print('Saving kml file to :'+f_name+'.kml')
         self.kmlfilename = f_name+'.kml'
         self.line.ex.save2kml(filename=self.kmlfilename)
@@ -924,6 +925,194 @@ class gui:
         except Exception as ie:
             tkMessageBox.showwarning('Powerpoint slide saving failed.','Error saving powerpoint.\n{}'.format(ie))
             print('powerpoint slide saving failed. Error:  {}'.format(ie))
+            
+    def gui_savedocx(self):
+        """
+        GUI program to save all relevant figures and create a Word flight-plan
+        document with placeholders for text sections.
+        """
+        from os import path
+        import tkinter.messagebox as tkMessageBox
+        from datetime import datetime
+
+        try:
+            from write_utils import create_intended_flightplan_docx
+        except ModuleNotFoundError:
+            from .write_utils import create_intended_flightplan_docx
+
+        # ask user for output filename
+        filename = self.gui_file_save(ext='*', ftype=[('Word document', '*.docx')])
+        if not filename:
+            tkMessageBox.showwarning('Cancelled', 'Saving DOCX cancelled')
+            return
+        f_name, _ = path.splitext(filename)
+
+        # --- prepare map and combined plots (same as gui_savepptx) ---
+        print('Saving figure file to :' + f_name + '_map.png')
+        figures = []
+        if isinstance(self.line.line, list):
+            lin = self.line.line[0]
+        else:
+            lin = self.line.line
+
+        # save map
+        legend, grey_index = self.prep_mapsave()
+        lin.figure.savefig(f_name + '_map.png', dpi=600, transparent=False)
+        figures.append(dict(path=f_name + '_map.png',
+            caption="FIG. 1. Flight plan and dropsonde locations.",section="intro"))
+
+        # combined altitude vs time plot
+        try:
+            fig = self.gui_plotalttime_cmb()
+            cmb_alt_path = f_name + '_alt_combined.png'
+            print('Saving the Alt vs time plot at:' + cmb_alt_path)
+            fig.savefig(cmb_alt_path, dpi=600, transparent=False)
+            figures.append(dict(path=cmb_alt_path,
+                caption="FIG. 2. Combined altitude flight paths.",section="intro"))
+        except Exception as e:
+            print('Issue saving the Alt vs time combined plot at:' +
+                  f_name + '_alt_combined.png')
+            print('Error:', e)
+
+        names = [x.name for x in self.line.ex_arr]
+        cmb, distances = self.line.calc_dist_from_each_points()
+
+        # for computing global times
+        all_takeoff_utc = []
+        all_landing_utc = []
+
+        # collect all main_points keyed by global waypoint index
+        all_points_by_idx = {}
+        float_to_hh_mm = lambda float_hours: '{:02d}:{:02d}'.format(int(float_hours), int((float_hours - int(float_hours)) * 60))
+
+
+        for i, x in enumerate(self.line.ex_arr):
+            self.iactive.set(i)
+            self.gui_changeflight()
+            print('Generating the figures for {}'.format(x.name))
+
+            # store global times for key_info
+            if len(x.utc) > 0:
+                all_takeoff_utc.append(x.utc[0])
+                all_landing_utc.append(x.utc[-1])
+
+            # main points for global WP table
+            try:
+                labels, main_points = x.get_main_points(
+                    combined_distances=distances[i],
+                    combined_utc=cmb,
+                    combined_names=names,
+                    fmt=self.pptx_point_format,
+                )
+            except Exception as e:
+                print('Issue getting main_points for {}: {}'.format(x.name, e))
+                main_points = []
+
+            for mpt in main_points:
+                idx = mpt.get('i')
+                if idx is None:
+                    continue
+                # keep first occurrence if duplicates
+                all_points_by_idx.setdefault(idx, mpt)
+
+        # restore map view
+        self.return_map(legend, grey_index)
+
+        # --- build global WP table ---
+        wp_table = []
+        if all_points_by_idx:
+            header = ['WP #', 'UTC [H]', 'WP Name',
+                      'Time delta [minutes]', 'Comments']
+            wp_table.append(header)
+            for idx in sorted(all_points_by_idx.keys()):
+                mpt = all_points_by_idx[idx]
+                wp_table.append([
+                    mpt.get('i', ''),
+                    mpt.get('utc_str', ''),
+                    mpt.get('wpname', ''),
+                    mpt.get('deltat_min', ''),
+                    mpt.get('Comment', ''),
+                ])
+
+        # --- compute key_info (takeoff / landing / total time) ---
+        key_info = {}
+        if all_takeoff_utc and all_landing_utc:
+            t0 = min(all_takeoff_utc)
+            t1 = max(all_landing_utc)
+            total_hours = float(t1 - t0)
+            key_info['Take off time'] = f"{float_to_hh_mm(t0)} UTC"
+            key_info['Landing time'] = f"{float_to_hh_mm(t1)} UTC"
+            # convert total_hours to H h MM min
+            th = int(total_hours)
+            tm = int(round((total_hours - th) * 60))
+            if tm == 60:
+                th += 1
+                tm = 0
+            key_info['Total flight time'] = f"{th} h {tm:02d} min"
+
+        # you can add more fields as placeholders if you like:
+            #key_info['Satellite overpasses'] = '<to be filled>'
+            key_info['Number of dropsondes'] = '<to be filled>'
+            key_info['Flight level'] = f'FL{x.alt_kft[1]:03.0f} / {x.alt_kft[1]*1000:5.0f} ft / {x.alt[1]:5.0f} m'
+
+        # --- text blocks: let the function insert red placeholders ---
+        text_blocks = [
+            {"section": "intro", "text": None},
+            {"section": "possible_adjustments", "text": None},
+            {"section": "satellite", "text": None},
+            {"section": "modeled", "text": None},
+            {
+                "section": "summary_altitudes",
+                "text": None,
+                "placeholder_label": "PLACEHOLDER – ADD SUMMARY OF ALTITUDES",
+            },
+            {
+                "section": "outlook",
+                "text": None,
+                "placeholder_label": "PLACEHOLDER – ADD OUTLOOK FOR NEXT FLIGHT",
+            },
+        ]
+
+        # --- title block metadata ---
+        # date_str: whatever you store in self.line.ex.datestr, fall back to placeholder
+        try:
+            date_str = self.line.ex.datestr
+        except Exception:
+            date_str = "<DATE>"
+
+        # prepared date: today in a simple format
+        prepared_str = datetime.utcnow().strftime("prepared %d %B %Y")
+
+        # authors: leave blank so they can fill in
+        authors = ["Lead Science: <ADD here>", "Mission Scientists: <Add names here>", "Forecasters: <Add names here>"]  # or ["<AUTHOR 1>", "<AUTHOR 2>"]
+
+        # title: generic, user can edit
+        doc_title = f"Intended Flight Plan – {date_str}"
+
+        # --- create the DOCX ---
+        try:
+            create_intended_flightplan_docx(
+                f_name + '.docx',
+                title=doc_title,
+                date_str=date_str,
+                authors=authors,
+                prepared_str=prepared_str,
+                text_blocks=text_blocks,
+                figures=figures,
+                key_info=key_info,
+                wp_table=wp_table,
+            )
+            tkMessageBox.showinfo(
+                'DOCX saved',
+                f'Word flight plan saved as:\n{f_name}.docx'
+            )
+        except Exception as ie:
+            tkMessageBox.showwarning(
+                'Word document saving failed.',
+                'Error saving Word document.\n{}'.format(ie)
+            )
+            print('Word document saving failed. Error: {}'.format(ie))
+   
        
     def stopandquit(self):
         'function to force a stop and quit the mainloop, future with exit of python'
@@ -1276,7 +1465,7 @@ class gui:
         self.baddbocachica.config(command=self.gui_addbocachica,style=self.bg)
         self.line.get_bg(redraw=True)
         
-    def gui_addtidbit(self):
+    def gui_addtidbit(self,debug=False):
         'GUI handler for adding tropical tidbit foreacast maps to basemap plot'
         import tkinter.messagebox as tkMessageBox
         import cartopy.crs as ccrs
@@ -1783,6 +1972,63 @@ class gui:
             self.baddfir.config(command=self.gui_rm_fir,style='Bp.TButton')
             self.line.get_bg(redraw=True)
             
+    def gui_addcoast(self):
+        'Making a noundary of the coast on the map'
+        from shapely.ops import unary_union, transform
+        import pyproj
+        import cartopy.crs as ccrs
+        
+        #get the amount buffer to include
+        dist_km, dist_nm, unit = ask_coast_buffer_distance()
+
+        if dist_km is None:
+            print("User cancelled.")
+            return
+        NMI = 1852.0               # metres per nautical mile
+        buffer_m = dist_nm * NMI
+        
+        if not self.line.m.land_50m:
+            print('problem with coast line')
+            return
+        coast_geoms = [g for g in self.line.m.land_50m.geometries()]
+        coastline = unary_union(coast_geoms)  # one merged geometry
+        
+        proj_inm = ccrs.LambertConformal(central_longitude=-75,central_latitude=40,standard_parallels=(33, 45))
+        to_proj = pyproj.Transformer.from_proj(self.line.m.merc, proj_inm, always_xy=True).transform
+        to_pc   = pyproj.Transformer.from_proj(proj_inm,self.line.m.merc,  always_xy=True).transform
+        coast_proj = transform(to_proj, coastline)
+        territorial_proj = coast_proj.buffer(buffer_m)   # buffer in metres
+        territorial_pc = transform(to_pc, territorial_proj)
+
+        self.coast = self.line.m.ax.add_geometries([territorial_pc],crs=self.line.m.merc, facecolor='None', edgecolor='lightblue', linewidth=1.0,alpha=1.0, zorder=2)
+            
+        self.baddcoast.config(text='Remove Coast Buffer')
+        self.baddcoast.config(command=self.gui_rm_coast,style='Bp.TButton')
+        self.line.get_bg(redraw=True)
+        
+    def gui_rm_coast(self):
+        'Remove the coast buffer'
+        self.line.tb.set_message('Removing Coastal Buffer')
+        try:
+            self.coast[-1].set_visible(False)
+        except:
+            try:
+                self.coast.set_visible(False)
+            except:
+                pass
+        if type(self.coast) is list:            
+            for s in self.coast:
+                if type(s) is list:
+                    for so in s:
+                        so.remove()
+                else:
+                    s.remove()
+        else:
+            self.coast.remove()
+        self.baddcoast.config(text='Coast buffer')
+        self.baddcoast.config(command=self.gui_addcoast,style=self.bg)
+        self.line.get_bg(redraw=True)        
+            
     def gui_add_NATS(self,color='tan'):
         'Button function to add NATS tracks'
         try:
@@ -2078,10 +2324,14 @@ class gui:
                 if len(inittime_sel) > 1:
                     print('...verifying init times')
                     self.init_progress = ProgressWindow(self.root,total_steps=len(inittime_sel),title='Verifying init times')
+                    bbox_nul = [0,0,1,1]
+                    size_nul = (1,1)
                     if vert_crs:
                         if 'path' in kwargs:
                             path_old = kwargs['path']
                             kwargs['path'] = path_old[0:1]
+                        bbox_nul = [20,200,10,100]
+                        size_nul = (20,10)
                     # check which init time works:
                     inittime_sels = []
                     for i_init, dim_init in enumerate(inittime_sel[::-1]):
@@ -2091,13 +2341,16 @@ class gui:
                             
                         self.init_progress.step(f'trying {dim_init}')
                         try:
-                            nul = wms.getmap(layers=[cont[i]],style='default',bbox=[0,0,1,1],size=(1,1),transparent=True,time=time_sel,srs=srs,format='image/png',dim_init_time=dim_init,CQL_filter=cql_filter,**kwargs)
+                            nul = wms.getmap(layers=[cont[i]],style='default',bbox=bbox_nul,size=size_nul,transparent=True,time=time_sel,srs=srs,format='image/png',dim_init_time=dim_init,CQL_filter=cql_filter,**kwargs)
                         except:
                             nul = None
                             pass
+                       # import ipdb;ipdb.set_trace()
                         if nul:
+                            #print(nul.geturl())
                             inittime_sels.append(dim_init)
-                        if len(inittime_sels)>1:
+                        if len(inittime_sels)>0:
+                            inittime_sel = inittime_sels
                             break
                     if len(inittime_sels) > 1:
                         self.init_progress._show_completion_animation(text=f'Select init time.')
@@ -2166,6 +2419,7 @@ class gui:
                     self.root.config(cursor='')
                     self.root.update()
                     tkMessageBox.showwarning('Sorry','Problem getting the image from WMS server: '+website.split('/')[2]+'\nError: {}'.format(ie))
+                    self.init_progress._close_window()
                     try:
                         print(website)
                     except:
@@ -2451,6 +2705,46 @@ def inittime_sel_fx(xml,content,select_time):
     if len(inittime_sel)<1: inittime_sel = [select_time]
     return inittime_sel
             
+
+
+
+
+def ask_coast_buffer_distance(default_value=12.0, default_unit="Nmi"):
+    """
+    Show a dialog asking for 'Coast buffer distance' and unit (Nmi/km).
+    Returns:
+        dist_km (float or None): distance in kilometers (or None if cancelled)
+        dist_nm (float or None): distance in nautical miles (or None if cancelled)
+        unit (str or None): unit chosen by user ('Nmi' or 'km', or None if cancelled)
+    """
+    NM_TO_KM = 1.852  # standard conversion
+
+    # choose default numeric value in the correct unit
+    if default_unit == "Nmi":
+        default_entry = default_value  # default_value is in Nmi
+    else:
+        default_entry = default_value  # default_value is in km, but that's fine, it's just text
+
+    dlg = ask(names=["Coast buffer distance"],choice=["Nmi", "km"],
+        choice_title="Coast buffer units",title="Coast buffer distance",defaults=[default_entry])
+
+    # If the user hits "Cancel", your Dialog won't call apply(),
+    # so dlg.names_val / dlg.choice_val may not exist.
+    if not hasattr(dlg, "names_val") or not hasattr(dlg, "choice_val"):
+        return None, None, None
+    value = dlg.names_val[0]       # numeric value typed by user
+    unit = dlg.choice_val          # 'Nmi' or 'km'
+    
+    # Convert to both units
+    if unit == "Nmi":
+        dist_nm = value
+        dist_km = value * NM_TO_KM
+    else:  # 'km'
+        dist_km = value
+        dist_nm = value / NM_TO_KM
+
+    return dist_km, dist_nm, unit
+    
 class Select_flt_mod(tkSimpleDialog.Dialog):
     """
        Dialog box pop up that lists the available flt_modules. 
@@ -2647,7 +2941,8 @@ class ask(tkSimpleDialog.Dialog):
         self.radb_val.set(self.choice[0])
         self.radbutton = []
         self.radb2_val = tk.StringVar()
-        self.radb2_val.set(self.choice2[0])
+        if self.choice2:
+            self.radb2_val.set(self.choice2[0])
         self.radbutton2 = []
         ii = 0
         if self.choice_title:

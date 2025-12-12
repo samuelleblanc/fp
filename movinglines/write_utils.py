@@ -618,3 +618,313 @@ def create_generic_pptx(slides,filepath,title="My Presentation",subtitle=None):
     # Save the presentation
     prs.save(filepath)
     print("Presentation saved under the name: {}.".format(filepath))
+
+
+def create_intended_flightplan_docx(
+    filepath,
+    *,
+    title,
+    date_str,
+    authors,
+    prepared_str,
+    text_blocks=None,
+    figures=None,
+    key_info=None,
+    wp_table=None,
+):
+    """
+    Create a DOCX in the 'Intended Flight Plan' style.
+
+    Parameters
+    ----------
+    filepath : str
+        Output .docx path.
+
+    title, date_str, authors, prepared_str : str / list[str]
+        Title block metadata.
+
+    text_blocks : list[dict] or None
+        Each dict describes text and where it goes:
+          {
+            "section": "intro" | "possible_adjustments" | "satellite"
+                       | "modeled" | "summary_altitudes" | "outlook"
+                       | "extra",
+            "text": "..." or ["para1", "para2", ...],
+            # optional, overrides default placeholder wording
+            "placeholder_label": "PLACEHOLDER – CUSTOM"
+          }
+
+    figures : list[dict] or None
+        Each dict describes a figure and where it goes:
+          {
+            "path": "/path/to/figure.png",
+            "caption": "FIG. X. ...",
+            "section": "intro" | "satellite" | "modeled" | "end",
+            "width_in": 6.5  # optional
+          }
+
+    key_info : dict[str, str] or None
+        Key info entries (renders as lines under "Key info:").
+
+    wp_table : list[list] or None
+        Waypoint table (1st row header, rest data).
+    """
+    from docx import Document
+    from docx.shared import Pt, Inches, RGBColor
+    from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+    from collections import defaultdict
+    import os
+
+    # ---------- helpers ----------
+    def _ensure_list(x):
+        if x is None:
+            return []
+        if isinstance(x, str):
+            return [x]
+        return list(x)
+
+    def _placeholder(doc, text):
+        """Insert a red placeholder line."""
+        p = doc.add_paragraph()
+        r = p.add_run(f"<{text}>")
+        r.font.color.rgb = RGBColor(200, 0, 0)
+        r.italic = True
+        return p
+
+    # default placeholder text per section
+    DEFAULT_PLACEHOLDERS = {
+        "intro": "PLACEHOLDER – ADD INTRO/BACKGROUND/GOALS HERE",
+        "possible_adjustments": "PLACEHOLDER – ADD ADJUSTMENT NOTES",
+        "satellite": "PLACEHOLDER – ADD SATELLITE OVERPASS STRATEGY",
+        "modeled": "PLACEHOLDER – ADD MODELED FLIGHT CURTAIN INTERPRETATION",
+        "summary_altitudes": "PLACEHOLDER – ADD SUMMARY OF ALTITUDES",
+        "outlook": "PLACEHOLDER – ADD NEXT FLIGHT OUTLOOK",
+        "extra": "PLACEHOLDER – ADD EXTRA TEXT",
+    }
+
+    # section order / where each goes structurally
+    TEXT_SECTIONS = [
+        "intro",
+        "possible_adjustments",
+        "satellite",
+        "modeled",
+        "summary_altitudes",
+        "outlook",
+        "extra",
+    ]
+
+    # group text by section
+    text_blocks = text_blocks or []
+    text_by_section = defaultdict(list)
+    placeholder_override = {}  # section -> custom placeholder label
+
+    for tb in text_blocks:
+        sec = tb.get("section", "extra")
+        if sec not in TEXT_SECTIONS:
+            sec = "extra"
+        txt = _ensure_list(tb.get("text"))
+        text_by_section[sec].extend(txt)
+        if "placeholder_label" in tb:
+            placeholder_override[sec] = tb["placeholder_label"]
+
+    # group figures by section
+    figures = figures or []
+    figure_sections = ["intro", "satellite", "modeled", "end"]
+    fig_by_section = {sec: [] for sec in figure_sections}
+    for f in figures:
+        sec = f.get("section", "intro")
+        if sec not in fig_by_section:
+            sec = "end"
+        fig_by_section[sec].append(f)
+
+    def _add_figures_for_section(doc, section_name):
+        for fig in fig_by_section.get(section_name, []):
+            path = fig.get("path")
+            caption = fig.get("caption", "")
+            width_in = fig.get("width_in", 6.5)
+            if not path or not os.path.isfile(path):
+                continue
+            for _ in range(2):
+                doc.add_paragraph("")
+            pic = doc.add_picture(path, width=Inches(width_in))
+            last_paragraph = doc.paragraphs[-1]
+            last_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            #import ipdb; ipdb.set_trace()
+            #pic._parent.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            cap = doc.add_paragraph(caption)
+            cap.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+    # ---------- start document ----------
+    doc = Document()
+
+    # base font / spacing
+    style = doc.styles["Normal"]
+    style.font.name = "Aptos"
+    style.font.size = Pt(12)
+    style.paragraph_format.line_spacing = 1.0
+    style.paragraph_format.space_after = Pt(2)
+
+    # ---------- title block ----------
+    p = doc.add_paragraph()
+    r = p.add_run(title)
+    r.bold = True
+    r.font.size = Pt(14)
+    p.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+    p = doc.add_paragraph(date_str)
+    p.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+    p = doc.add_paragraph(", ".join(authors))
+    p.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+    p = doc.add_paragraph(f"({prepared_str})")
+    p.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+    doc.add_paragraph("")
+
+    # ---------- INTRO ----------
+    # body text
+    intro_texts = text_by_section["intro"]
+    if intro_texts:
+        for para in intro_texts:
+            doc.add_paragraph(para)
+    else:
+        placeholder = placeholder_override.get("intro", DEFAULT_PLACEHOLDERS["intro"])
+        _placeholder(doc, placeholder)
+
+    # figures for intro
+    _add_figures_for_section(doc, "intro")
+
+    # ---------- KEY INFO ----------
+    if key_info:
+        doc.add_paragraph("")
+        r = doc.add_paragraph().add_run("Key info:")
+        r.bold = True
+        doc.add_paragraph("")
+        for k, v in key_info.items():
+            doc.add_paragraph(f"{k}: {v}", style="List Bullet")
+    else:
+        # optional – you can choose to always show this header or only when key_info
+        doc.add_paragraph("")
+        r = doc.add_paragraph().add_run("Key info:")
+        r.bold = True
+        placeholder = "PLACEHOLDER – ADD KEY FLIGHT PARAMETERS"
+        _placeholder(doc, placeholder)
+
+    # ---------- POSSIBLE ADJUSTMENTS ----------
+    doc.add_paragraph("")
+    r = doc.add_paragraph().add_run(
+        "Possible flight adjustments either before flight or in flight:"
+    )
+    r.bold = True
+
+    pa_texts = text_by_section["possible_adjustments"]
+    if pa_texts:
+        for para in pa_texts:
+            doc.add_paragraph(para)
+    else:
+        placeholder = placeholder_override.get(
+            "possible_adjustments", DEFAULT_PLACEHOLDERS["possible_adjustments"]
+        )
+        _placeholder(doc, placeholder)
+
+    # ---------- ADDITIONAL INFORMATION ----------
+    doc.add_paragraph("")
+    r = doc.add_paragraph().add_run("Additional Information:")
+    r.bold = True
+    doc.add_paragraph("")
+
+    # ---------- SATELLITE OVERPASSES ----------
+    r = doc.add_paragraph().add_run("SATELLITE OVERPASSES")
+    r.bold = True
+
+    sat_texts = text_by_section["satellite"]
+    if sat_texts:
+        for para in sat_texts:
+            doc.add_paragraph(para)
+    else:
+        placeholder = placeholder_override.get(
+            "satellite", DEFAULT_PLACEHOLDERS["satellite"]
+        )
+        _placeholder(doc, placeholder)
+
+    _add_figures_for_section(doc, "satellite")
+
+    # ---------- MODELED FLIGHT CURTAINS ----------
+    doc.add_paragraph("")
+    r = doc.add_paragraph().add_run("MODELED FLIGHT CURTAINS:")
+    r.bold = True
+
+    mod_texts = text_by_section["modeled"]
+    if mod_texts:
+        for para in mod_texts:
+            doc.add_paragraph(para)
+    else:
+        placeholder = placeholder_override.get(
+            "modeled", DEFAULT_PLACEHOLDERS["modeled"]
+        )
+        _placeholder(doc, placeholder)
+
+    _add_figures_for_section(doc, "modeled")
+
+    # ---------- SUMMARY OF DIFFERENT FLIGHT LEGS ----------
+    doc.add_paragraph("")
+    r = doc.add_paragraph().add_run("SUMMARY OF THE DIFFERENT FLIGHT LEGS")
+    r.bold = True
+    doc.add_paragraph("")
+
+    if wp_table:
+        rows = len(wp_table)
+        cols = len(wp_table[0]) if rows else 0
+        if rows and cols:
+            table = doc.add_table(rows=rows, cols=cols)
+            table.style = "Table Grid"
+            for i, row in enumerate(wp_table):
+                for j, val in enumerate(row):
+                    table.cell(i, j).text = "" if val is None else str(val)
+    else:
+        _placeholder(doc, "PLACEHOLDER – INSERT WAYPOINT TABLE")
+
+    # ---------- SUMMARY OF FLIGHT ALTITUDES ----------
+    sa_texts = text_by_section["summary_altitudes"]
+    if sa_texts or "summary_altitudes" in placeholder_override:
+        doc.add_paragraph("")
+        r = doc.add_paragraph().add_run("SUMMARY OF FLIGHT ALTITUDES")
+        r.bold = True
+        if sa_texts:
+            for para in sa_texts:
+                doc.add_paragraph(para)
+        else:
+            placeholder = placeholder_override.get(
+                "summary_altitudes", DEFAULT_PLACEHOLDERS["summary_altitudes"]
+            )
+            _placeholder(doc, placeholder)
+
+    # ---------- OUTLOOK ----------
+    outlook_texts = text_by_section["outlook"]
+    if outlook_texts or "outlook" in placeholder_override:
+        doc.add_paragraph("")
+        r = doc.add_paragraph().add_run("OUTLOOK FOR NEXT FLIGHT")
+        r.bold = True
+        if outlook_texts:
+            for para in outlook_texts:
+                doc.add_paragraph(para)
+        else:
+            placeholder = placeholder_override.get(
+                "outlook", DEFAULT_PLACEHOLDERS["outlook"]
+            )
+            _placeholder(doc, placeholder)
+
+    # ---------- EXTRA TEXT (if any) ----------
+    extra_texts = text_by_section["extra"]
+    if extra_texts:
+        doc.add_paragraph("")
+        for para in extra_texts:
+            doc.add_paragraph(para)
+
+    # ---------- trailing figures ----------
+    _add_figures_for_section(doc, "end")
+
+    # save
+    doc.save(filepath)
+    return filepath
