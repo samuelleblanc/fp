@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: macos-13
+          - runner: macos-15-intel
             subdir: osx-64
           - runner: macos-14
             subdir: osx-arm64
