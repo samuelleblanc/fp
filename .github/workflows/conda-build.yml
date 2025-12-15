@@ -14,21 +14,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # macOS Intel
           - runner: macos-13
             subdir: osx-64
-          # macOS Apple Silicon
           - runner: macos-14
             subdir: osx-arm64
-          # Windows 64-bit
           - runner: windows-latest
             subdir: win-64
-          # Windows 32-bit
           - runner: windows-latest
             subdir: win-32
-          # Experimental — enable only if pure Python
-           - runner: windows-latest
-             subdir: win-arm64
+          - runner: windows-latest
+            subdir: win-arm64
 
     steps:
       - name: Checkout
