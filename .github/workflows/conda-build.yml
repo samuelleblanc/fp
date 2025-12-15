@@ -1,0 +1,60 @@
+name: conda-build (macos + windows)
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ "v*" ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ macos-latest, windows-latest ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Miniforge (conda-forge)
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-variant: Miniforge3
+          miniforge-version: latest
+          use-mamba: true
+          auto-activate-base: true
+          channels: conda-forge,defaults
+          channel-priority: strict
+
+      - name: Install build tools
+        shell: bash -l {0}
+        run: |
+          mamba install -y conda-build conda-verify pip
+          conda --version
+          conda-build --version
+
+      # If your conda_build_config.yaml is *inside* ./conda already,
+      # you can drop the -m line below (conda-build will find it automatically).
+      - name: Build recipe
+        shell: bash -l {0}
+        run: |
+          mkdir -p conda_pkgs
+          conda-build ./conda \
+            -m ./conda_build_config.yaml \
+            --output-folder ./conda_pkgs \
+            --no-anaconda-upload
+
+      - name: Show built packages
+        shell: bash -l {0}
+        run: |
+          find ./conda_pkgs -type f \( -name "*.conda" -o -name "*.tar.bz2" \) -print
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: conda-packages-${{ matrix.os }}
+          path: conda_pkgs/**
+          if-no-files-found: error
