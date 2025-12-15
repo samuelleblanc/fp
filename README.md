@@ -1,6 +1,6 @@
 # Name:
 
-Moving Lines, version 1.62
+Moving Lines, version 1.63
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1478125.svg)](https://doi.org/10.5281/zenodo.1478125)
 
@@ -401,6 +401,17 @@ Takes advantage of clickable map for creating a flight plan, and already existin
                 - Adding new excel columns to habndle the headwind, turn types, and potential for time points.
                 - Added sat.json for handling the geostationary satellite types
                 - Adding multiple new satellites descriptions.
+     Modified: Samuel LeBlanc, v1.63, 2025-11-19, Santa Cruz, CA
+                - Bug fix on tropical tidbits loading
+                - Bug fix on add points
+                - Changed units for nautical miles from [nm] to [Nmi]
+                - Turn time for overlfly and 90-270 refined (reduced)
+                - added automated docx creation
+                - modified the for piltos excel writer to use xlswriter (offline) instead of xlwings, to prevent mix-ups
+                - Adding the coast buffer indencation
+                - Fixed satellite tracks disapearing, and interplay with zoom button
+                - Added measurement tool
+                - Added help button
 
 
 # To cite:
