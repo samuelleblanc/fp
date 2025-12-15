@@ -38,29 +38,45 @@ jobs:
           auto-activate-base: true
           channels: conda-forge,defaults
           channel-priority: strict
-
-      - name: Install build tools
+          
+      # macOS / linux-like: bash is fine
+      - name: Install build tooling (macOS)
+        if: runner.os != 'Windows'
         shell: bash -l {0}
         run: |
           mamba install -y conda-build conda-verify pip
           conda --version
           conda-build --version
 
-      - name: Set conda build number
+      - name: Build (macOS)
+        if: runner.os != 'Windows'
         shell: bash -l {0}
         run: |
           echo "CONDA_BUILD_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
-
-      # If your conda_build_config.yaml is *inside* ./conda already,
-      # you can drop the -m line below (conda-build will find it automatically).
-      - name: Build recipe
-        shell: bash -l {0}
-        run: |
           mkdir -p conda_pkgs
           conda-build ./conda \
             --output-folder ./conda_pkgs \
             --no-anaconda-upload
 
+      # Windows: use PowerShell + conda run so PATH/activation isn't a problem
+      - name: Install build tooling (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          mamba install -n base -y conda-build conda-verify pip
+          conda --version
+          conda run -n base conda-build --version
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          echo "CONDA_BUILD_NUMBER=${{ github.run_number }}" | Out-File -FilePath $env:GITHUB_ENV -Append
+          New-Item -ItemType Directory -Force -Path conda_pkgs | Out-Null
+          conda run -n base conda-build .\conda `
+            --output-folder .\conda_pkgs `
+            --no-anaconda-upload
+            
       - name: Show built packages
         shell: bash -l {0}
         run: |
