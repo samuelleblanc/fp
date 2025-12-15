@@ -36,7 +36,7 @@ jobs:
           miniforge-version: latest
           use-mamba: true
           auto-activate-base: true
-          channels: conda-forge,defaults
+          channels: conda-forge
           channel-priority: strict
           
       # macOS / linux-like: bash is fine
@@ -63,9 +63,9 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          mamba install -n base -y conda-build conda-verify pip
-          conda --version
-          conda run -n base conda-build --version
+          mamba create -y -n build -c conda-forge python=3.11 conda-build conda-verify pip
+          conda run -n build conda-build --version
+          conda run -n build conda-verify --version
 
       - name: Build (Windows)
         if: runner.os == 'Windows'
@@ -73,7 +73,7 @@ jobs:
         run: |
           echo "CONDA_BUILD_NUMBER=${{ github.run_number }}" | Out-File -FilePath $env:GITHUB_ENV -Append
           New-Item -ItemType Directory -Force -Path conda_pkgs | Out-Null
-          conda run -n base conda-build .\conda `
+          conda run -n build conda-build .\conda `
             --output-folder .\conda_pkgs `
             --no-anaconda-upload
             
