@@ -1,10 +1,8 @@
 name: conda-build (macos + windows)
 
 on:
-  push:
-    branches: [ main ]
-    tags: [ "v*" ]
-  pull_request:
+  release:
+    types: [published]
   workflow_dispatch:
 
 jobs:
