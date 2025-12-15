@@ -13,7 +13,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ macos-latest, windows-latest ]
+        include:
+          # macOS Intel
+          - runner: macos-13
+            subdir: osx-64
+          # macOS Apple Silicon
+          - runner: macos-14
+            subdir: osx-arm64
+          # Windows 64-bit
+          - runner: windows-latest
+            subdir: win-64
+          # Windows 32-bit
+          - runner: windows-latest
+            subdir: win-32
+          # Experimental — enable only if pure Python
+           - runner: windows-latest
+             subdir: win-arm64
 
     steps:
       - name: Checkout
@@ -36,6 +51,11 @@ jobs:
           conda --version
           conda-build --version
 
+      - name: Set conda build number
+        shell: bash -l {0}
+        run: |
+          echo "CONDA_BUILD_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
+
       # If your conda_build_config.yaml is *inside* ./conda already,
       # you can drop the -m line below (conda-build will find it automatically).
       - name: Build recipe
@@ -43,7 +63,6 @@ jobs:
         run: |
           mkdir -p conda_pkgs
           conda-build ./conda \
-            -m ./conda/conda_build_config.yaml \
             --output-folder ./conda_pkgs \
             --no-anaconda-upload
 
