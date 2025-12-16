@@ -14,14 +14,19 @@ jobs:
         include:
           - runner: macos-15-intel
             subdir: osx-64
+            artifact: osx-64
           - runner: macos-14
             subdir: osx-arm64
+            artifact: osx-arm64
           - runner: windows-latest
             subdir: win-64
+            artifact: win-64
           - runner: windows-latest
             subdir: win-32
+            artifact: win-32
           - runner: windows-latest
             subdir: win-arm64
+            artifact: win-arm64
 
     steps:
       - name: Checkout
@@ -83,6 +88,6 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: conda-packages-${{ matrix.os }}
+          name: conda-${{ matrix.artifact }}-attempt${{ github.run_attempt }}
           path: conda_pkgs/**
           if-no-files-found: error
