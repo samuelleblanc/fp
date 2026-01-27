@@ -298,7 +298,9 @@ class LineBuilder:
         if event.inaxes!=self.line.axes: return
         self.press = None
         self.line.axes.format_coord = self.format_position_simple
-        
+        new_alt = None
+        if self.set_alt0:
+            new_alt = self.ex.alt[0]
         if self.contains:
             hlight = self.highlight_linepoint.findobj()[0]
             while hlight in self.line.axes.lines:
@@ -318,18 +320,15 @@ class LineBuilder:
             if self.ex:
                 if self.point_name:
                     alphanum = lambda some_string: ''.join(ch for ch in some_string if ch.isalnum())
-                    self.ex.appends(self.lats[-1],self.lons[-1],comm=self.point_name,wpname='{:X<5.5s}'.format(alphanum(self.point_name.upper())))    
+                    self.ex.appends(self.lats[-1],self.lons[-1],comm=self.point_name,wpname='{:X<5.5s}'.format(alphanum(self.point_name.upper())),alt=new_alt)    
                 else:
-                    self.ex.appends(self.lats[-1],self.lons[-1])
+                    self.ex.appends(self.lats[-1],self.lons[-1],alt=new_alt)
                 self.ex.calculate()
                 self.ex.write_to_excel()           
             self.xy = self.m.invert_lonlat(self.lons[-1],self.lats[-1])
         else:
             if self.ex:
-                if self.set_alt0:
-                    self.ex.appends(self.lats[-1],self.lons[-1],alt=self.ex.alt[0])
-                else:
-                    self.ex.appends(self.lats[-1],self.lons[-1])
+                self.ex.appends(self.lats[-1],self.lons[-1],alt=new_alt)
                 self.ex.calculate()
                 self.ex.write_to_excel()
         for lrc in self.line.range_circles:

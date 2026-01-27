@@ -1311,8 +1311,6 @@ class dict_position:
                     if not getattr(self,attr):
                         setattr(self,attr,0.0)
                 
-                
-
     def save2kml(self,filename=None):
         """
         Program to save the points contained in the spreadsheet to a kml file
@@ -1333,15 +1331,28 @@ class dict_position:
             filenamenet = filename+'_net.kml'
             #self.netkml.save(filenamenet)
         self.kml = simplekml.Kml()
+            
+        color_cycle = ['red','blue','green','cyan','magenta','yellow','black','lightcoral','teal','darkviolet','orange']
         for j in range(self.wb.sheets.count):
             self.switchsheet(j)
             self.name = self.wb.sheets(j+1).name
             self.check_xl()
             self.calculate()
-            self.kmlfolder = self.kml.newfolder(name=self.name)
+            if self.wb.sheets.count>1:
+                self.kmlfolder = self.kml.newfolder(name=self.name)
+            else:
+                self.kmlfolder = self.kml
             #self.kml.document = simplekml.Folder(name = self.name)
-            self.print_points_kml(self.kmlfolder)
+            self.print_points_kml(self.kmlfolder,color=color_cycle[j])
             self.print_path_kml(self.kmlfolder,color=self.color,j=j)
+        
+        # try to move the folder styles into the document styles:
+        try:
+            for substyle in self.kml.allstyles:
+                self.kml.document._addstyle(substyle)
+        except:
+            print('Styling error in the kml, but still printing')
+            pass
         self.kml.camera = simplekml.Camera(latitude=self.lat[0], longitude=self.lon[0], altitude=3000.0, roll=0, tilt=0,
                           altitudemode=simplekml.AltitudeMode.relativetoground)
         self.kml.save(filename)
@@ -1359,7 +1370,7 @@ class dict_position:
                 print('Not able to open google earth')
                 self.googleearthopened = True
 
-    def print_points_kml(self,folder,includepng=False):
+    def print_points_kml(self,folder,includepng=False,color='black'):
         """
         print the points saved in lat, lon
         """
@@ -1371,6 +1382,11 @@ class dict_position:
         if not self.kml:
             raise NameError('kml not initilaized')
             return
+        if color.strip().lower() in ['red','orange','blue','cyan','magenta','yellow','green']:
+            cl = '_'+color.strip().lower()
+        else:
+            cl = ''
+        
         for i in range(self.n):
             pnt = folder.newpoint()
             #pnt.name = 'WP # {}'.format(self.WP[i])
@@ -1378,15 +1394,21 @@ class dict_position:
             pnt.coords = [(self.lon[i],self.lat[i],self.alt[i]*10.0)]
             pnt.altitudemode = simplekml.AltitudeMode.relativetoground
             pnt.extrude = 1
+            
             if includepng:
                 try:
                     path = self.kml.addfile(get_curdir()+'//map_icons//number_{}.png'.format(self.WP[i]))
-                    pnt.style.iconstyle.icon.href = path
+                    icon_href = path
                 except:
-                    pnt.style.iconstyle.icon.href = get_curdir()+'//map_icons//number_{}.png'.format(self.WP[i])
+                    icon_href = get_curdir()+'//map_icons//number_{}.png'.format(self.WP[i])
             else:
-                 pnt.style.iconstyle.icon.href = 'https://www.samueleleblanc.com/img/icons/{}.png'.format(self.WP[i])
-            pnt.description = """WP=#%02f\nUTC[H]=%2.2f\nWPname=%s\nLocal[H]=%2.2f\nCumDist[km]=%f\nspeed[m/s]=%4.2f\ndelayT[min]=%f\nSZA[deg]=%3.2f\nAZI[deg]=%3.2f\nBearing[deg]=%3.2f\nClimbT[min]=%f\nTurn_type:%s\nComments:%s""" % (self.WP[i],
+                 icon_href = 'https://www.samueleleblanc.com/img/icons/{}{}.png'.format(self.WP[i],cl)
+            s = simplekml.Style()
+            s.iconstyle.icon.href = icon_href
+            s.iconstyle.scale = 1.0
+            s.labelstyle.scale = 0.0
+            pnt.style = s
+            pnt.description = """WP #%2.0f \nUTC[H]=%2.2f\nWPname=%s\nLocal[H]=%2.2f\nCumDist[km]=%f\nspeed[m/s]=%4.2f\ndelayT[min]=%f\nSZA[deg]=%3.2f\nAZI[deg]=%3.2f\nBearing[deg]=%3.2f\nClimbT[min]=%f\nTurn_type:%s\nComments:%s""" % (self.WP[i],
                                                                    self.utc[i],self.wpname[i],self.local[i],self.cumdist[i],
                                                                    self.speed[i],self.delayt[i],self.sza[i],
                                                                    self.azi[i],self.bearing[i],self.climb_time[i],str(self.turn_type[i]),self.comments[i])
@@ -1405,8 +1427,14 @@ class dict_position:
         path.coords = coords
         path.altitudemode = simplekml.AltitudeMode.relativetoground
         path.extrude = 1
-        path.style.linestyle.color = cls[j]
-        path.style.linestyle.width = 4.0
+        try:
+            s = simplekml.Style()
+            s.linestyle.color = cls[j]
+            s.linestyle.width = 4.0
+            path.style = s
+        except:          
+            path.style.linestyle.color = cls[j]
+            path.style.linestyle.width = 4.0
 
     def openGoogleEarth(self,filename=None):
         """

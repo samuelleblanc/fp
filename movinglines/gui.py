@@ -1907,6 +1907,9 @@ class gui:
             arr = ['{} : {}'.format(dict['name'],dict['website']) for dict in out]
             popup = Popup_list(arr,title='Select MSS server to load graphics capabilities')
             i = popup.var.get()
+            if popup.result is None:
+                self.line.tb.set_message('MSS Cancelled')
+                return                
         else:
             i=0
         self.line.tb.set_message('Selected MSS server: {}'.format(out[i]['name']))
@@ -2235,6 +2238,9 @@ class gui:
         self.root.config(cursor='')
         popup = Popup_list(arrs)
         ii = popup.var.get()
+        if popup.result is None:
+            print('WMS map selection cancelled')
+            return False, None, False
         if any([mss_crs,vert_crs]): 
             i = i_maps[ii]
         else:
@@ -2249,6 +2255,9 @@ class gui:
         if wms[cont[i]].timepositions:
             times = wms[cont[i]].timepositions
             jpop = Popup_list(times,title='Select Valid Times')
+            if jpop.result is None:
+                print('Valid Times selection cancelled')
+                return False, None, False
             time_sel = times[jpop.var.get()].strip()
             if '/' in time_sel:
                 tss = time_sel.split('/')
@@ -2279,6 +2288,9 @@ class gui:
         if wms[cont[i]].elevations:
             elevations = wms[cont[i]].elevations
             jpop = Popup_list(elevations,title='Select Valid Elevations')
+            if jpop.result is None:
+                print('Valid Elevations selection cancelled')
+                return False, None, False
             elev_sel = elevations[jpop.var.get()]
             kwargs['elevation'] = elev_sel
         else:
@@ -2302,6 +2314,9 @@ class gui:
                 srs = srss[0]
             else:
                 kpop = Popup_list(crss,title='No matching EPSG values, please select')
+                if kpop.result is None:
+                    print('EPSG values selection cancelled')
+                    return False, None, False
                 srs = crss[kpop.var.get()]
                 bbox_in = bbox
                 try:
@@ -2322,6 +2337,9 @@ class gui:
                 style_sel = style_list[0]
             else:
                 jpop = Popup_list(style,title='Select Style')
+                if jpop.result is None:
+                    print('Style selection cancelled')
+                    return False, None, False
                 style_sel = style_list[jpop.var.get()].strip()
             kwargs['styles'] = [style_sel]
         try:
@@ -2361,6 +2379,9 @@ class gui:
                     if len(inittime_sels) > 1:
                         self.init_progress._show_completion_animation(text=f'Select init time.')
                         jpop = Popup_list(inittime_sels,title='Select INIT_TIME')
+                        if jpop.result is None:
+                            print('INIT_TIME selection cancelled')
+                            return False, None, False
                         inittime_sel_1 = inittime_sels[jpop.var.get()]
                         inittime_sel = [inittime_sel_1]
                     if vert_crs:
