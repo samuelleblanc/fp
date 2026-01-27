@@ -188,7 +188,6 @@
                 - cleaning up the point styles for kml - for better plotting on MTS.
                 - bug fix on cancel button for MSS
                 - fixing up to ensure last point is on the ground.
-                
                 - bug fix to missing alt value when saving for pilot excel
                 
                  

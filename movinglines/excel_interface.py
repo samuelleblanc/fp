@@ -386,6 +386,23 @@ class dict_position:
         self.n = len(self.lon)
         self.WP = range(1,self.n+1)
         previous_spiral = False
+        # first check the first line altitudes:
+        if not(np.isfinite(self.alt_kft.astype(float)[0]) or np.isfinite(self.alt.astype(float)[0])):
+            self.alt[0] = self.profile.get('start_alt',0.0)
+            self.alt_kft[0] = self.alt[0]*3.28084/1000.0
+        elif not np.isfinite(self.alt_kft.astype(float)[0]):
+            self.alt_kft[0] = self.alt[0]*3.28084/1000.0
+        elif not np.isfinite(self.alt.astype(float)[0]):
+            self.alt[0] = self.alt_kft[0]*1000.0/3.28084
+        
+        if not(np.isfinite(self.speed_kts.astype(float)[0]) or np.isfinite(self.speed.astype(float)[0])):
+            self.speed[0] = self.calcspeed(self.alt[0],self.alt[0])
+            self.speed_kts[0] = self.speed[0]*1.94384449246
+        elif not np.isfinite(self.speed_kts.astype(float)[0]):
+            self.speed_kts[0] = self.speed[0]*1.94384449246
+        elif not np.isfinite(self.speed.astype(float)[0]):
+            self.speed[0] = self.speed_kts[0]/1.94384449246           
+                
         for i in range(self.n-1):
             self.dist[i+1] = mu.spherical_dist([self.lat[i],self.lon[i]],[self.lat[i+1],self.lon[i+1]])
             if np.isfinite(self.alt.astype(float)[i+1]):
