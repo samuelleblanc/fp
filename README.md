@@ -1,6 +1,6 @@
 # Name:
 
-Moving Lines, version 1.63
+Moving Lines, version 1.64
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1478125.svg)](https://doi.org/10.5281/zenodo.1478125)
 
@@ -412,6 +412,13 @@ Takes advantage of clickable map for creating a flight plan, and already existin
                 - Fixed satellite tracks disapearing, and interplay with zoom button
                 - Added measurement tool
                 - Added help button
+		Modified: Samuel LeBlanc, v1.64, 2026-01-27, Santa Cruz, CA
+                - cleaning up the point styles for kml - for better plotting on MTS.
+                - bug fix on cancel button for MSS
+                - fixing up to ensure last point is on the ground.
+                - bug fix to missing alt value when saving for pilot excel
+                - added function to flip order of a set number of points
+                - fixed problem with turn types and wrong amount of delay
 
 
 # To cite:
