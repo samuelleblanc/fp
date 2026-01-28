@@ -1,0 +1,93 @@
+name: conda-build (macos + windows)
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15-intel
+            subdir: osx-64
+            artifact: osx-64
+          - runner: macos-14
+            subdir: osx-arm64
+            artifact: osx-arm64
+          - runner: windows-latest
+            subdir: win-64
+            artifact: win-64
+          - runner: windows-latest
+            subdir: win-32
+            artifact: win-32
+          - runner: windows-latest
+            subdir: win-arm64
+            artifact: win-arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Miniforge (conda-forge)
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-variant: Miniforge3
+          miniforge-version: latest
+          use-mamba: true
+          auto-activate-base: true
+          channels: conda-forge
+          channel-priority: strict
+          
+      # macOS / linux-like: bash is fine
+      - name: Install build tooling (macOS)
+        if: runner.os != 'Windows'
+        shell: bash -l {0}
+        run: |
+          mamba install -y conda-build conda-verify pip
+          conda --version
+          conda-build --version
+
+      - name: Build (macOS)
+        if: runner.os != 'Windows'
+        shell: bash -l {0}
+        run: |
+          echo "CONDA_BUILD_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
+          mkdir -p conda_pkgs
+          conda-build ./conda \
+            --output-folder ./conda_pkgs \
+            --no-anaconda-upload
+
+      # Windows: use PowerShell + conda run so PATH/activation isn't a problem
+      - name: Install build tooling (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          mamba create -y -n build -c conda-forge python=3.11 conda-build conda-verify pip
+          conda run -n build conda-build --version
+          conda run -n build conda-verify --version
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          echo "CONDA_BUILD_NUMBER=${{ github.run_number }}" | Out-File -FilePath $env:GITHUB_ENV -Append
+          New-Item -ItemType Directory -Force -Path conda_pkgs | Out-Null
+          conda run -n build conda-build .\conda `
+            --output-folder .\conda_pkgs `
+            --no-anaconda-upload
+            
+      - name: Show built packages
+        shell: bash -l {0}
+        run: |
+          find ./conda_pkgs -type f \( -name "*.conda" -o -name "*.tar.bz2" \) -print
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: conda-${{ matrix.artifact }}-attempt${{ github.run_attempt }}
+          path: conda_pkgs/**
+          if-no-files-found: error
