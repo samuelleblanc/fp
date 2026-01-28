@@ -189,6 +189,8 @@
                 - bug fix on cancel button for MSS
                 - fixing up to ensure last point is on the ground.
                 - bug fix to missing alt value when saving for pilot excel
+                - added function to flip order of a set number of points
+                - fixed problem with turn types and wrong amount of delay
                 
                  
 """
@@ -589,20 +591,61 @@ def build_buttons(ui,lines,vertical=True):
     #g.removeflightpath = tk.Button(g.root,text='Remove flight path',
     #                               command = g.gui_removeflight)
     #g.removeflightpath.pack(in_=ui.top,padx=5,pady=5)
+    style = ttk.Style()
+    base = 'TButton'
+    tight = 'Tight.TButton'
+    style.layout(tight, style.layout(base))    
+    style.configure(tight, padding=(0, 0))
+    bg = style.lookup("TFrame", "background")
+    fg = style.lookup("TLabel", "foreground")
+    tk_rgb_to_hex = lambda rgb:"#%02x%02x%02x" % tuple(v // 256 for v in rgb)
+    hex_to_rgb8 = lambda h: tuple(int(h.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+    
+    def blend(hex1, hex2, t=0.25):
+        r1, g1, b1 = hex_to_rgb8(hex1)
+        r2, g2, b2 = hex_to_rgb8(hex2)
+        r = int(r1 + (r2 - r1) * t)
+        g = int(g1 + (g2 - g1) * t)
+        b = int(b1 + (b2 - b1) * t)
+        return f"#{r:02x}{g:02x}{b:02x}"
+        
+    accent_border = tk_rgb_to_hex(g.root.winfo_rgb("SystemHighlight"))
+    if not accent_border:    
+        accent_border = bg
+    hover_bg = blend('#fdfdfd', accent_border, t=0.18)    
+     
+    #style.layout(tight,[('Button.border', {'children': [('Button.focus', {'children': [('Button.padding', {'padding': (1, 0), 'children': [('Button.label', {'sticky': 'nswe'})], 'sticky': 'nswe'})], 'sticky': 'nswe'})], 'sticky': 'nswe'})])
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
-             ).pack(in_=ui.top,side=side,padx=8,pady=5)
+             ).pack(in_=ui.top,side=side,padx=3,pady=5)
     g.frame_points = ttk.Frame(ui.top)
     g.frame_points.pack(in_=ui.top,side=side,fill=tk.X,pady=2)
     ttk.Label(ui.top,text='Points:').pack(in_=g.frame_points,side=tk.LEFT)
-    g.addpoint = ttk.Button(g.root,text='Add',
-                           command = g.gui_addpoint)
-    g.addpoint.pack(in_=g.frame_points,padx=0,pady=0,side=tk.LEFT)
-    g.movepoints = ttk.Button(g.root,text='Move',
-                             command = g.gui_movepoints)
-    g.movepoints.pack(in_=g.frame_points,padx=0,pady=0,side=tk.LEFT)
-    g.rotpoints = ttk.Button(g.root,text='Rotate',
-                             command = g.gui_rotatepoints)
-    g.rotpoints.pack(in_=g.frame_points,padx=0,pady=0,side=tk.LEFT)
+    specs = [
+        ("addpoint",  "Add",    g.gui_addpoint),
+        ("movepoints","Move",   g.gui_movepoints),
+        ("rotpoints", "Rotate", g.gui_rotatepoints),
+        ("flippoints","Flip",   g.gui_fliporder),
+    ]
+
+    for attr, text, cmd in specs:
+        btn = tk.Button(g.frame_points , text=text, command=cmd, padx=4, pady=0, borderwidth=1,highlightthickness=0,bg=bg,fg=fg,activebackground=hover_bg,activeforeground=fg)
+        btn.bind("<Enter>", lambda e,b=btn: b.configure(bg=hover_bg,        highlightbackground=accent_border,        highlightcolor=accent_border))
+        btn.bind("<Leave>", lambda e,b=btn: b.configure(bg=bg,        highlightbackground=accent_border,        highlightcolor=accent_border))
+        btn.pack(side=tk.LEFT, padx=0, pady=0)
+        setattr(g, attr, btn) 
+    
+    #g.addpoint = ttk.Button(g.frame_points,text='Add',style=tight,
+    #                        command = g.gui_addpoint)
+    #g.addpoint.pack(in_=g.frame_points,padx=0,pady=0,side=tk.LEFT)
+    #g.movepoints = ttk.Button(g.frame_points,text='Move',style=tight,
+    #                         command = g.gui_movepoints)
+    #g.movepoints.pack(in_=g.frame_points,padx=0,pady=0,side=tk.LEFT)
+    #g.rotpoints = ttk.Button(g.frame_points,text='Rotate',style=tight,
+    #                         command = g.gui_rotatepoints)
+    #g.rotpoints.pack(in_=g.frame_points,padx=0,pady=0,side=tk.LEFT)
+    #g.flippoints = ttk.Button(g.frame_points,text='Flip',style=tight,
+    #                         command = g.gui_fliporder)
+    #g.flippoints.pack(in_=g.frame_points,padx=0,pady=0,side=tk.LEFT)
     g.add_flt_module = ttk.Button(g.root,text='Add flt module', command=g.gui_flt_module)
     g.add_flt_module.pack(in_=ui.top)
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'

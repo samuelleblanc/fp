@@ -1276,6 +1276,30 @@ class gui:
         self.line.movepoint(0,0,0,last=True)
         self.line.moving = False
         
+    def gui_fliporder(self):
+        'GUI button to flip order of many points at once'
+        try:
+            from gui import Select_flights
+        except ModuleNotFoundError:
+            from .gui import Select_flights
+        wp_arr = []
+        for w in self.line.ex.WP:
+            wp_arr.append('WP #%i'%w)
+        try:
+            p = Popup_list(wp_arr,title='Flip order',Text='Select points to flip their order:',multi=True)
+            if p.result is None:
+                return
+            idx = list(p.result)
+            self.line.moving = True
+            self.line.fliporder(idx,exclude=['utc','UTC','local','lons','p_info','labels_points'])
+            self.line.moving = False
+        except Exception as ei:
+            import tkinter.messagebox as tkMessageBox
+            tkMessageBox.showwarning('Sorry','Error occurred unable to flip order of points')
+            print(f'Error flipping points: {ei}',)
+        return
+        
+        
     def gui_addsat(self,label_sep=20):
         'Gui button to add the satellite tracks'
         from tkinter.messagebox import askquestion

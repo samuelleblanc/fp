@@ -483,7 +483,7 @@ class dict_position:
             self.turn_time[i+1] = (self.turn_deg[i+1]*self.rate_of_turn)/60.0 + self.get_time_to_fly_turn_radius_by_turn_type(i+1,self.turn_type[i+1].lower())
             turn_time_as_delay = False
             if not np.isfinite(self.delayt.astype(float)[i+1]):
-                self.delayt[i+1] = self.turn_time[i+1]
+                self.delayt[i+1] = 0.0 #self.turn_time[i+1]
                 turn_time_as_delay = True
             #else:
             #    self.delayt[i+1] = self.delayt[i+1]+self.turn_time[i+1]
@@ -1073,10 +1073,12 @@ class dict_position:
         if not self.turn_type[i] == turntype:
             if turntype: 
                 self.turn_type[i] = turntype
+                self.delayt[i] = None
                 changed = True
             if turntype==' ':
                 self.turn_type[i] = ' '
                 changed = True
+                self.delayt[i] = None
         return changed
 
     def Open_excel(self,filename=None,sheet_num=1,campaign='None',platform_file='platform.txt'):

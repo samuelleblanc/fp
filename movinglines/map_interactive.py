@@ -918,6 +918,45 @@ class LineBuilder:
             self.get_bg(redraw=True)
             self.draw_canvas()
             
+    def fliporder(self,idx,include=None, exclude=None,axis=0):
+        'Program to flip the order of points'
+        idx = np.asarray(idx, dtype=int)
+        idx_rev = idx[::-1]
+        attrs = list(vars(self.ex).keys())        
+        ex = set(exclude or [])
+        if include:
+            inc = set(include)
+            attrs = [a for a in attrs if a in inc]
+        attrs = [a for a in attrs if a not in ex]
+        
+        for name in attrs:
+            val = getattr(self.ex, name)
+
+            if isinstance(val, np.ndarray):
+                if val.ndim == 0 or idx.max() >= val.shape[axis]:
+                    continue
+                subset = np.take(val, idx, axis=axis)
+                # write back reversed subset
+                sl = [slice(None)] * val.ndim
+                sl[axis] = idx
+                val[tuple(sl)] = np.take(subset, np.arange(len(idx)-1, -1, -1), axis=0)
+                continue
+
+            if isinstance(val, list):
+                if idx.max() >= len(val):
+                    continue
+                tmp = [val[i] for i in idx]
+                for dest_i, newval in zip(idx, tmp[::-1]):
+                    val[dest_i] = newval
+                continue  
+        if self.ex:
+            self.ex.calculate()
+            self.ex.write_to_excel()
+        self.line.figure.canvas.draw()
+        self.update_labels(updatexys=True)
+        self.get_bg(redraw=True)
+        self.draw_canvas()
+            
     def parse_flt_module_file(self,filename):
         """
         Program that opens a macro file and parses it, runs the move commands on each line of the file
