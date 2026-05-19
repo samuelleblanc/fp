@@ -74,6 +74,9 @@ class gui:
         Modified: Samuel LeBlanc, 2020-01-13, Santa Cruz, CA
                   - added screen geometry calculator
                   - reformat of flt_module list to have mutiple columns
+        Modified: Samuel LeBlanc, 2026-03-06, Santa Cruz, CA
+                 - added more colors in the color cycle
+                 
                   
     """
     def __init__(self,line=None,root=None,noplt=False,debug=False):
@@ -87,7 +90,7 @@ class gui:
         self.iactive = tk.IntVar()
         self.iactive.set(0)
         self.colors = ['red']
-        self.colorcycle = ['red','blue','green','cyan','magenta','yellow','black','lightcoral','teal','darkviolet','orange']
+        self.colorcycle = ['red','blue','green','cyan','magenta','yellow','black','lightcoral','teal','darkviolet','orange','tab:red','tab:blue','tab:green','tab:cyan','tab:purple','tab:olive','tab:gray','tab:orange','tab:brown']
         self.get_geometry()
         self.geotiff_path = os.path.relpath('elevation_10KMmd_GMTEDmd.tif')
         self.pptx_point_format = '..{deltat_min} minutes from previous\n#{i:02.0f} - {utc_str} UTC, {wpname}:{Comment}'
@@ -2248,6 +2251,7 @@ class gui:
             print(ie)
             self.root.config(cursor='')
             tkMessageBox.showwarning('Sorry','Loading WMS map file from '+website.split('/')[2]+' servers not working...')
+            import ipdb; ipdb.set_trace()
             return False, None, False
         titles = [wms[c].title for c in cont]
         arr = [x.split('-')[-1]+':  '+y for x,y in zip(cont,titles)]
@@ -2697,10 +2701,10 @@ class gui:
     def gui_get_headwind(self):
         'Interpolates to a small set of times, then pulls and calculates the headwinds from GFS for nearest forecast time'
         try:
-            import GFS_interp_utils as gfs
+            import GFS_interp_utils_v2 as gfs
             import map_utils as mu
         except ModuleNotFoundError:
-            from . import GFS_interp_utils as gfs
+            from . import GFS_interp_utils_v2 as gfs
             from . import map_utils as mu
         from datetime import datetime, timedelta
         import tkinter.messagebox as tkMessageBox
@@ -2712,12 +2716,18 @@ class gui:
         
         # setup the progress bar and get the url
         Progress = ProgressWindow(self.root,total_steps=100,title='Loading the GFS headwind calc')
-        url = gfs.gfs_opendap_url(datetime.now().strftime('%Y-%m-%d'))
-        val_time = datetime.strptime(self.line.ex.datestr,'%Y-%m-%d')+timedelta(np.nanmean(self.line.ex.utc)/24.0)
+        #url = gfs.gfs_opendap_url(datetime.now().strftime('%Y-%m-%d'))
+        try:
+            gfsdate,gfsutctun,targetutc = gfs.latest_gfs_cycle(self.line.ex.datestr,np.nanmean(self.line.ex.utc))
+            url = gfs.fetch_gfs_partial_grib(day_str=gfsdate,hour_utc=gfsutctun,forecast_hour=targetutc,progress_cb=Progress.set_val)
+        except Exception as ie:
+            Progress.close_immediately()
+            tkMessageBox.showwarning('Sorry',f'Problem getting url/grib file for headwinds: {ie}')
+            return
         
         #now load the GFS from the external helper python
         try:
-            
+            val_time = datetime.strptime(self.line.ex.datestr,'%Y-%m-%d')+timedelta(hours=np.nanmean(self.line.ex.utc))
             res = gfs.compute_headwinds(source=url,latlons=latlons,headings_deg=None,altitudes_m=self.line.ex.alt,
                                     target_valid_time=val_time, forecast_hour=None,allow_extrapolation=True,
                                     progress_cb=Progress.set_val,cancel_cb=Progress.cancel_cb)
