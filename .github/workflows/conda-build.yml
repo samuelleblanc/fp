@@ -81,7 +81,8 @@ jobs:
             -c conda-forge `
             --override-channels `
             --output-folder .\conda_pkgs `
-            --no-anaconda-upload
+            --no-anaconda-upload `
+            --dirty
             
       - name: Show built packages
         shell: bash -l {0}
