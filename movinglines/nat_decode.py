@@ -11,8 +11,8 @@ import requests
 # -----------------------------
 # FAA NAT source (NOTAM-style)
 # -----------------------------
-NAT_URL = "https://www.notams.faa.gov/common/nat.html"
-
+#NAT_URL = "https://www.notams.faa.gov/common/nat.html"
+NAT_URL = "https://notams.aim.faa.gov/nat.html"
 # -----------------------------
 # Optional: open datasets to resolve named points (fixes/navaids)
 # OurAirports navaids (VOR, NDB, VORTAC, etc.) — public domain

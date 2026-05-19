@@ -2001,7 +2001,7 @@ def fetch_latest_tle(satCatalogNumber=None,sat="PACE"):
         satCatalogNumber = satToCatalogNumber[sat]
 
     url = (f"https://celestrak.org/NORAD/elements/gp.php?"
-           f"CATNR={satCatalogNumber}")
+           f"CATNR={satCatalogNumber}&FORMAT=TLE")
     response = requests.get(url)
     tle_lines = response.text.splitlines()
     return tle_lines[1:3]

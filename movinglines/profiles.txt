@@ -1,3 +1,15 @@
+{'Profile':'INSPYRE-ER2','Plane_name':'ER2',
+                 'Start_lon':'111.367513W','Start_lat':'47.480439N',
+                 'Lon_range':[-123,-95],'Lat_range':[35,55],
+                 'UTC_start':15.0,'UTC_conversion':-6.0,
+                 'start_alt':1122,
+                 'waypoint_format':'{x.name[0]}{x.datestr.split("-")[2]}{w:02d}'}
+{'Profile':'INSPYRE-GV','Plane_name':'GV',
+                 'Start_lon':'105.115706W','Start_lat':'39.908605N',
+                 'Lon_range':[-123,-95],'Lat_range':[33,52],
+                 'UTC_start':15.0,'UTC_conversion':-6.0,
+                 'start_alt':1729,
+                 'waypoint_format':'{x.name[0]}{x.datestr.split("-")[2]}{w:02d}'}
 {'Profile':'NURTURE2026','Plane_name':'GIII',
                  'Start_lon':'60 25 33W','Start_lat':'53 19 09N', 
                  'Lon_range':[-100,-30],'Lat_range':[35,80],
