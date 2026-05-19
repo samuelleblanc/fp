@@ -61,7 +61,7 @@ jobs:
           fi
 
       - name: Checkout
-        if: steps.filter.outputs.run == 'true'
+#        if: steps.filter.outputs.run == 'true'
         uses: actions/checkout@v4
 
       - name: Setup Miniforge (conda-forge)
@@ -77,6 +77,7 @@ jobs:
       # macOS / linux-like: bash is fine
       - name: Install build tooling (macOS)
         if: runner.os != 'Windows'
+        if: steps.filter.outputs.run == 'true'
         shell: bash -l {0}
         run: |
           mamba install -y conda-build conda-verify pip
@@ -85,6 +86,7 @@ jobs:
 
       - name: Build (macOS)
         if: runner.os != 'Windows'
+        if: steps.filter.outputs.run == 'true'
         shell: bash -l {0}
         run: |
           echo "CONDA_BUILD_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
@@ -96,6 +98,7 @@ jobs:
       # Windows: use PowerShell + conda run so PATH/activation isn't a problem
       - name: Install build tooling (Windows)
         if: runner.os == 'Windows'
+        if: steps.filter.outputs.run == 'true'
         shell: pwsh
         run: |
           mamba create -y -n build -c conda-forge python=3.11 conda-build conda-verify pip
@@ -104,6 +107,7 @@ jobs:
 
       - name: Build (Windows)
         if: runner.os == 'Windows'
+        if: steps.filter.outputs.run == 'true'
         shell: pwsh
         run: |
           $env:CONDA_BUILD_NUMBER = "${{ github.run_number }}"
@@ -118,6 +122,7 @@ jobs:
 
       - name: Test (Windows)
         if: runner.os == 'Windows'
+        if: steps.filter.outputs.run == 'true'
         shell: pwsh
         run: |
           $pkg = Get-ChildItem -Recurse -Path .\conda_pkgs -Filter "*.conda" | Select-Object -First 1
