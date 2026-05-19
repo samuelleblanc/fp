@@ -4,6 +4,16 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Which platform(s) to build'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - windows-only
+          - macos-only
 
 jobs:
   build:
@@ -15,21 +25,43 @@ jobs:
           - runner: macos-15-intel
             subdir: osx-64
             artifact: osx-64
+            os_group: macos
           - runner: macos-14
             subdir: osx-arm64
             artifact: osx-arm64
+            os_group: macos
           - runner: windows-latest
             subdir: win-64
             artifact: win-64
+            os_group: windows
           - runner: windows-latest
             subdir: win-32
             artifact: win-32
+            os_group: windows
           - runner: windows-latest
             subdir: win-arm64
             artifact: win-arm64
-
+            os_group: windows
+            
+    if: >-
+      github.event_name == 'release' ||
+      github.event.inputs.platform == 'all'
+      
     steps:
+      - name: Check platform filter
+        id: filter
+        shell: bash
+        run: |
+          PLATFORM="${{ github.event.inputs.platform || 'all' }}"
+          OS_GROUP="${{ matrix.os_group }}"
+          if [[ "$PLATFORM" == "all" || "$PLATFORM" == "${OS_GROUP}-only" ]]; then
+            echo "run=true" >> $GITHUB_OUTPUT
+          else
+            echo "run=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Checkout
+        if: steps.filter.outputs.run == 'true'
         uses: actions/checkout@v4
 
       - name: Setup Miniforge (conda-forge)
@@ -82,7 +114,21 @@ jobs:
             --override-channels `
             --output-folder .\conda_pkgs `
             --no-anaconda-upload `
-            --dirty
+            --no-test
+
+      - name: Test (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $pkg = Get-ChildItem -Recurse -Path .\conda_pkgs -Filter "*.conda" | Select-Object -First 1
+          mamba create -y -n test -c conda-forge -c ./conda_pkgs movinglines
+
+          $prefix = conda run -n test python -c "import sys; print(sys.prefix)"
+          $env:PATH = "$prefix\Library\bin;$env:PATH"
+
+          # Run your non-GUI tests
+          conda run -n test python -c "import movinglines; print('import OK')"
+          conda run -n test python -c "import os, movinglines; pkg_dir = os.path.dirname(movinglines.__file__); assert os.path.exists(os.path.join(pkg_dir, 'your_file.txt')), 'Missing file!'"
             
       - name: Show built packages
         shell: bash -l {0}
