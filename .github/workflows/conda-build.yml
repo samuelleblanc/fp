@@ -79,7 +79,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path conda_pkgs | Out-Null
           conda run -n build conda-build .\conda `
             -c conda-forge `
-            --channel-priority strict `
+            --override-channels `
             --output-folder .\conda_pkgs `
             --no-anaconda-upload
             
