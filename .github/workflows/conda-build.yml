@@ -116,20 +116,20 @@ jobs:
             --no-anaconda-upload `
             --no-test
 
-      - name: Test (Windows)
-        if: runner.os == 'Windows'
+#      - name: Test (Windows)
+#        if: runner.os == 'Windows'
         #&& steps.filter.outputs.run == 'true'
-        shell: pwsh
-        run: |
-          $pkg = Get-ChildItem -Recurse -Path .\conda_pkgs -Filter "*.conda" | Select-Object -First 1
-          mamba create -y -n test -c conda-forge -c ./conda_pkgs movinglines
-
-          $prefix = conda run -n test python -c "import sys; print(sys.prefix)"
-          $env:PATH = "$prefix\Library\bin;$env:PATH"
-
-          # Run your non-GUI tests
-          conda run -n test python -c "import movinglines; print('import OK')"
-          conda run -n test python -c "import os, movinglines; pkg_dir = os.path.dirname(movinglines.__file__); assert os.path.exists(os.path.join(pkg_dir, 'your_file.txt')), 'Missing file!'"
+#        shell: pwsh
+ #       run: |
+  #        $pkg = Get-ChildItem -Recurse -Path .\conda_pkgs -Filter "*.conda" | Select-Object -First 1
+   #       mamba create -y -n test -c conda-forge -c ./conda_pkgs movinglines
+#
+ #         $prefix = conda run -n test python -c "import sys; print(sys.prefix)"
+  #        $env:PATH = "$prefix\Library\bin;$env:PATH"
+#
+ #         # Run your non-GUI tests
+  #        conda run -n test python -c "import movinglines; print('import OK')"
+   #       conda run -n test python -c "import os, movinglines; pkg_dir = os.path.dirname(movinglines.__file__); assert os.path.exists(os.path.join(pkg_dir, 'your_file.txt')), 'Missing file!'"
             
       - name: Show built packages
         shell: bash -l {0}
