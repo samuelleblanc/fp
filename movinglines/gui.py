@@ -2607,7 +2607,10 @@ class gui:
         xlim = self.line.m.llcrnrlon,self.line.m.urcrnrlon
         try: 
             if flip:
-                imm = geos.transpose(Image.FLIP_TOP_BOTTOM)
+                try:
+                    imm = geos.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+                except AttributeError:
+                    imm = geos.transpose(Image.FLIP_TOP_BOTTOM)
             else:
                 imm = geos
             self.line.addfigure_under(geos,ylim[0],xlim[0],ylim[1],xlim[1],text=text,alpha=alpha,name=name,**kwargs)
@@ -2843,7 +2846,10 @@ class Select_flt_mod(tkSimpleDialog.Dialog):
         for i,l in enumerate(keys):
             try:
                 im = Image.open(self.flt_mods[l]['png'])
-                resized = im.resize((60, 60),Image.ANTIALIAS)
+                try:
+                    resized = im.resize((60, 60), Image.Resampling.LANCZOS)
+                except AttributeError:
+                    resized = im.resize((60, 60), Image.ANTIALIAS)
                 photo = ImageTk.PhotoImage(resized)
                 try:
                     bu = tk.Radiobutton(master,text=l, variable=self.flt,value=l,image=photo,compound='left')
