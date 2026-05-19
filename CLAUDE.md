@@ -135,6 +135,10 @@ The existing codebase has no type annotations. Do not add them unless the user e
 
 The codebase prefers a succinct coding style, with most functions calls on a single line. 
 
+### Try to restrict import of new modules
+
+The codebase is meant for distribution within a conda package manager. Any new module import puts a potential new issue, therefore now modules should be limited, and directly asked to the user before building. If an acceptable python and current imported modules derived function is available, that should be prioritised.
+
 ---
 
 ## Development Notes
