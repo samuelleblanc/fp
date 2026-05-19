@@ -72,7 +72,9 @@ test:
     - ml -d
     - python -c "import movinglines; print(getattr(movinglines, '__version__', 'ok'))"
     - python -c "import flightplandb; print(getattr(flightplandb, '__version__', 'ok'))"
-    
+  requires:
+    - pillow>=9.0.0
+    - matplotlib-base
 
 about:
   summary: 'Moving Lines - Research flight planner'
