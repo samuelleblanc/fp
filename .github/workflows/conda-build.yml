@@ -43,7 +43,7 @@ jobs:
             artifact: win-arm64
             os_group: windows
       
-#    steps:
+    steps:
 #      - name: Check platform filter
 #        id: filter
 #        shell: bash
