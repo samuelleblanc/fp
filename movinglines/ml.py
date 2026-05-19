@@ -191,6 +191,10 @@
                 - bug fix to missing alt value when saving for pilot excel
                 - added function to flip order of a set number of points
                 - fixed problem with turn types and wrong amount of delay
+        Modified: Samuel LeBlanc, v1.65, 2026-05-18, Santa Cruz, CA
+                - Update loading of headwinds using grib instead of the dddirect nomads
+                - update the TLE for update sat.tle from celestrak
+                - fix for SUA, becuase website has updated.
                 
                  
 """

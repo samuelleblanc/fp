@@ -1955,11 +1955,11 @@ class gui:
             
     def gui_add_SUA_WMS(self):
         'Button to add Special Use Airspace WMS layer'
-        import tkinter.messagebox as tkMessageBox
-        tkMessageBox.showwarning('SUA for US only','Special Use Airspace for US only')
+        #import tkinter.messagebox as tkMessageBox
+        #tkMessageBox.showwarning('SUA for US only','Special Use Airspace for US only')
         img,label,img_leg = self.add_WMS(website='https://sua.faa.gov/geoserver/wms?LAYERS=SUA',
                          printurl=True,notime=True,popup=False,
-                         cql_filter='low_altitude<240',hires=True)
+                         cql_filter='low_altitude<240',hires=True,select_cont_str='schedule')
         if img:
             r = self.add_wms_images(img,img_leg,name='SUA',alpha=0.5,text=label)
             if r:
@@ -2213,7 +2213,7 @@ class gui:
             
     def add_WMS(self,website='http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx',
                 printurl=False,notime=False,popup=False,cql_filter=None,hires=False,
-                vert_crs=False,mss_crs=False,xlim=None,ylim=None,bbox=None,**kwargs): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
+                vert_crs=False,mss_crs=False,xlim=None,ylim=None,bbox=None,select_cont_str=None,**kwargs): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
         'GUI handler for adding the figures from WMS support of GEOS'
         try:
             from gui import Popup_list,inittime_sel_fx
@@ -2245,13 +2245,13 @@ class gui:
             from PIL import Image
             print('Loading WMS from :'+website.split('/')[2])
             self.line.tb.set_message('Loading WMS from :'+website.split('/')[2])
-            wms = WebMapService(website)
+            custom_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+            wms = WebMapService(website, headers=custom_headers)
             cont = list(wms.contents)
         except Exception as ie:
             print(ie)
             self.root.config(cursor='')
             tkMessageBox.showwarning('Sorry','Loading WMS map file from '+website.split('/')[2]+' servers not working...')
-            import ipdb; ipdb.set_trace()
             return False, None, False
         titles = [wms[c].title for c in cont]
         arr = [x.split('-')[-1]+':  '+y for x,y in zip(cont,titles)]
@@ -2263,12 +2263,19 @@ class gui:
         elif vert_crs:
             i_maps = [i for i,m in enumerate(cont) if '.VS' in m]
             arrs = [arr[i] for i in i_maps]
-        self.root.config(cursor='')
-        popup = Popup_list(arrs)
-        ii = popup.var.get()
-        if popup.result is None:
-            print('WMS map selection cancelled')
-            return False, None, False
+        target_idx = None
+        if select_cont_str:
+            target_string = select_cont_str.lower()
+            target_idx = next((i for i, k in enumerate(cont) if target_string in str(wms.contents[k].title).lower() or target_string in str(k).lower()), None)
+        if not target_idx:
+            self.root.config(cursor='')
+            popup = Popup_list(arrs)
+            ii = popup.var.get()
+            if popup.result is None:
+                print('WMS map selection cancelled')
+                return False, None, False
+        else:
+            ii = target_idx
         if any([mss_crs,vert_crs]): 
             i = i_maps[ii]
         else:
@@ -2424,6 +2431,7 @@ class gui:
                             (datetime.now()- timedelta(days = 1)).strftime('%Y-%m-%d')+'T06:00Z',
                             (datetime.now()- timedelta(days = 1)).strftime('%Y-%m-%d')+'T00:00Z',
                             time_sel]
+                self.init_progress = ProgressWindow(self.root,total_steps=len(inittime_sel),title='Verifying init times')
 
             label = '{}: {}[{}]\n {}'.format(cont[i],wms_layer_title,kwargs.get('styles',['default'])[0],time_sel)
             if elev_sel:
@@ -2439,7 +2447,7 @@ class gui:
                 self.init_progress.close_immediately()
                 
             tkMessageBox.showwarning('Sorry','Problem getting the limits and time of the image')
-            import ipdb; ipdb.set_trace()
+            #import ipdb; ipdb.set_trace()
             return False, None, False
         if not bbox: bbox = (xlim[0],ylim[0],xlim[1],ylim[1])
         #import ipdb; ipdb.set_trace()
@@ -2620,7 +2628,7 @@ class gui:
         self.root.update()
         return True
         
-    def rm_WMS(self,name='GEOS',button=None,newcommand=None):
+    def rm_WMS(self,name='GEOS',button=None,newcommand=None,button_text=None):
         'core of removing the WMS plots on the figure and relinking command'
         self.line.tb.set_message('Removing {} figure under'.format(name))
         try:
@@ -2658,7 +2666,10 @@ class gui:
             self.line.tb.set_message('Removing legend problem')
         button_label = button.config()['text'][-1]
         button.config(command=newcommand,style=self.bg)
-        button.config(text='Add {} layer'.format(name))
+        if button_text:
+            button.config(text=button_text)
+        else:
+            button.config(text='Add {} layer'.format(name))
         self.line.get_bg(redraw=True)
         
     def gui_rmgeos(self):
@@ -2675,7 +2686,7 @@ class gui:
         
     def gui_rm_SUA_WMS(self):
         'Button to add Special Use Airspace WMS layer'
-        self.rm_WMS(name='SUA',button=self.baddsua,newcommand=self.gui_add_SUA_WMS)
+        self.rm_WMS(name='SUA',button=self.baddsua,newcommand=self.gui_add_SUA_WMS,button_text='Special Use Airspace\n[USA]')
             
     def gui_flt_module(self):
         'Program to load the flt_module files and select'
