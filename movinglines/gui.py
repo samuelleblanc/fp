@@ -2225,6 +2225,9 @@ class gui:
         import tkinter.messagebox as tkMessageBox
         import cartopy.crs as ccrs
         from datetime import datetime, timedelta
+        if self.debug:
+            self.setup_logging()
+        
         if hires:
             res = (2160,1680)
         else:
@@ -2246,7 +2249,9 @@ class gui:
             print('Loading WMS from :'+website.split('/')[2])
             self.line.tb.set_message('Loading WMS from :'+website.split('/')[2])
             custom_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+            #WebMapService.getmap = clean_wms_args(WebMapService.getmap)
             wms = WebMapService(website, headers=custom_headers)
+            wms.getmap = clean_wms_args(wms.getmap)
             cont = list(wms.contents)
         except Exception as ie:
             print(ie)
@@ -2483,6 +2488,7 @@ class gui:
                     self.root.update()
                     tkMessageBox.showwarning('Sorry','Problem getting the image from WMS server: '+website.split('/')[2]+'\nError: {}'.format(ie))
                     self.init_progress._close_window()
+                    #website = self.wms_full_url_print(wms, layers=[cont[i]],style='default',bbox=bbox, size=res, transparent=True, time=time_sel, srs=srs, format='image/png', dim_init_time=dim_init, CQL_filter=cql_filter, timeout=90,**kwargs)
                     try:
                         print(website)
                     except:
@@ -2532,6 +2538,35 @@ class gui:
                 return False, None, False
         return geos, label, geos_legend
         
+    def setup_logging(self):
+        #logging
+        import logging
+        import http.client
+
+        # Enable low-level HTTP logging
+        http.client.HTTPConnection.debuglevel = 1
+        log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(log_formatter)
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.DEBUG)
+        root_logger.addHandler(console_handler)
+        logging.getLogger("urllib3").setLevel(logging.DEBUG)
+        logging.getLogger("requests").setLevel(logging.DEBUG)        
+    
+    def wms_full_url_print(self,wms,**kwargs):
+        'prints the full url from the wms call'
+        methods_list = wms.getOperationByName('GetMap').methods
+        base_url = None
+        if not base_url and methods_list:
+            base_url = methods_list[0].get('url')
+        #base_url = wms.getOperationByName('GetMap').methods['Get']['url']
+        wms_request = wms.getmap_options(**kwargs)
+
+        encoded_params = urllib.parse.urlencode(wms_request)
+        full_url = f"{base_url}?{encoded_params}" if "?" not in base_url else f"{base_url}&{encoded_params}"
+        print(f'Error with WMS at full url: {full_url}')
+        return(full_url)
         
     def verify_init_times_threaded(self, wms, cont, i, time_sel, inittime_sel, srs, cql_filter, vert_crs, kwargs):
         """
@@ -4410,3 +4445,17 @@ def get_coordinates_and_projection(parent=None, title="Image Coordinates and Pro
     """
     dialog = CoordinateProjectionDialog(parent, title)
     return dialog.result        
+    
+#wrapper
+from functools import wraps
+
+def clean_wms_args(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # Filter out anything that is None, "None", or empty string
+        clean_kwargs = {
+            k: v for k, v in kwargs.items()
+            if v is not None and str(v).strip() != "None" and str(v).strip() != ""
+        }
+        return func(*args, **clean_kwargs)
+    return wrapper

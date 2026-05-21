@@ -197,6 +197,7 @@
                 - fix for SUA, becuase website has updated.
         Modified: Samuel LeBlanc, v1.66, 2026-05-21, Santa Cruz, CA
                 - fixed turn time issue not updating.
+                - fixed some problematic WMS links
                 
                  
 """
