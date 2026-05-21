@@ -22,14 +22,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
- #         - runner: macos-15-intel
- #           subdir: osx-64
- #           artifact: osx-64
- #           os_group: macos
- #         - runner: macos-14
- #           subdir: osx-arm64
- #           artifact: osx-arm64
- #           os_group: macos
+          - runner: macos-15-intel
+            subdir: osx-64
+            artifact: osx-64
+            os_group: macos
+          - runner: macos-14
+            subdir: osx-arm64
+            artifact: osx-arm64
+            os_group: macos
           - runner: windows-latest
             subdir: win-64
             artifact: win-64
@@ -113,8 +113,7 @@ jobs:
             -c conda-forge `
             --override-channels `
             --output-folder .\conda_pkgs `
-            --no-anaconda-upload `
-            --no-test
+            --no-anaconda-upload
 
 #      - name: Test (Windows)
 #        if: runner.os == 'Windows'
