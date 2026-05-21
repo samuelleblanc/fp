@@ -85,6 +85,7 @@ jobs:
         #&& steps.filter.outputs.run == 'true'
         shell: bash -l {0}
         run: |
+          $env:CONDA_BUILD_NUMBER = "${{ github.run_number }}"
           echo "CONDA_BUILD_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
           mkdir -p conda_pkgs
           conda-build ./conda \
