@@ -481,10 +481,10 @@ class dict_position:
                     self.turn_deg[i+1] = 2*self.turn_deg[i+1] #roughly double the turn deg
                     
             self.turn_time[i+1] = (self.turn_deg[i+1]*self.rate_of_turn)/60.0 + self.get_time_to_fly_turn_radius_by_turn_type(i+1,self.turn_type[i+1].lower())
-            turn_time_as_delay = False
+            #turn_time_as_delay = False
             if not np.isfinite(self.delayt.astype(float)[i+1]):
                 self.delayt[i+1] = 0.0 #self.turn_time[i+1]
-                turn_time_as_delay = True
+            #    turn_time_as_delay = True
             #else:
             #    self.delayt[i+1] = self.delayt[i+1]+self.turn_time[i+1]
             self.climb_time[i+1] = self.calc_climb_time(self.alt[i],self.alt[i+1]) #defaults to P3 speed
@@ -496,17 +496,20 @@ class dict_position:
             
             if not np.isfinite(self.dist[i+1]): print(f'*** dist for {i+1} is not finite ***') 
             spiral = False
-            if self.legt[i+1] < self.climb_time[i+1]/60.0:
+            if (self.legt[i+1]+0.5/60) < self.climb_time[i+1]/60.0: #fudge factor of 30 seconds
                 self.legt[i+1] = self.climb_time[i+1]/60.0
                 spiral = True
                 if not np.isfinite(self.climb_time[i+1]): print(f'*** climb_time for {i+1} is not finite ***')
             self.legt[i+1] += self.delayt[i+1]/60.0
             if not np.isfinite(self.delayt[i+1]):
                 print(f'*** delayt for {i+1} is not finite ***')
-            if not spiral and not turn_time_as_delay and not previous_spiral:
+            #print(f'debug: turn_time:{self.turn_time[i+1]} , spiral: {spiral}, previous_spiral: {previous_spiral}')
+            if not spiral and not previous_spiral:
                 self.legt[i+1] += self.turn_time[i+1]/60.0
                 if not np.isfinite(self.turn_time[i+1]):
                     print(f'*** turn_time for {i+1} is not finite ***')
+            if previous_spiral:
+                previous_spiral = False
             if spiral:
                 previous_spiral = True
             if not np.isfinite(self.legt[i+1]):
