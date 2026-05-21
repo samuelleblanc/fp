@@ -143,3 +143,11 @@
     'rate_of_turn':None,'turn_bank_angle':25.0,
     'warning':True,'pilot_format':'DD MM',
     'preferred_file_format':['foreflight']}
+{'Platform':'ArcticShark','names':['ArcticShark','AS','U2'],
+    'max_alt':5500.0,'base_speed':35,'speed_per_alt':0.00325,
+    'max_speed':45,'max_speed_alt':5500.0,'descent_speed_decrease':1.0,
+    'climb_vert_speed':5.0,'descent_vert_speed':-5.0,'alt_for_variable_vert_speed':5500.0,
+    'vert_speed_base':4.5,'vert_speed_per_alt':7e-05,
+    'rate_of_turn':None,'turn_bank_angle':13.0,
+    'warning':False,'pilot_format':'DD MM',
+    'preferred_file_format':['foreflight']}
