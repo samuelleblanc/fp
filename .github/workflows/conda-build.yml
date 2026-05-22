@@ -4,16 +4,16 @@ on:
   release:
     types: [published]
   workflow_dispatch:
-#    inputs:
-#      platform:
-#        description: 'Which platform(s) to build'
-#        required: false
-#        default: 'all'
-#        type: choice
-#        options:
-#          - all
-#          - windows-only
-#          - macos-only
+    inputs:
+      platform:
+        description: 'Which platform(s) to build'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - windows-only
+          - macos-only
 
 jobs:
   build:
@@ -44,17 +44,17 @@ jobs:
             os_group: windows
       
     steps:
-#      - name: Check platform filter
-#        id: filter
-#        shell: bash
-#        run: |
-#          PLATFORM="${{ github.event.inputs.platform || 'all' }}"
-#          OS_GROUP="${{ matrix.os_group }}"
-#          if [[ "$PLATFORM" == "all" || "$PLATFORM" == "${OS_GROUP}-only" ]]; then
-#            echo "run=true" >> $GITHUB_OUTPUT
-#          else
-#            echo "run=false" >> $GITHUB_OUTPUT
-#          fi
+      - name: Check platform filter
+        id: filter
+        shell: bash
+        run: |
+          PLATFORM="${{ github.event.inputs.platform || 'all' }}"
+          OS_GROUP="${{ matrix.os_group }}"
+          if [[ "$PLATFORM" == "all" || "$PLATFORM" == "${OS_GROUP}-only" ]]; then
+            echo "run=true" >> $GITHUB_OUTPUT
+          else
+            echo "run=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Checkout
 #        if: steps.filter.outputs.run == 'true'
@@ -72,8 +72,7 @@ jobs:
           
       # macOS / linux-like: bash is fine
       - name: Install build tooling (macOS)
-        if: runner.os != 'Windows'
-        # && steps.filter.outputs.run == 'true'
+        if: runner.os != 'Windows' && steps.filter.outputs.run == 'true'
         shell: bash -l {0}
         run: |
           mamba install -y conda-build conda-verify pip
@@ -81,8 +80,7 @@ jobs:
           conda-build --version
 
       - name: Build (macOS)
-        if: runner.os != 'Windows'
-        #&& steps.filter.outputs.run == 'true'
+        if: runner.os != 'Windows' && steps.filter.outputs.run == 'true'
         shell: bash -l {0}
         run: |
           echo "CONDA_BUILD_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
@@ -94,8 +92,7 @@ jobs:
 
       # Windows: use PowerShell + conda run so PATH/activation isn't a problem
       - name: Install build tooling (Windows)
-        if: runner.os == 'Windows'
-        #&& steps.filter.outputs.run == 'true'
+        if: runner.os == 'Windows' && steps.filter.outputs.run == 'true'
         shell: pwsh
         run: |
           mamba create -y -n build -c conda-forge python=3.11 conda-build conda-verify pip
@@ -103,8 +100,7 @@ jobs:
           conda run -n build conda-verify --version
 
       - name: Build (Windows)
-        if: runner.os == 'Windows'
-        #&& steps.filter.outputs.run == 'true'
+        if: runner.os == 'Windows' && steps.filter.outputs.run == 'true'
         shell: pwsh
         run: |
           $env:CONDA_BUILD_NUMBER = "${{ github.run_number }}"
