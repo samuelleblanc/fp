@@ -127,13 +127,13 @@
     'vert_speed_base':0,'vert_speed_per_alt':0.0,
     'rate_of_turn':None,'turn_bank_angle':20.0,
     'warning':False,'pilot_format':'DD MM'}
-{'Platform':'n777','names':['n777','777','N-777','N777'],
-    'max_alt':14000.0,'base_speed':150.0,'speed_per_alt':0.01,
-    'max_speed':231,'max_speed_alt':10000.0,'descent_speed_decrease':25.0,
-    'climb_vert_speed':52.5,'descent_vert_speed':-5.0,'alt_for_variable_vert_speed':8000.0,
-    'vert_speed_base':8.5,'vert_speed_per_alt':7.5e-05,
+{'Platform':'n777','names':['n777','777','N-777','N777','N577NA','B777','N577','b-777'],
+    'max_alt':13100.0,'base_speed':185.0,'speed_per_alt':0.0084,
+    'max_speed':242,'max_speed_alt':9000.0,'descent_speed_decrease':25.0,
+    'climb_vert_speed':52.5,'descent_vert_speed':-5.0,'alt_for_variable_vert_speed':8500.0,
+    'vert_speed_base':12.7,'vert_speed_per_alt':7.5e-05,
     'rate_of_turn':None,'turn_bank_angle':20.0,
-    'warning':False,'pilot_format':'DD MM',
+    'warning':True,'pilot_format':'DD MM',
 	'preferred_file_format':['foreflight']}
 {'Platform':'gv','names':['gv','GV','G-V','g-v','g v','G V','hiaper','HIAPER','ncar_gv'],
     'max_alt':12500.0,'base_speed':150.0,'speed_per_alt':0.008,
@@ -142,7 +142,7 @@
     'vert_speed_base':8.5,'vert_speed_per_alt':7.5e-05,
     'rate_of_turn':None,'turn_bank_angle':25.0,
     'warning':True,'pilot_format':'DD MM',
-    'preferred_file_format':['foreflight']}
+    'preferred_file_format':['foreflight','rdme']}
 {'Platform':'ArcticShark','names':['ArcticShark','AS','U2'],
     'max_alt':5500.0,'base_speed':35,'speed_per_alt':0.00325,
     'max_speed':45,'max_speed_alt':5500.0,'descent_speed_decrease':1.0,
