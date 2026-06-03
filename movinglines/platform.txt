@@ -136,10 +136,10 @@
     'warning':True,'pilot_format':'DD MM',
 	'preferred_file_format':['foreflight']}
 {'Platform':'gv','names':['gv','GV','G-V','g-v','g v','G V','hiaper','HIAPER','ncar_gv'],
-    'max_alt':12500.0,'base_speed':150.0,'speed_per_alt':0.008,
-    'max_speed':251.0,'max_speed_alt':12500.0,'descent_speed_decrease':20.0,
-    'climb_vert_speed':21.3,'descent_vert_speed':-10.0,'alt_for_variable_vert_speed':10000.0,
-    'vert_speed_base':8.5,'vert_speed_per_alt':7.5e-05,
+    'max_alt':15226.0,'base_speed':136.2,'speed_per_alt':0.0075,
+    'max_speed':283.9,'max_speed_alt':13808.0,'descent_speed_decrease':3.6,
+    'climb_vert_speed':5.5,'descent_vert_speed':-7.8,'alt_for_variable_vert_speed':8000.0,
+    'vert_speed_base':13.3,'vert_speed_per_alt':7.14e-04,
     'rate_of_turn':None,'turn_bank_angle':25.0,
     'warning':True,'pilot_format':'DD MM',
     'preferred_file_format':['foreflight','rdme']}
