@@ -601,18 +601,151 @@ class gui:
         self.colors.append(ex.color)
         self.line.tb.set_message('load_flight values for:%s' %ex.name)
 
-        self.flightselect_arr.append(tk.Radiobutton(self.root,text=ex.name,
-                                                    fg=ex.color,
-                                                    variable=self.iactive,
-                                                    value=self.flight_num,
-                                                    indicatoron=0,
-                                                    command=self.gui_changeflight,bg='white'))
-        self.flightselect_arr[self.flight_num].pack(in_=self.frame_select,side=tk.TOP,
-                                                    padx=4,pady=2,fill=tk.BOTH)
+        self._make_flight_row(self.flight_num, ex.name, ex.color)
         self.line.newline()
         self.iactive.set(self.flight_num)
         self.gui_changeflight()
+        if getattr(ex, '_needs_config', False):
+            self.gui_flightconfig(self.flight_num)
         self.flight_num = self.flight_num+1
+
+    def _make_flight_row(self, flight_num, name, color):
+        'Create a flight row with a radiobutton and a gear config button inside frame_select'
+        import tkinter as tk
+        row = tk.Frame(self.frame_select, bg='white')
+        row.pack(side=tk.TOP, fill=tk.X, padx=2, pady=1)
+        rb = tk.Radiobutton(self.root, text=name, fg=color,
+                            variable=self.iactive, value=flight_num,
+                            indicatoron=0, command=self.gui_changeflight, bg='white')
+        rb.pack(in_=row, side=tk.LEFT, padx=2, pady=2, fill=tk.BOTH, expand=True)
+        gear = tk.Button(self.root, text='...', padx=2, pady=0, borderwidth=1,
+                         font=('TkDefaultFont', 9, 'bold'),
+                         command=lambda i=flight_num: self.gui_flightconfig(i))
+        gear.pack(in_=row, side=tk.RIGHT, padx=2, pady=2)
+        gear.config(fg=color)
+        self.flightselect_arr.append(rb)
+        self.flightconfig_arr.append(gear)
+        return row
+
+    def gui_flightconfig(self, i):
+        'Open a configuration dialog for flight path index i'
+        import tkinter as tk
+        from tkinter import ttk, colorchooser
+        try:
+            from ml import read_prof_file, platform_filename
+        except ModuleNotFoundError:
+            from .ml import read_prof_file, platform_filename
+
+        ex = self.line.ex_arr[i]
+        try:
+            platforms = read_prof_file(platform_filename)
+        except Exception:
+            platforms = []
+        platform_names = [p['Platform'] for p in platforms]
+
+        dlg = tk.Toplevel(self.root)
+        dlg.title('Configure: {}'.format(ex.name))
+        dlg.grab_set()
+        dlg.resizable(False, False)
+
+        tk.Label(dlg, text='Flight name:').grid(row=0, column=0, sticky='w', padx=8, pady=4)
+        name_var = tk.StringVar(value=ex.name)
+        ttk.Entry(dlg, textvariable=name_var, width=22).grid(row=0, column=1, sticky='w', padx=8, pady=4)
+
+        tk.Label(dlg, text='Aircraft platform:').grid(row=1, column=0, sticky='w', padx=8, pady=4)
+        platform_var = tk.StringVar(value=ex.platform or '')
+        plat_cb = ttk.Combobox(dlg, textvariable=platform_var, values=platform_names,
+                               state='readonly', width=18)
+        plat_cb.grid(row=1, column=1, sticky='w', padx=8, pady=4)
+
+        color_var = tk.StringVar(value=ex.color)
+        tk.Label(dlg, text='Flight color:').grid(row=2, column=0, sticky='w', padx=8, pady=4)
+        color_btn = tk.Button(dlg, bg=ex.color, width=4,
+                              command=lambda: _pick_color())
+        color_btn.grid(row=2, column=1, sticky='w', padx=8, pady=4)
+
+        ALL_FORMATS = ['foreflight', 'ufp', 'er2', 'honeywell', 'rdme']
+        current_fmts = ex.p_info.get('preferred_file_format', ['foreflight'])
+        fmt_vars = {f: tk.BooleanVar(value=f in current_fmts) for f in ALL_FORMATS}
+        tk.Label(dlg, text='Output formats:').grid(row=3, column=0, sticky='nw', padx=8, pady=4)
+        fmt_frame = ttk.Frame(dlg)
+        fmt_frame.grid(row=3, column=1, sticky='w', padx=8, pady=4)
+        for f in ALL_FORMATS:
+            ttk.Checkbutton(fmt_frame, text=f, variable=fmt_vars[f]).pack(anchor='w')
+
+        FIELDS = [
+            ('max_alt',                'Cruise altitude (m)',          4),
+            ('base_speed',             'Base speed (m/s)',             5),
+            ('max_speed',              'Max speed (m/s)',              6),
+            ('speed_per_alt',          'Speed per alt (m/s per m)',    7),
+            ('descent_speed_decrease', 'Descent speed decrease (m/s)', 8),
+            ('turn_bank_angle',        'Bank angle (deg)',             9),
+            ('climb_vert_speed',       'Climb vert speed (m/s)',      10),
+            ('descent_vert_speed',     'Descent vert speed (m/s)',    11),
+        ]
+        field_vars = {}
+        for key, label, row in FIELDS:
+            tk.Label(dlg, text=label + ':').grid(row=row, column=0, sticky='w', padx=8, pady=2)
+            var = tk.StringVar(value=str(ex.p_info.get(key, '')))
+            field_vars[key] = var
+            ttk.Entry(dlg, textvariable=var, width=14).grid(row=row, column=1, sticky='w', padx=8, pady=2)
+
+        def _fill_from_platform(*_):
+            pname = platform_var.get()
+            for p in platforms:
+                if p['Platform'] == pname:
+                    for key, _, _ in FIELDS:
+                        if key in p:
+                            field_vars[key].set(str(p[key]))
+                    break
+
+        platform_var.trace_add('write', _fill_from_platform)
+
+        def _pick_color():
+            result = colorchooser.askcolor(color=color_var.get(), parent=dlg,
+                                           title='Choose flight color')
+            if result[1]:
+                color_var.set(result[1])
+                color_btn.config(bg=result[1])
+
+        def _apply():
+            new_name = name_var.get().strip() or ex.name
+            if new_name != ex.name:
+                ex.name = new_name
+                self.flightselect_arr[i].config(text=new_name)
+                try:
+                    ex.wb.sh.name = new_name[:31]
+                except Exception:
+                    pass
+                dlg.title('Configure: {}'.format(new_name))
+            for key, _, _ in FIELDS:
+                try:
+                    ex.p_info[key] = float(field_vars[key].get())
+                except ValueError:
+                    pass
+            ex.p_info['preferred_file_format'] = [f for f, v in fmt_vars.items() if v.get()]
+            ex.platform = platform_var.get()
+            ex.pilot_format = ex.p_info.get('pilot_format', ex.pilot_format)
+            new_color = color_var.get()
+            ex.color = new_color
+            self.colors[i] = new_color
+            self.flightselect_arr[i].config(fg=new_color)
+            self.flightconfig_arr[i].config(fg=new_color)
+            ex.calculate()
+            try:
+                ex.write_to_excel()
+            except Exception:
+                pass
+            if self.iactive.get() == i:
+                self.line.colorme(self.colors[i])
+                self.line.update_labels(nodraw=False, updatexys=True)
+                self.line.get_bg()
+            dlg.destroy()
+
+        btn_frame = ttk.Frame(dlg)
+        btn_frame.grid(row=12, column=0, columnspan=2, pady=8)
+        ttk.Button(btn_frame, text='Apply', command=_apply).pack(side=tk.LEFT, padx=4)
+        ttk.Button(btn_frame, text='Cancel', command=dlg.destroy).pack(side=tk.LEFT, padx=4)
 
     def gui_newflight(self):
         'Program to call and create a new excel spreadsheet'
@@ -635,14 +768,7 @@ class gui:
             return
         self.flight_num = self.flight_num+1
         self.colors.append(self.colorcycle[self.flight_num])
-        self.flightselect_arr.append(tk.Radiobutton(self.root,text=newname,
-	                                            fg=self.colorcycle[self.flight_num],
-                                                    variable=self.iactive,
-                                                    value=self.flight_num,
-                                                    indicatoron=0,
-                                                    command=self.gui_changeflight,bg='white'))
-        self.flightselect_arr[self.flight_num].pack(in_=self.frame_select,side=tk.TOP,
-                                                    padx=4,pady=2,fill=tk.BOTH)
+        self._make_flight_row(self.flight_num, newname, self.colorcycle[self.flight_num])
         print('adding flight path to date: %s' %self.line.ex.datestr)
         self.line.ex_arr.append(ex.dict_position(datestr=self.line.ex.datestr,
                                                  name=newname,
@@ -656,6 +782,8 @@ class gui:
         self.line.newline()
         self.iactive.set(self.flight_num)
         self.gui_changeflight()
+        if getattr(self.line.ex_arr[self.flight_num], '_needs_config', False):
+            self.gui_flightconfig(self.flight_num)
 
     def gui_removeflight(self):
         'Program to call and remove a flight path from the plotting'

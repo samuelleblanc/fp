@@ -198,6 +198,10 @@
         Modified: Samuel LeBlanc, v1.66, 2026-05-21, Santa Cruz, CA
                 - fixed turn time issue not updating.
                 - fixed some problematic WMS links
+        Modified: Samuel LeBlanc, v1.67, 2026-06-02, Santa Cruz, CA, with help from Claude
+                - Added GV flight parameterization based on ACCLIP
+                - Added 777 flight parameterization based on first transit flight to Langley
+                - Added configuration butten for the flight track. 
                 
                  
 """
@@ -583,15 +587,13 @@ def build_buttons(ui,lines,vertical=True):
     tk.Label(g.root,text='Flight paths:',bg='white').pack(in_=g.frame_select,side=side)
     g.newflight_off = False
     g.flightselect_arr = []
-    g.flightselect_arr.append(tk.Radiobutton(g.root,text=lines.ex.name,
-                                             fg=lines.ex.color,
-                                             variable=g.iactive,value=0,
-                                             indicatoron=0,
-                                             command=g.gui_changeflight,
-                                             state=tk.ACTIVE,bg='white'))
-    g.flightselect_arr[0].pack(in_=g.frame_select,side=side,padx=4,pady=2,fill=tk.BOTH)
+    g.flightconfig_arr = []
+    g.flightlabel_arr = []
+    g._make_flight_row(0, lines.ex.name, lines.ex.color)
     g.flightselect_arr[0].select()
     g.iactive.set(0)
+    if getattr(lines.ex, '_needs_config', False):
+        g.root.after(200, lambda: g.gui_flightconfig(0))
     g.newflightpath = ttk.Button(g.root,text='New flight path',
                                 command = g.gui_newflight)
     g.newflightpath.pack(in_=ui.top,padx=5,pady=2)
@@ -635,7 +637,7 @@ def build_buttons(ui,lines,vertical=True):
     ]
 
     for attr, text, cmd in specs:
-        btn = tk.Button(g.frame_points , text=text, command=cmd, padx=4, pady=0, borderwidth=1,highlightthickness=0,bg=bg,fg=fg,activebackground=hover_bg,activeforeground=fg)
+        btn = tk.Button(g.frame_points , text=text, command=cmd, padx=4, pady=0, borderwidth=1,highlightthickness=0,bg=bg,fg='SystemButtonText',activebackground=hover_bg,activeforeground='SystemButtonText')
         btn.bind("<Enter>", lambda e,b=btn: b.configure(bg=hover_bg,        highlightbackground=accent_border,        highlightcolor=accent_border))
         btn.bind("<Leave>", lambda e,b=btn: b.configure(bg=bg,        highlightbackground=accent_border,        highlightcolor=accent_border))
         btn.pack(side=tk.LEFT, padx=0, pady=0)

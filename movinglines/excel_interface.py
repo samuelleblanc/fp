@@ -217,6 +217,7 @@ class dict_position:
         platform = None
         p_info = None
         use_file = False
+        self._needs_config = False
         try:
             p = read_prof_file(filename)
             for d in p:
@@ -226,9 +227,10 @@ class dict_position:
                     use_file = True
                     break
             if not p_info:
-                tkMessageBox.showwarning('Platform not found','Platform values not found in file: {}.\nUsing internal defaults.'.format(filename))
+                print('** Platform not found for "{}". Using defaults; config dialog will open. **'.format(name))
                 platform = self.check_platform(name)
                 p_info = self.default_p_info(platform)
+                self._needs_config = True
         except IOError:
             print('** Error reading platform information file: {} **'.format(os.path.abspath(filename)))
             try:
@@ -249,6 +251,7 @@ class dict_position:
                 print('** Using default platform profiles **')
                 platform = self.check_platform(name)
                 p_info = self.default_p_info(platform)
+                self._needs_config = True
         if p_info['warning']:
             tkMessageBox.showwarning('Check needed','Platform default speeds and altitude may be off for {}. Please double check.'.format(platform))
         return platform, p_info, use_file
@@ -2054,8 +2057,28 @@ def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
             fh.write("""x,%s,ALT=%3.2f kft %s,%s,%s\n""" %(
                     ex.wpname[i],ex.alt_kft[i],comm,lat_str,lon_str))
         fh.close()
-    
-                
+
+    if 'rdme' in ex.p_info.get('preferred_file_format',['foreflight']):
+        if not hasattr(ex, 'wpname') or ex.wpname is None:
+            ex.wpname = ex.get_waypoint_names(fmt=ex.p_info.get('waypoint_format','{x.name[0]}{x.datestr.split("-")[2]}{w:02d}'))
+        if verbose: print('.. saving rDME csv to {}'.format(filename+'_'+ex.name+'_rDME.csv'))
+        fr = open(filename+'_'+ex.name+'_rDME.csv','w+')
+        fr.write('Waypoint,rDME,LatLon\n')
+        vors = load_vor_navaids()
+        mag_decl = ex.p_info.get('mag_declination', 13.0)
+        rdme_fixes = []
+        for i in range(ex.n):
+            if ex.wpname[i] in ex.wpname[0:i]: continue
+            rdme = nearest_vor_rdme(ex.lat[i], ex.lon[i], vors, mag_decl=mag_decl)
+            lat_f, lon_f = format_lat_lon(ex.lat[i], ex.lon[i], format='rDME')
+            fr.write('{},{},{} {}\n'.format(ex.wpname[i], rdme, lat_f, lon_f))
+            rdme_fixes.append(rdme)
+        fr.close()
+        if verbose: print('.. saving rDME one liner to {}'.format(filename+'_'+ex.name+'_rDME_oneline.txt'))
+        fo = open(filename+'_'+ex.name+'_rDME_oneline.txt','w+')
+        fo.write(' '.join(rdme_fixes))
+        fo.close()
+
 def format_lat_lon(lat,lon,format='DD MM SS'):
     'Lat and lon formatter'
     if format == 'DD MM SS':
