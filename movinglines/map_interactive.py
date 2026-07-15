@@ -128,6 +128,7 @@ class LineBuilder:
         self.firstrun = True
         self.num_changed = 0
         self.points_changed = 0
+        self.on_data_updated = None
         try:
             self.get_bg()
         except:
@@ -574,6 +575,8 @@ class LineBuilder:
         #adjust_text(self.lbl,expand_point=(2,2),arrowprops=dict(arrowstyle='->',color="#7F7F7F",lw=2),ax=self.line.axes)
         if not nodraw:
             self.line.figure.canvas.draw()
+        if callable(self.on_data_updated):
+            self.on_data_updated()
     
     def make_labels_points(self):
         'function to make a list of the lat, lon, and names of the labelled points'

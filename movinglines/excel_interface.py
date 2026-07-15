@@ -1602,6 +1602,9 @@ class dict_position:
     def get_waypoint_names(self,i=None,fmt='{x.name[0]}{x.datestr.split("-")[2]}{w:02d}'):
         'function to name the waypoints'
         x = self
+        test_str = "f'{}'".format(fmt)
+        if test_str[0].isdigit():
+            fmt = 'N'+'}'.join(fmt.split('}')[1:])
         if i:
             w = self.WP[i]
             return eval("f'{}'".format(fmt))

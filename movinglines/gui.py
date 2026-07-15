@@ -86,6 +86,7 @@ class gui:
             print('No line_builder object defined')
             return
         self.line = line
+        self.line.on_data_updated = self._update_active_flightlabel
         self.flight_num = 0
         self.iactive = tk.IntVar()
         self.iactive.set(0)
@@ -278,7 +279,13 @@ class gui:
         self.line.m.ax.set_title(self.line.ex_arr[0].datestr)
         for b in self.flightselect_arr:
             b.destroy()
+        for b in self.flightconfig_arr:
+            b.destroy()
+        for child in list(self.frame_select.winfo_children()):
+            child.destroy()
         self.flightselect_arr = []
+        self.flightconfig_arr = []
+        self.flightlabel_arr = []
         try:
             for k in list(self.line.m.figure_under.keys()):
                 k.remove()
@@ -614,7 +621,8 @@ class gui:
         import tkinter as tk
         row = tk.Frame(self.frame_select, bg='white')
         row.pack(side=tk.TOP, fill=tk.X, padx=2, pady=1)
-        rb = tk.Radiobutton(self.root, text=name, fg=color,
+        text_obj = tk.StringVar(value=name)
+        rb = tk.Radiobutton(self.root, textvariable=text_obj, fg=color,
                             variable=self.iactive, value=flight_num,
                             indicatoron=0, command=self.gui_changeflight, bg='white')
         rb.pack(in_=row, side=tk.LEFT, padx=2, pady=2, fill=tk.BOTH, expand=True)
@@ -625,6 +633,7 @@ class gui:
         gear.config(fg=color)
         self.flightselect_arr.append(rb)
         self.flightconfig_arr.append(gear)
+        self.flightlabel_arr.append(text_obj)
         return row
 
     def gui_flightconfig(self, i):
@@ -712,7 +721,8 @@ class gui:
             new_name = name_var.get().strip() or ex.name
             if new_name != ex.name:
                 ex.name = new_name
-                self.flightselect_arr[i].config(text=new_name)
+                self.flightlabel_arr[i].set(new_name)
+                #self.flightselect_arr[i].config(text=new_name)
                 try:
                     ex.wb.sh.name = new_name[:31]
                 except Exception:
@@ -732,6 +742,7 @@ class gui:
             self.flightselect_arr[i].config(fg=new_color)
             self.flightconfig_arr[i].config(fg=new_color)
             ex.calculate()
+            self.flightlabel_arr[i].set(f"{ex.name}    -    {ex.cumlegt[-1]:2.1f}h, {ex.cumdist_nm[-1]:4.0f}Nmi")
             try:
                 ex.write_to_excel()
             except Exception:
@@ -1252,6 +1263,13 @@ class gui:
         self.line.ex.wb.close()
         #import sys
         #sys.exit()
+
+    def _update_active_flightlabel(self):
+        'Update the radiobutton label for the currently active flight with its total time and distance'
+        i = self.iactive.get()
+        if i < len(self.flightlabel_arr) and i < len(self.line.ex_arr):
+            ex = self.line.ex_arr[i]
+            self.flightlabel_arr[i].set(f"{ex.name}    -    {ex.cumlegt[-1]:2.1f}h, {ex.cumdist_nm[-1]:4.0f}Nmi")
 
     def refresh(self,*arg,**karg):
         'function to force a refresh of the plotting window'
@@ -2926,6 +2944,8 @@ class gui:
         
         #print it out to excel and calculate
         self.line.ex.calculate()
+        for i,labl in enumerate(self.flightlabel_arr):
+            self.flightlabel_arr[i].set(f"{self.line.ex.name}    -    {self.line.ex.cumlegt[-1]:2.1f}h, {self.line.ex.cumdist_nm[-1]:4.0f}Nmi")
         self.line.ex.write_to_excel()
         Progress.close_immediately()
  
