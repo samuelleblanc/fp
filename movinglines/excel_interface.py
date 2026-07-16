@@ -2114,6 +2114,15 @@ def format_lat_lon(lat,lon,format='DD MM SS'):
         lonv = deg_to_dm(lon)
         lat_f = '{:02} {:05.2f}'.format(int(latv[0]),latv[1])
         lon_f = '{:02} {:05.2f}'.format(int(lonv[0]),lonv[1])
+    elif format == 'rDME':
+        def deg_to_dm(deg):
+            d = int(abs(deg))
+            md = (abs(deg) - d) * 60
+            return [d, md]
+        latv = deg_to_dm(lat)
+        lonv = deg_to_dm(lon)
+        lat_f = '{n}{:02d}{:05.2f}'.format(latv[0], latv[1], n='N' if lat >= 0 else 'S')
+        lon_f = '{n}{:03d}{:05.2f}'.format(lonv[0], lonv[1], n='E' if lon >= 0 else 'W')
     return lat_f,lon_f
     
 def one_line_points(a,wpnames=None):
