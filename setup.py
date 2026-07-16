@@ -57,7 +57,7 @@ setup(
                        convert_path(os.path.join("movinglines","mpl-data","*.svg")),convert_path(os.path.join("movinglines","mpl-data","*.ppm")),convert_path(os.path.join("movinglines","mpl-data","*.xpm")),
                        convert_path(os.path.join("movinglines","mpl-data","*.gif")),convert_path(os.path.join("movinglines","*.kmz")),
                        convert_path(os.path.join("movinglines","mpl-data","*.png")),convert_path(os.path.join("movinglines","mpl-data","*.gz")),
-                       convert_path(os.path.join("movinglines","*.pdf")),
+                       convert_path(os.path.join("movinglines","*.pdf")),convert_path(os.path.join("movinglines","FAACIFP*")),
                        convert_path("./movinglines/mpl-data/*"),convert_path("./movinglines/map_icons/*"),convert_path("./movinglines/flt_module/*"),convert_path("./movinglines/hooks/*")],
         ".": ["*.txt","*.tle","*.md","*.json","*.ico","*.tif","*.kmz","movinglines/flt_module/*.flt","movinglines/flt_module/*.png"],
         "movinglines.map_icons": ["*.png","*.txt",os.path.join("movinglines","map_icons","*.png"),os.path.join("movinglines","map_icons","*.txt")],
