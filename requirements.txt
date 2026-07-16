@@ -68,7 +68,6 @@ freeglut=3.2.2=hac47afa_4
 freetype=2.12.1=hdaf720e_2
 freexl=2.0.0=h8276f4a_0
 frozenlist=1.7.0=py39h6d15d50_0
-gdal=3.9.0=py39h21fe5b4_5
 geographiclib=2.0=pyhd8ed1ab_1
 geopy=2.4.1=pyhd8ed1ab_2
 geos=3.12.1=h1537add_0
@@ -112,7 +111,6 @@ libcurl=8.8.0=hd5e4a3a_1
 libdeflate=1.25=h51727cc_0
 libexpat=2.8.0=hac47afa_0
 libffi=3.5.2=h3d046cb_0
-libgdal=3.9.0=h4f813f3_5
 libgettextpo=0.22.5=h5728263_3
 libgettextpo-devel=0.22.5=h5728263_3
 libglib=2.80.2=h0df6a38_0
@@ -211,7 +209,6 @@ sip=6.5.1=py39h415ef7b_2
 six=1.17.0=pyhe01879c_1
 snappy=1.2.2=h7fa0ca8_1
 snuggs=1.4.7=pyhd8ed1ab_2
-soupsieve=2.7=pyhd8ed1ab_0
 spdlog=1.13.0=h64d2f7d_0
 sqlite=3.53.1=hdb435a2_0
 tbb=2021.13.0=h62715c5_1
