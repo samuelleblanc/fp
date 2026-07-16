@@ -75,6 +75,7 @@ test:
   requires:
     - pillow>=9.0.0
     - matplotlib-base
+    - certifi
 
 about:
   summary: 'Moving Lines - Research flight planner'
