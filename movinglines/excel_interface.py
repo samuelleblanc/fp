@@ -1980,6 +1980,7 @@ def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
                   - adding an ER2 special file format
     
     """
+    from flightnav_utils import nearest_vor_rdme, load_vor_navaids
     if filename.endswith('.csv'): 
         filename = filename[:-4]
     if 'foreflight' in ex.p_info.get('preferred_file_format',['foreflight']):
