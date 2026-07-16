@@ -1,5 +1,5 @@
 include *.py *.txt *.tle *.tif *.ico *.svg *.png *.sh *.json *.kmz *.bat
-recursive-include movinglines *.py *.txt *.tle *.tif *.ico *.svg *.png *.sh *.json *.kmz *.bat
+recursive-include movinglines *.py *.txt *.tle *.tif *.ico *.svg *.png *.sh *.json *.kmz *.bat FAACIF*
 recursive-include movinglines/flt_module *.png *.PNG *.flt
 recursive-include movinglines/map_icons *.png *.txt 
 recursive-include movinglines/mpl-data *.svg *.ppm *.xpm *.gif *.png 
