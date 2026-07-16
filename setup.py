@@ -49,7 +49,7 @@ setup(
     #packages=find_namespace_packages(where=""),
     package_dir={"":convert_path('.'),".": ".","movinglines.map_icons":convert_path("movinglines/map_icons"),"movinglines.flt_module":convert_path("movinglines/flt_module"),
                  "movinglines.mpl-data":convert_path("movinglines/mpl-data")},
-    package_data={"": ["*.txt","*.tle","*.md","*.json","*.ico","*.tif","*.kmz","*.pdf",#]},
+    package_data={"": ["*.txt","*.tle","*.md","*.json","*.ico","*.tif","*.kmz","*.pdf","movinglines/FAACIFP18",#]},
                        convert_path(os.path.join("movinglines","*.txt")),convert_path(os.path.join("movinglines","*.tle")),convert_path(os.path.join("movinglines","*.md")),
                        convert_path(os.path.join("movinglines","*.json")),convert_path(os.path.join("movinglines","*.ico")),convert_path(os.path.join("movinglines","*.tif")),
                        convert_path(os.path.join("movinglines","map_icons","*.png")),convert_path(os.path.join("movinglines","map_icons","*.txt")),
@@ -65,7 +65,8 @@ setup(
         "movinglines.mpl-data":["*.svg","*.ppm","*.xpm","*.gif","*.png","*.gz",os.path.join("movinglines","mpl-data","*.svg"),os.path.join("movinglines","mpl-data","*.ppm"),os.path.join("movinglines","mpl-data","*.xpm"),
                        os.path.join("movinglines","mpl-data","*.gif"),
                        os.path.join("movinglines","mpl-data","*.png"),os.path.join("movinglines","mpl-data","*.gz")],
-        "movinglines.flt_modules":["*.png","*.PNG","*.flt",os.path.join("movinglines","flt_module","*.png"),os.path.join("movinglines","flt_module","*.PNG"),os.path.join("movinglines","flt_module","*.flt")]
+        "movinglines.flt_modules":["*.png","*.PNG","*.flt",os.path.join("movinglines","flt_module","*.png"),os.path.join("movinglines","flt_module","*.PNG"),os.path.join("movinglines","flt_module","*.flt")],
+        "movinglines":["FAACIFP18"]
     },
     entry_points=dict(
         console_scripts=['ml = movinglines:main'],
