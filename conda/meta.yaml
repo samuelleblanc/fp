@@ -71,7 +71,7 @@ test:
   commands:
     - ml -d
     - python -c "import movinglines; print(getattr(movinglines, '__version__', 'ok'))"
-    - python -c "import ssl; setattr(ssl.SSLContext, '_load_windows_store_certs', lambda *a, **kw:None) if hasattr(ssl.SSLContext, '_load_windows_store_certs') else None; print(getattr(flightplandb, '__version__', 'ok'))"
+    - python -c "import ssl; setattr(ssl.SSLContext, '_load_windows_store_certs', lambda *a, **kw:None) if hasattr(ssl.SSLContext, '_load_windows_store_certs') else None; import flightplandb; print(getattr(flightplandb, '__version__', 'ok'))"
   requires:
     - pillow>=9.0.0
     - matplotlib-base
