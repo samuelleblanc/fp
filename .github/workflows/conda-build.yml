@@ -103,6 +103,7 @@ jobs:
         if: runner.os == 'Windows' && steps.filter.outputs.run == 'true'
         shell: pwsh
         run: |
+          export SSL_CERT_FILE=$(python -c "import certifi; print(certifi.where())")
           $env:CONDA_BUILD_NUMBER = "${{ github.run_number }}"
           echo "CONDA_BUILD_NUMBER=${{ github.run_number }}" | Out-File -FilePath $env:GITHUB_ENV -Append
           New-Item -ItemType Directory -Force -Path conda_pkgs | Out-Null
