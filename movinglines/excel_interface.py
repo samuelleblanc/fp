@@ -1980,7 +1980,7 @@ def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
                   - adding an ER2 special file format
     
     """
-    from flightnav_utils import nearest_vor_rdme, load_vor_navaids
+    from flightnav_utils import nearest_vor_rdme, load_vor_navaids, get_recent_FAACIFP
     if filename.endswith('.csv'): 
         filename = filename[:-4]
     if 'foreflight' in ex.p_info.get('preferred_file_format',['foreflight']):
@@ -2073,7 +2073,7 @@ def save2csv_for_FOREFLIGHT_UFP(filename,ex,foreflight_only=True,verbose=True):
         rdme_fixes = []
         for i in range(ex.n):
             if ex.wpname[i] in ex.wpname[0:i]: continue
-            rdme = nearest_vor_rdme(ex.lat[i], ex.lon[i], vors, mag_decl=mag_decl)
+            rdme = nearest_vor_rdme(ex.lat[i], ex.lon[i], vors, mag_decl=mag_decl,file_path=get_recent_FAACIFP())
             lat_f, lon_f = format_lat_lon(ex.lat[i], ex.lon[i], format='rDME')
             fr.write('{},{},{} {}\n'.format(ex.wpname[i], rdme, lat_f, lon_f))
             rdme_fixes.append(rdme)
