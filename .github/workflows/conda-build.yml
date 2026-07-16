@@ -59,6 +59,9 @@ jobs:
       - name: Checkout
 #        if: steps.filter.outputs.run == 'true'
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'release' && github.ref || '' }}
+            fetch-depth: 0 # Fetches full history so conda-build can correctly read git logs/tags if needed
 
       - name: Setup Miniforge (conda-forge)
         uses: conda-incubator/setup-miniconda@v3
