@@ -48,10 +48,60 @@ def get_POCATS():
     
     
 def get_recent_FAACIFP(file_path=None):
-    'Quick function to check if the FAACIFP18 file is recent enough, based on the website: https://www.faa.gov/air_traffic/flight_info/aeronav/digital_products/cifp/download/'
-    import os
-    file_path = os.path.abspath('./FAACIFP18')
-    
+    'Check if FAACIFP18 is current (< 1 year old), download latest from FAA if not.'
+    import os, re, zipfile, tempfile, ssl
+    from datetime import datetime, timedelta
+    try:
+        from urllib.request import urlopen
+    except ImportError:
+        from urllib2 import urlopen
+
+    if file_path is None:
+        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'FAACIFP18')
+
+    needs_download = (
+        not os.path.exists(file_path) or
+        datetime.now() - datetime.fromtimestamp(os.path.getmtime(file_path)) > timedelta(days=365)
+    )
+
+    if not needs_download:
+        return file_path
+
+    base_url = 'https://aeronav.faa.gov/Upload_313-d/cifp/'
+    try:
+        try:
+            import certifi
+            ctx = ssl.create_default_context(cafile=certifi.where())
+        except ImportError:
+            ctx = ssl.create_default_context()
+
+        with urlopen(base_url, context=ctx) as resp:
+            html = resp.read().decode('utf-8')
+
+        zips = sorted(set(re.findall(r'CIFP_\d{6}\.zip', html)))
+        if not zips:
+            return file_path
+        zip_url = base_url + zips[-1]
+
+        tmp_fd, tmp_path = tempfile.mkstemp(suffix='.zip')
+        os.close(tmp_fd)
+        try:
+            with urlopen(zip_url, context=ctx) as resp, open(tmp_path, 'wb') as f:
+                f.write(resp.read())
+            with zipfile.ZipFile(tmp_path) as zf:
+                cifp = next((n for n in zf.namelist() if 'FAACIFP18' in n.upper()), zf.namelist()[0])
+                with zf.open(cifp) as src, open(file_path, 'wb') as dst:
+                    dst.write(src.read())
+        finally:
+            os.unlink(tmp_path)
+    except Exception as e:
+        tkMessageBox.showwarning('FAACIFP18 download failed',
+            f'Could not automatically download the latest CIFP data: {e}\n\n'
+            f'Please download the file manually from:\n'
+            f'  https://www.faa.gov/air_traffic/flight_info/aeronav/digital_products/cifp/download/\n\n'
+            f'Extract the FAACIFP18 file from the zip and save it to:\n'
+            f'  {file_path}')
+
     return file_path
     
     
