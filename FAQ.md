@@ -89,3 +89,44 @@ conda install -c samuelleblanc movinglines
 > **Note:** If the `ml` environment already exists from a previous attempt, skip the `conda create` step and go straight to `conda activate ml`.
 
 **If mamba itself will not install:** Skip mamba entirely and use the `libmamba` solver inside conda as shown in Step 2 above. The result is functionally equivalent — mamba is just a standalone binary that uses the same solver library.
+
+---
+
+### Alternative: using pixi instead of conda
+
+If starting fresh, pixi is worth considering over Anaconda/conda. It uses conda-forge channels by default (sidestepping Anaconda's commercial licensing), requires no base environment, and manages packages at the directory level rather than globally. The syntax is slightly different but easy to pick up. See [https://pixi.prefix.dev/latest/](https://pixi.prefix.dev/latest/) for full documentation.
+
+**Install pixi:**
+
+On Windows (PowerShell):
+```powershell
+iwr -useb https://pixi.sh/install.ps1 | iex
+```
+On macOS/Linux:
+```bash
+curl -fsSL https://pixi.sh/install.sh | sh
+```
+Full installation options at: https://pixi.prefix.dev/latest/installation/
+
+**Set up `ml` with pixi:**
+
+Pixi is directory-based — create a dedicated folder for the project:
+```
+mkdir ml-env
+cd ml-env
+pixi init
+pixi project channel add samuelleblanc
+pixi add python=3.9 movinglines
+```
+
+**Run `ml`:**
+```
+pixi run ml
+```
+Or drop into a shell with the environment active:
+```
+pixi shell
+ml
+```
+
+> **Note:** Pixi has no global `activate` like conda. You either run commands from the project directory using `pixi run <cmd>`, or enter `pixi shell` to get an interactive session with the environment loaded.
