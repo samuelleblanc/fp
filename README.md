@@ -5,9 +5,6 @@ Moving Lines, version 1.68
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1478125.svg)](https://doi.org/10.5281/zenodo.1478125)
 
 > Having trouble installing or running? See the **[FAQ](FAQ.md)** for common issues and solutions.
-
-~~Get the compiled versions for MAC OS and Windows at:
-[https://github.com/samuelleblanc/fp/releases/tag/v1.44]~~   compiled versions not longer maintained, use conda install now (see below)
     
 # Purpose:
     
