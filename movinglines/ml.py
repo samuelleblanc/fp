@@ -198,12 +198,13 @@
         Modified: Samuel LeBlanc, v1.66, 2026-05-21, Santa Cruz, CA
                 - fixed turn time issue not updating.
                 - fixed some problematic WMS links
-        Modified: Samuel LeBlanc, v1.67, 2026-06-02, Santa Cruz, CA, with help from Claude
+        Modified: Samuel LeBlanc, v1.67, 2026-06-02, Santa Cruz, CA
                 - Added GV flight parameterization based on ACCLIP
                 - Added 777 flight parameterization based on first transit flight to Langley
-                - Added configuration butten for the flight track. 
-                
-                 
+                - Added configuration butten for the flight track.
+        Modified: Samuel LeBlanc, v1.68, 2026-08-11, Santa Cruz, CA
+                - Use certifi SSL certificates in build_basemap to fix Windows certificate store errors on download of natural earth features.
+
 """
 try:
     import Tkinter as tk

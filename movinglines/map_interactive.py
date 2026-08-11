@@ -86,7 +86,9 @@ class LineBuilder:
                  - added continuity of meridians and parallels for problematic issues - bug fix in zooming out. 
         Modified: Samuel LeBlanc, 2021-10-21, Santa Cruza, CA
                 - Migrated from python 2 to python 3.9, with cartopy and new version of xlwings.
-                 
+        Modified: Samuel LeBlanc, 2026-08-11, Santa Cruz, CA
+                - Use certifi SSL certificates in build_basemap to fix Windows certificate store errors.
+
     """
     def __init__(self, line,m=None,ex=None,verbose=False,tb=None, blit=True):
         """
@@ -1246,6 +1248,12 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj
     except ModuleNotFoundError:
         from .map_interactive import pll
     import os
+    try:
+        import certifi
+        os.environ.setdefault('SSL_CERT_FILE', certifi.where())
+        os.environ.setdefault('REQUESTS_CA_BUNDLE', certifi.where())
+    except ImportError:
+        pass
     import cartopy.crs as ccrs
     import cartopy.feature as cfeature
     if profile:
