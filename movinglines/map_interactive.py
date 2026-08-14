@@ -1,6 +1,30 @@
 # map_interactive software
 # to use in combination with moving_lines
 # Copyright 2015, Samuel LeBlanc
+
+# Patch ssl.create_default_context to use certifi's CA bundle instead of the
+# Windows certificate store, which can contain malformed certs that crash urllib.
+import ssl as _ssl
+try:
+    import certifi as _certifi
+    _orig_create_default_context = _ssl.create_default_context
+    def _certifi_create_default_context(purpose=_ssl.Purpose.SERVER_AUTH, *,
+                                        cafile=None, capath=None, cadata=None):
+        if cafile is None and capath is None and cadata is None:
+            cafile = _certifi.where()
+        return _orig_create_default_context(purpose, cafile=cafile,
+                                            capath=capath, cadata=cadata)
+    _ssl.create_default_context = _certifi_create_default_context
+except ImportError:
+    # certifi not available; try to tolerate bad certs in the Windows store
+    _orig_load_default_certs = _ssl.SSLContext.load_default_certs
+    def _safe_load_default_certs(self, purpose=_ssl.Purpose.SERVER_AUTH):
+        try:
+            _orig_load_default_certs(self, purpose)
+        except _ssl.SSLError:
+            pass
+    _ssl.SSLContext.load_default_certs = _safe_load_default_certs
+
 try:
     from mpl_toolkits.basemap import Basemap
 except:
@@ -1248,12 +1272,6 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj
     except ModuleNotFoundError:
         from .map_interactive import pll
     import os
-    try:
-        import certifi
-        os.environ.setdefault('SSL_CERT_FILE', certifi.where())
-        os.environ.setdefault('REQUESTS_CA_BUNDLE', certifi.where())
-    except ImportError:
-        pass
     import cartopy.crs as ccrs
     import cartopy.feature as cfeature
     if profile:
