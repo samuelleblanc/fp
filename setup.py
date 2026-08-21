@@ -38,7 +38,7 @@ setup(
     maintainer_email="samuel.leblanc@nasa.gov",
     author="Samuel LeBlanc",
     author_email="samuel.leblanc@nasa.gov",
-    license="GPL-3.0",
+    license="Apache-2.0",
     url="https://github.com/samuelleblanc/fp",
     platforms="any",
     packages=find_packages('.',exclude=['tests*', 'tutorials*','flight_planning*','fp*','py*']),
