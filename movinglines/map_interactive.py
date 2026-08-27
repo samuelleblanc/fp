@@ -112,6 +112,10 @@ class LineBuilder:
                 - Migrated from python 2 to python 3.9, with cartopy and new version of xlwings.
         Modified: Samuel LeBlanc, 2026-08-11, Santa Cruz, CA
                 - Use certifi SSL certificates in build_basemap to fix Windows certificate store errors.
+        Modified: Samuel LeBlanc, v1.65, 2026-08-24, Santa Cruz, CA
+                - Added sp, sp_mode, sp_label, sp_tab attributes for annotation click-capture mode.
+                - onpress() now intercepts clicks when sp_mode is set to add special points.
+                - Removed stale pdb.set_trace() from get_bg try/except block.
 
     """
     def __init__(self, line,m=None,ex=None,verbose=False,tb=None, blit=True):
@@ -155,10 +159,16 @@ class LineBuilder:
         self.num_changed = 0
         self.points_changed = 0
         self.on_data_updated = None
+        self.sp           = None    # special_points instance
+        self.sp_mode      = None    # active annotation type or None
+        self.sp_label     = ' '     # label for next annotation click
+        self.sp_tab       = ''      # aircraft tab for next annotation click
+        self.sp_dragging  = False   # True while dragging a special point
+        self.sp_drag_index = None   # index of the sp point being dragged
         try:
             self.get_bg()
-        except:
-            import pdb; pdb.set_trace()
+        except Exception:
+            pass
 
             
 
@@ -193,6 +203,25 @@ class LineBuilder:
     def onpress(self,event):
         'Function that enables either selecting a point, or creating a new point when clicked'
         #print('click', event)
+        if self.sp_mode and self.sp and event.inaxes == self.line.axes and not self.tb.mode:
+            lo, la = self.m.convert_latlon(event.xdata, event.ydata)
+            # Check if click is on an existing special point (start drag of existing)
+            existing_i = self._sp_find_nearby(event)
+            if existing_i is not None:
+                self.sp_dragging   = True
+                self.sp_drag_index = existing_i
+            else:
+                # Add a new special point and immediately start drag
+                self.sp.add_point(lat=la, lon=lo, label=self.sp_label,
+                                  sp_type=self.sp_mode, aircraft_tab=self.sp_tab)
+                self.sp_dragging   = True
+                self.sp_drag_index = len(self.sp.lat) - 1
+            self.sp.draw()
+            self.draw_canvas()
+            self.line.axes.format_coord = self.format_position_wp_dist
+            self.tb.set_message('Dragging annotation {} — release to confirm'.format(
+                self.sp.label[self.sp_drag_index]))
+            return  # do NOT propagate to normal waypoint logic
         if event.inaxes!=self.line.axes: return
         if self.tb.mode!='': return
         if self.moving: return
@@ -304,7 +333,36 @@ class LineBuilder:
         
     def onrelease(self,event):
         'Function to set the point location'
-        
+        if self.sp_dragging and self.sp:
+            i = self.sp_drag_index
+            if event.xdata is not None and event.inaxes == self.line.axes:
+                lo, la = self.m.convert_latlon(event.xdata, event.ydata)
+                self.sp.lat[i] = la
+                self.sp.lon[i] = lo
+            la, lo = float(self.sp.lat[i]), float(self.sp.lon[i])
+            # Recalculate leg info for drop_sonde on final position
+            if self.sp.sp_type[i] == 'drop_sonde' and self.sp.aircraft_tab[i]:
+                ex = self.sp._find_ex(self.sp.aircraft_tab[i])
+                if ex and len(ex.lat) >= 2:
+                    try:
+                        cumlegt, legt, legdist = self.sp.calc_leg_info(la, lo, ex)
+                        self.sp.cumlegt[i] = cumlegt
+                        self.sp.legt[i]    = legt
+                        self.sp.legdist[i] = legdist
+                    except Exception:
+                        pass
+            self.sp.write_to_excel()
+            self.sp_dragging   = False
+            self.sp_drag_index = None
+            if self.sp_mode != 'polygon':
+                self.sp_mode = None
+                self.line.axes.format_coord = self.format_position_simple
+            self.tb.set_message('Annotation placed: {} at ({:.4f}, {:.4f})'.format(
+                self.sp.label[i], la, lo))
+            self.sp.draw()
+            self.draw_canvas()
+            return
+
         if self.verbose:
             print('release')#,event
         if self.moving: return
@@ -372,6 +430,24 @@ class LineBuilder:
 
     def onmotion(self,event):
         'Function that moves the points to desired location'
+        if self.sp_dragging and self.sp and event.inaxes == self.line.axes and event.xdata is not None:
+            lo, la = self.m.convert_latlon(event.xdata, event.ydata)
+            i = self.sp_drag_index
+            self.sp.lat[i] = la
+            self.sp.lon[i] = lo
+            if self.sp.sp_type[i] == 'drop_sonde' and self.sp.aircraft_tab[i]:
+                ex = self.sp._find_ex(self.sp.aircraft_tab[i])
+                if ex and len(ex.lat) >= 2:
+                    try:
+                        cumlegt, legt, legdist = self.sp.calc_leg_info(la, lo, ex)
+                        self.sp.cumlegt[i] = cumlegt
+                        self.sp.legt[i]    = legt
+                        self.sp.legdist[i] = legdist
+                    except Exception:
+                        pass
+            self.sp.draw()
+            self.draw_canvas()
+            return
         if event.inaxes!=self.line.axes: return
         if self.press is None: return
         if self.tb.mode!='': return
@@ -536,7 +612,40 @@ class LineBuilder:
             x0,y0 = self.xy
             self.r = sqrt((x-x0)**2+(y-y0)**2)
             return 'x=%2.5f, y=%2.5f, d=%2.5f' % (x,y,self.r)
-    
+
+    def format_position_wp_dist(self, x, y):
+        'format_coord active in annotation mode: distance from last WP or nearest prev WP for drop_sonde'
+        if not self.m:
+            return 'x=%.5f, y=%.5f' % (x, y)
+        try:
+            lo, la = self.m.convert_latlon(x, y)
+            base = 'Lon=%.7f, Lat=%.7f' % (lo, la)
+            if self.sp_mode == 'drop_sonde' and self.sp and self.sp.ex_arr:
+                ex = self.sp._find_ex(self.sp_tab)
+                if ex and len(ex.lat) >= 2:
+                    _, _, legdist = self.sp.calc_leg_info(float(la), float(lo), ex)
+                    return base + ', leg dist=%.2f km' % legdist
+            if self.ex and len(self.ex.lat) > 0:
+                d = spherical_dist([float(self.ex.lat[-1]), float(self.ex.lon[-1])],
+                                   [float(la), float(lo)])
+                return base + ', d from last WP=%.2f km' % d
+            return base
+        except Exception:
+            return self.format_position_simple(x, y)
+
+    def _sp_find_nearby(self, event, tolerance=8):
+        'Return index of a drawn special-point marker near event, or None'
+        if not self.sp or not self.sp.drawn_markers:
+            return None
+        for i, marker in enumerate(self.sp.drawn_markers):
+            try:
+                hit, _ = marker.contains(event)
+                if hit:
+                    return i
+            except Exception:
+                pass
+        return None
+
     def _set_data_transformed(self,x,y):
         'set the line data with the transformed points'
         
@@ -1121,22 +1230,36 @@ class LineBuilder:
 
     def get_bg(self,redraw=False):
         'program to store the canvas background. Used for blit technique'
+        # Clear sp artists so they are not frozen into the background;
+        # draw_canvas() redraws them on every blit cycle instead.
+        if self.sp:
+            self.sp.clear()
         if redraw:
             self.line.figure.canvas.draw()
-        self.m.llcrnrlat,self.m.urcrnrlat = self.m.get_ylim() 
+        self.m.llcrnrlat,self.m.urcrnrlat = self.m.get_ylim()
         self.m.llcrnrlon,self.m.urcrnrlon = self.m.get_xlim()
         self.bg = self.line.figure.canvas.copy_from_bbox(self.line.axes.bbox)
+        # Re-add sp artists to the axes (drawn dynamically in draw_canvas)
+        if self.sp:
+            self.sp.draw()
 
     def draw_canvas(self,extra_points=[]):
         'Program to handle the blit technique or simply a redraw of the canvas'
         if self.blit:
             self.line.figure.canvas.restore_region(self.bg)
             self.line.axes.draw_artist(self.line)
+            # Draw special-point annotations on top (they are not in self.bg)
+            if self.sp:
+                for obj in self.sp.drawn_markers + self.sp.drawn_labels + self.sp.drawn_polys:
+                    try:
+                        self.line.axes.draw_artist(obj)
+                    except Exception:
+                        pass
             try:
                 for p in extra_points:
                     if type(p) is list:
                         for px in p:
-                           self.line.axes.draw_artist(px) 
+                           self.line.axes.draw_artist(px)
                     else:
                         self.line.axes.draw_artist(p)
             except Exception as ie:

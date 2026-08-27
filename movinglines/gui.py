@@ -76,8 +76,9 @@ class gui:
                   - reformat of flt_module list to have mutiple columns
         Modified: Samuel LeBlanc, 2026-03-06, Santa Cruz, CA
                  - added more colors in the color cycle
-                 
-                  
+        Modified: Samuel LeBlanc, v1.69, 2026-08-24, Santa Cruz, CA
+                 - Added gui_annotations() method and Annotations_manager / Add_special_point_dialog classes.
+
     """
     def __init__(self,line=None,root=None,noplt=False,debug=False):
         import tkinter as tk
@@ -1487,6 +1488,13 @@ class gui:
     def dummy_func(self):
         'dummy function that does nothing'
         return
+
+    def gui_annotations(self):
+        'Open the Annotations management window for adding/removing special points'
+        if not getattr(self.line, 'sp', None):
+            print('Special points not initialized')
+            return
+        Annotations_manager(sp=self.line.sp, line=self.line)
 
     def gui_addsat_tle(self):
         'Gui button to add the satellite tracks'
@@ -4607,3 +4615,180 @@ def clean_wms_args(func):
         }
         return func(*args, **clean_kwargs)
     return wrapper
+
+
+class Annotations_manager:
+    """
+    Purpose:
+        Non-modal Toplevel window for viewing, adding, and deleting special-point
+        annotations (drop sondes, free-form points, polygon vertices).
+        Stays open while the user interacts with the map to place annotations via clicks.
+    Inputs:
+        sp   : special_points instance (lines.sp)
+        line : LineBuilder instance
+    Outputs:
+        Modifies sp data and triggers map redraws.
+    Dependencies:
+        tkinter, special_points
+    Modification History:
+        Written: Samuel LeBlanc, v1.69, 2026-08-24, Santa Cruz, CA
+    """
+
+    def __init__(self, sp, line):
+        import tkinter as tk
+        self.sp   = sp
+        self.line = line
+        self.root = tk.Toplevel()
+        self.root.title('Annotations')
+        self.root.wm_attributes('-topmost', True)
+        self._build()
+        self.refresh()
+
+    def _build(self):
+        'Build the widget layout'
+        import tkinter as tk
+        f_list = tk.Frame(self.root)
+        f_list.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        tk.Label(f_list, text='Special Points:').pack(anchor='w')
+        self.listbox = tk.Listbox(f_list, width=55, height=15)
+        scroll = tk.Scrollbar(f_list, command=self.listbox.yview)
+        self.listbox.config(yscrollcommand=scroll.set)
+        self.listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        f_btns = tk.Frame(self.root)
+        f_btns.pack(fill=tk.X, padx=5, pady=5)
+        tk.Button(f_btns, text='Add annotation',  command=self._add).pack(side=tk.LEFT, padx=2)
+        tk.Button(f_btns, text='Delete selected', command=self._delete).pack(side=tk.LEFT, padx=2)
+        self.btn_finish_poly = tk.Button(f_btns, text='Finish polygon', command=self._finish_polygon)
+        self.btn_finish_poly.pack(side=tk.LEFT, padx=2)
+        tk.Button(f_btns, text='Close', command=self.root.destroy).pack(side=tk.RIGHT, padx=2)
+
+    def refresh(self):
+        'Rebuild the listbox from current special_points data'
+        import tkinter as tk
+        self.listbox.delete(0, tk.END)
+        for i in range(len(self.sp.lat)):
+            self.listbox.insert(
+                tk.END,
+                '{}: [{}] {} ({:.4f}, {:.4f})'.format(
+                    i + 1, self.sp.sp_type[i], self.sp.label[i],
+                    float(self.sp.lat[i]), float(self.sp.lon[i])
+                )
+            )
+        # Enable Finish polygon button only when polygon mode is active
+        poly_active = getattr(self.line, 'sp_mode', None) == 'polygon'
+        self.btn_finish_poly.config(state='normal' if poly_active else 'disabled')
+
+    def _add(self):
+        'Open the Add annotation dialog; on OK, activates map-click mode'
+        dlg = Add_special_point_dialog(sp=self.sp, line=self.line)
+        if getattr(dlg, 'result', None):
+            # Activate distance display while annotation mode is live
+            try:
+                self.line.line.axes.format_coord = self.line.format_position_wp_dist
+            except Exception:
+                pass
+            self.refresh()
+            self.line.tb.set_message(
+                'Click map to place annotation: {} [{}]'.format(
+                    self.line.sp_label, self.line.sp_mode
+                )
+            )
+            self.btn_finish_poly.config(
+                state='normal' if self.line.sp_mode == 'polygon' else 'disabled'
+            )
+
+    def _delete(self):
+        'Delete the selected annotation point'
+        sel = self.listbox.curselection()
+        if not sel:
+            return
+        i = sel[0]
+        self.sp.del_point(i)
+        try:
+            self.line.get_bg(redraw=True)
+        except Exception as e:
+            print('Annotations_manager redraw error: {}'.format(e))
+        self.refresh()
+
+    def _finish_polygon(self):
+        'Finish polygon drawing: reset sp_mode, restore default format_coord, and redraw'
+        self.line.sp_mode = None
+        try:
+            self.line.line.axes.format_coord = self.line.format_position_simple
+        except Exception:
+            pass
+        try:
+            self.line.get_bg(redraw=True)
+        except Exception as e:
+            print('Annotations_manager finish polygon redraw error: {}'.format(e))
+        self.refresh()
+        self.line.tb.set_message('Polygon finished.')
+
+
+class Add_special_point_dialog(tkSimpleDialog.Dialog):
+    """
+    Purpose:
+        Modal dialog for choosing the type and label of a new special-point annotation.
+        On OK, sets LineBuilder.sp_mode / sp_label / sp_tab so the next map click
+        places the annotation.
+    Inputs:
+        sp   : special_points instance
+        line : LineBuilder instance
+    Outputs:
+        self.result is True when the user confirms; False/None on cancel.
+        Sets line.sp_mode, line.sp_label, line.sp_tab.
+    Dependencies:
+        tkinter, ttk
+    Modification History:
+        Written: Samuel LeBlanc, v1.69, 2026-08-24, Santa Cruz, CA
+    """
+
+    def __init__(self, sp, line):
+        import tkinter as tk
+        self.sp   = sp
+        self.line = line
+        parent = tk._default_root
+        self.result = None
+        tkSimpleDialog.Dialog.__init__(self, parent, 'Add Annotation')
+
+    def body(self, master):
+        import tkinter as tk
+        from tkinter import ttk
+        tk.Label(master, text='Type:').grid(row=0, column=0, sticky='w', padx=4, pady=2)
+        self.type_var = tk.StringVar(value='drop_sonde')
+        ttk.Combobox(master, textvariable=self.type_var,
+                     values=['drop_sonde', 'free_form', 'polygon'],
+                     state='readonly', width=18).grid(row=0, column=1, sticky='ew', padx=4, pady=2)
+
+        tk.Label(master, text='Label:').grid(row=1, column=0, sticky='w', padx=4, pady=2)
+        self.label_var = tk.StringVar(value='DS01')
+        lbl_entry = tk.Entry(master, textvariable=self.label_var, width=20)
+        lbl_entry.grid(row=1, column=1, sticky='ew', padx=4, pady=2)
+
+        tab_names = [getattr(ex, 'name', '') for ex in self.sp.ex_arr] if self.sp.ex_arr else ['']
+        tk.Label(master, text='Aircraft tab:').grid(row=2, column=0, sticky='w', padx=4, pady=2)
+        self.tab_var = tk.StringVar(value=tab_names[0] if tab_names else '')
+        ttk.Combobox(master, textvariable=self.tab_var,
+                     values=tab_names, state='readonly', width=18
+                     ).grid(row=2, column=1, sticky='ew', padx=4, pady=2)
+
+        info = ('Click the map to place the annotation.\n'
+                'For polygons: click multiple times; use\n'
+                '"Finish polygon" in the manager when done.')
+        tk.Label(master, text=info, fg='grey', justify='left'
+                 ).grid(row=3, column=0, columnspan=2, padx=4, pady=6, sticky='w')
+        return lbl_entry
+
+    def validate(self):
+        import tkinter.messagebox as tkMessageBox
+        if not self.label_var.get().strip():
+            tkMessageBox.showerror('Error', 'Label must not be empty.')
+            return False
+        return True
+
+    def apply(self):
+        self.line.sp_mode  = self.type_var.get()
+        self.line.sp_label = self.label_var.get().strip()
+        self.line.sp_tab   = self.tab_var.get()
+        self.result = True

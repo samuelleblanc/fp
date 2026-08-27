@@ -204,6 +204,9 @@
                 - Added configuration butten for the flight track.
         Modified: Samuel LeBlanc, v1.68, 2026-08-11, Santa Cruz, CA
                 - Use certifi SSL certificates in build_basemap to fix Windows certificate store errors on download of natural earth features.
+        Modified: Samuel LeBlanc, v1.69, 2026-08-24, Santa Cruz, CA
+                - Added special_points (specialpoints.py) initialization in Create_interaction().
+                - Added Annotations button in build_buttons() for map-click annotation entry.
 
 """
 try:
@@ -658,6 +661,13 @@ def build_buttons(ui,lines,vertical=True):
     #g.flippoints.pack(in_=g.frame_points,padx=0,pady=0,side=tk.LEFT)
     g.add_flt_module = ttk.Button(g.root,text='Add flt module', command=g.gui_flt_module)
     g.add_flt_module.pack(in_=ui.top)
+    g.bannotations = tk.Button(g.root, text='Annotations', command=g.gui_annotations,
+                               padx=4, pady=2, borderwidth=1, highlightthickness=0,
+                               bg=bg, fg='SystemButtonText',
+                               activebackground=hover_bg, activeforeground='SystemButtonText')
+    g.bannotations.bind("<Enter>", lambda e, b=g.bannotations: b.configure(bg=hover_bg))
+    g.bannotations.bind("<Leave>", lambda e, b=g.bannotations: b.configure(bg=bg))
+    g.bannotations.pack(in_=ui.top, fill=tk.X, padx=4, pady=2)
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
              ).pack(in_=ui.top,side=side,padx=8,pady=5)
     side_bar = g.root
@@ -947,6 +957,11 @@ def Create_interaction(test=False,profile=None,**kwargs):
     ui.progressbar.update()
     echo('Building the interactivity on the map')
     lines = mi.LineBuilder(line,m=m,ex=wb,tb=ui.tb,blit=True,verbose=args.verbose)
+    try:
+        import specialpoints as sp_mod
+    except ModuleNotFoundError:
+        from . import specialpoints as sp_mod
+    lines.sp = sp_mod.special_points(wb=wb.wb, ax=lines.line.axes, ex_arr=[wb], m=m, verbose=args.verbose)
     echo('Saving temporary excel file')
     savetmp(ui,wb)
     ui.progressbar.step(4)
