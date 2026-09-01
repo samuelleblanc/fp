@@ -135,6 +135,15 @@ jobs:
         run: |
           find ./conda_pkgs -type f \( -name "*.conda" -o -name "*.tar.bz2" \) -print
 
+      - name: Upload to Anaconda
+        shell: bash -l {0}
+        env:
+          # Pulls the secret securely into the runner environment
+          ANACONDA_API_TOKEN: ${{ secrets::ANACONDA_API_TOKEN }} 
+        run: |
+          # Uploads all built packages inside the folder
+          anaconda upload ./conda_pkgs/${{ matrix.artifact }}/*.conda --user samuelleblanc
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:

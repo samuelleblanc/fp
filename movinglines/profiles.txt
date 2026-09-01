@@ -1,3 +1,9 @@
+{'Profile':'NURTURE2027','Plane_name':'N777',
+                 'Start_lon':'-76.36','Start_lat':'37.0833', 
+                 'Lon_range':[-88,-35],'Lat_range':[35,83],
+                 'UTC_start':12.0,'UTC_conversion':-5.0,
+                 'start_alt':4,'proj':'LambertAzimuthalEqualArea','lat_0':60.0,'lon_0':-60.0,
+				 'waypoint_format':'{x.name[0]}{x.datestr.split("-")[2]}{w:02d}'}
 {'Profile':'INSPYRE-ER2','Plane_name':'ER2',
                  'Start_lon':'111.367513W','Start_lat':'47.480439N',
                  'Lon_range':[-123,-95],'Lat_range':[35,55],
