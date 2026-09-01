@@ -70,7 +70,7 @@ class special_points:
     SHEET_NAME = 'Special_points'
     TYPES      = ['drop_sonde', 'free_form', 'polygon']
     HEADERS    = ['Label', 'Type', 'Lat[deg]', 'Lon[deg]', 'Aircraft_tab',
-                  'CumLegT[hh:mm]', 'LegT[hh:mm]', 'LegDist[km]']
+                  'CumLegT[hh:mm]', 'LegT[hh:mm]', 'LegDist[km]', 'Comment']
     COLORS     = {'drop_sonde': 'cyan',    'free_form': 'magenta', 'polygon': 'yellow'}
     MARKERS    = {'drop_sonde': 'v',       'free_form': '*',        'polygon': 'D'}
 
@@ -89,6 +89,9 @@ class special_points:
         self.label       = []
         self.sp_type     = []
         self.aircraft_tab = []
+        self.comments    = []
+        self.seg_i       = []          # [int] waypoint segment index for drop_sonde relative positioning
+        self.seg_frac    = np.array([]) # [0-1] fraction along segment for drop_sonde
 
         self.drawn_markers = []   # one Line2D per lat/lon point (parallel to lat/lon arrays)
         self.drawn_labels  = []   # one Annotation per lat/lon point
@@ -126,7 +129,7 @@ class special_points:
         'Write all special point rows to the Excel sheet'
         if not hasattr(self, 'sh'):
             return
-        self.sh.range('A2:H1000').clear_contents()
+        self.sh.range('A2:I1000').clear_contents()
         if len(self.lat) == 0:
             return
         data = []
@@ -140,6 +143,7 @@ class special_points:
                 self._decimal_to_hhmm(float(self.cumlegt[i])),
                 self._decimal_to_hhmm(float(self.legt[i])),
                 float(self.legdist[i]),
+                self.comments[i] if i < len(self.comments) else '',
             ])
         self.sh.range('A2').value = data
 
@@ -166,6 +170,9 @@ class special_points:
             self.cumlegt  = np.append(self.cumlegt, self._hhmm_to_decimal(row[5]) if row[5] else 0.0)
             self.legt     = np.append(self.legt,    self._hhmm_to_decimal(row[6]) if row[6] else 0.0)
             self.legdist  = np.append(self.legdist, float(row[7]) if row[7] is not None else 0.0)
+            self.comments.append(str(row[8]) if len(row) > 8 and row[8] else '')
+            self.seg_i.append(0)       # populated by init_seg_positions() after load
+            self.seg_frac = np.append(self.seg_frac, 0.0)
 
     def _decimal_to_hhmm(self, t):
         'Convert decimal hours [decimal hours] to hh:mm string'
@@ -188,20 +195,23 @@ class special_points:
     # Data manipulation
     # ------------------------------------------------------------------
 
-    def add_point(self, lat, lon, label=' ', sp_type='drop_sonde', aircraft_tab=''):
-        'Append a new special point; computes leg info for drop_sonde type'
+    def add_point(self, lat, lon, label=' ', sp_type='drop_sonde', aircraft_tab='', comment=''):
+        'Append a new special point; computes leg info and segment fraction for drop_sonde type'
         self.lat      = np.append(self.lat, float(lat))
         self.lon      = np.append(self.lon, float(lon))
         self.label.append(str(label))
         self.sp_type.append(str(sp_type))
         self.aircraft_tab.append(str(aircraft_tab))
+        self.comments.append(str(comment))
 
         cumlegt, legt, legdist = 0.0, 0.0, 0.0
+        si, sf = 0, 0.0
         if sp_type == 'drop_sonde' and aircraft_tab:
             ex = self._find_ex(aircraft_tab)
             if ex is not None:
                 try:
-                    cumlegt, legt, legdist = self.calc_leg_info(float(lat), float(lon), ex)
+                    si, sf = self._find_best_segment(float(lat), float(lon), ex)
+                    cumlegt, legt, legdist = self._leg_info_from_seg(si, sf, float(lat), float(lon), ex)
                 except Exception as e:
                     if self.verbose:
                         print('calc_leg_info failed: {}'.format(e))
@@ -209,6 +219,8 @@ class special_points:
         self.cumlegt  = np.append(self.cumlegt, cumlegt)
         self.legt     = np.append(self.legt,    legt)
         self.legdist  = np.append(self.legdist, legdist)
+        self.seg_i.append(int(si))
+        self.seg_frac = np.append(self.seg_frac, float(sf))
         self.write_to_excel()
 
     def del_point(self, i):
@@ -218,9 +230,14 @@ class special_points:
         self.cumlegt  = np.delete(self.cumlegt, i)
         self.legt     = np.delete(self.legt,    i)
         self.legdist  = np.delete(self.legdist, i)
+        self.seg_frac = np.delete(self.seg_frac, i)
         self.label.pop(i)
         self.sp_type.pop(i)
         self.aircraft_tab.pop(i)
+        if i < len(self.comments):
+            self.comments.pop(i)
+        if i < len(self.seg_i):
+            self.seg_i.pop(i)
         self.write_to_excel()
 
     def _find_ex(self, aircraft_tab):
@@ -234,23 +251,11 @@ class special_points:
     # Leg-info calculation
     # ------------------------------------------------------------------
 
-    def calc_leg_info(self, lat_s, lon_s, ex):
-        """
-        Snap point (lat_s, lon_s) to the nearest track segment of ex and return
-        (cumlegt [decimal hours], legt [decimal hours], legdist [km]).
-
-        The nearest segment is found by projecting onto each (A→B) segment in
-        map-projected (x,y) space, then interpolating the track timing linearly.
-        """
-        try:
-            from map_utils import spherical_dist
-        except ModuleNotFoundError:
-            from .map_utils import spherical_dist
-
+    def _find_best_segment(self, lat_s, lon_s, ex):
+        'Return (seg_i, seg_frac) — index and fraction [0,1] of nearest track segment to (lat_s, lon_s)'
         n = len(ex.lat)
         if n < 2:
-            return 0.0, 0.0, 0.0
-
+            return 0, 0.0
         if self.m is not None:
             xs, ys = self.m.invert_lonlat(ex.lon, ex.lat)
             xp_arr, yp_arr = self.m.invert_lonlat(np.array([lon_s]), np.array([lat_s]))
@@ -258,31 +263,128 @@ class special_points:
         else:
             xs, ys = np.array(ex.lon), np.array(ex.lat)
             xp, yp = float(lon_s), float(lat_s)
-
         best_dist2 = np.inf
-        best_i     = 0
-        best_t     = 0.0
-
+        best_i, best_t = 0, 0.0
         for i in range(n - 1):
             ax_, ay_ = float(xs[i]), float(ys[i])
             bx,  by  = float(xs[i + 1]), float(ys[i + 1])
             dx,  dy  = bx - ax_, by - ay_
             seg2 = dx * dx + dy * dy
             t = 0.0 if seg2 < 1e-20 else max(0.0, min(1.0, ((xp - ax_) * dx + (yp - ay_) * dy) / seg2))
-            px = ax_ + t * dx
-            py = ay_ + t * dy
-            d2 = (xp - px) ** 2 + (yp - py) ** 2
+            px, py_ = ax_ + t * dx, ay_ + t * dy
+            d2 = (xp - px) ** 2 + (yp - py_) ** 2
             if d2 < best_dist2:
                 best_dist2 = d2
-                best_i     = i
-                best_t     = t
+                best_i, best_t = i, t
+        return best_i, best_t
 
-        i = best_i
-        t = best_t
+    def _leg_info_from_seg(self, seg_i, seg_frac, lat_s, lon_s, ex):
+        'Return (cumlegt, legt, legdist) from segment index, fraction, and snapped position'
+        try:
+            from map_utils import spherical_dist
+        except ModuleNotFoundError:
+            from .map_utils import spherical_dist
+        i, t = int(seg_i), float(seg_frac)
+        n = len(ex.lat)
+        i = min(i, n - 2)
         cumlegt = float(ex.cumlegt[i]) + t * (float(ex.cumlegt[i + 1]) - float(ex.cumlegt[i]))
         legt    = t * (float(ex.cumlegt[i + 1]) - float(ex.cumlegt[i]))
         legdist = float(spherical_dist([ex.lat[i], ex.lon[i]], [lat_s, lon_s]))
         return cumlegt, legt, legdist
+
+    def _latlon_from_seg(self, seg_i, seg_frac, ex):
+        'Return (lat, lon) interpolated from segment index and fraction along the flight track'
+        i = int(seg_i)
+        t = float(seg_frac)
+        n = len(ex.lat)
+        if i >= n - 1:
+            return float(ex.lat[-1]), float(ex.lon[-1])
+        if self.m is not None:
+            xs, ys = self.m.invert_lonlat(np.array([float(ex.lon[i]), float(ex.lon[i + 1])]),
+                                           np.array([float(ex.lat[i]), float(ex.lat[i + 1])]))
+            xp = float(xs[0]) + t * (float(xs[1]) - float(xs[0]))
+            yp = float(ys[0]) + t * (float(ys[1]) - float(ys[0]))
+            try:
+                lo, la = self.m.convert_latlon(xp, yp)
+                return float(la), float(lo)
+            except Exception:
+                pass
+        la = float(ex.lat[i]) + t * (float(ex.lat[i + 1]) - float(ex.lat[i]))
+        lo = float(ex.lon[i]) + t * (float(ex.lon[i + 1]) - float(ex.lon[i]))
+        return la, lo
+
+    def calc_leg_info(self, lat_s, lon_s, ex):
+        """
+        Snap point (lat_s, lon_s) to the nearest track segment of ex and return
+        (cumlegt [decimal hours], legt [decimal hours], legdist [km]).
+        """
+        if len(ex.lat) < 2:
+            return 0.0, 0.0, 0.0
+        seg_i, seg_frac = self._find_best_segment(lat_s, lon_s, ex)
+        return self._leg_info_from_seg(seg_i, seg_frac, lat_s, lon_s, ex)
+
+    def init_seg_positions(self):
+        'Re-derive seg_i/seg_frac from current lat/lon for drop_sonde points (called after file load)'
+        for i in range(len(self.lat)):
+            if self.sp_type[i] == 'drop_sonde' and self.aircraft_tab[i]:
+                ex = self._find_ex(self.aircraft_tab[i])
+                if ex is not None and len(ex.lat) >= 2:
+                    try:
+                        si, sf = self._find_best_segment(float(self.lat[i]), float(self.lon[i]), ex)
+                        if i < len(self.seg_i):
+                            self.seg_i[i] = int(si)
+                        else:
+                            self.seg_i.append(int(si))
+                        if i < len(self.seg_frac):
+                            self.seg_frac[i] = float(sf)
+                        else:
+                            self.seg_frac = np.append(self.seg_frac, float(sf))
+                    except Exception as e:
+                        if self.verbose:
+                            print('init_seg_positions failed for {}: {}'.format(self.label[i], e))
+
+    def update_dropsonde_positions(self, flip=False):
+        """
+        Update drop sonde positions when waypoints change.
+        flip=False: recalculate lat/lon from stored seg_i/seg_frac (waypoint moved).
+        flip=True : keep lat/lon, re-find seg_i/seg_frac for new reversed path.
+        """
+        changed = False
+        for i in range(len(self.lat)):
+            if self.sp_type[i] != 'drop_sonde' or not self.aircraft_tab[i]:
+                continue
+            ex = self._find_ex(self.aircraft_tab[i])
+            if ex is None or len(ex.lat) < 2:
+                continue
+            if i >= len(self.seg_i) or i >= len(self.seg_frac):
+                continue
+            try:
+                if flip:
+                    si, sf = self._find_best_segment(float(self.lat[i]), float(self.lon[i]), ex)
+                    self.seg_i[i] = int(si)
+                    self.seg_frac[i] = float(sf)
+                else:
+                    la, lo = self._latlon_from_seg(self.seg_i[i], self.seg_frac[i], ex)
+                    self.lat[i] = la
+                    self.lon[i] = lo
+                cumlegt, legt, legdist = self._leg_info_from_seg(
+                    self.seg_i[i], self.seg_frac[i], float(self.lat[i]), float(self.lon[i]), ex)
+                self.cumlegt[i] = cumlegt
+                self.legt[i]    = legt
+                self.legdist[i] = legdist
+                changed = True
+            except Exception as e:
+                if self.verbose:
+                    print('update_dropsonde_positions failed for {}: {}'.format(self.label[i], e))
+        if changed:
+            self.write_to_excel()
+
+    def snap_to_track(self, lat_s, lon_s, ex):
+        'Return (lat, lon) of the nearest point on the flight track to (lat_s, lon_s)'
+        if len(ex.lat) < 2:
+            return lat_s, lon_s
+        seg_i, seg_frac = self._find_best_segment(lat_s, lon_s, ex)
+        return self._latlon_from_seg(seg_i, seg_frac, ex)
 
     # ------------------------------------------------------------------
     # Map drawing

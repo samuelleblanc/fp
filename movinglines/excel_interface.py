@@ -1632,15 +1632,15 @@ class dict_position:
                 wpname[j] = '{:X<5.5s}'.format(alphanum(wpname[j].upper()))
         return list(wpname)
     
-    def get_main_points(self, combined_distances=None, combined_utc=None,combined_names=[],fmt='{wpname}:{Comment}, {utc_str} , {deltat_min} minutes since '):
-        'function to pull out the points that have comments, and those that are coordinated, including time between those points.'
+    def get_main_points(self, combined_distances=None, combined_utc=None,combined_names=[],fmt='{wpname}:{Comment}, {utc_str} , {deltat_min} minutes since ',sp=None):
+        'function to pull out the points that have comments, coordinated points, and drop sondes (from sp).'
         main_points = []
         float_to_hh_mm = lambda float_hours: '{:02d}:{:02d}'.format(int(float_hours), int((float_hours - int(float_hours)) * 60))
-        for j,w in enumerate(self.WP): 
+        for j,w in enumerate(self.WP):
             if self.comments[j]: # There is a comment - likely an important point
                 main_points.append(dict(Comment=self.comments[j],wpname=self.wpname[j],utc=self.utc[j],
                                         utc_str=float_to_hh_mm(self.utc[j]),i=j+1,deltat_min=0,label=''))
-            if combined_distances: 
+            if combined_distances:
                 for ii,d in enumerate(combined_distances[j]):
                     if (ii != self.sheet_num-1) and (d<30.0): #there is a colocation
                         if len(main_points)>0 and self.comments[j]:
@@ -1649,7 +1649,7 @@ class dict_position:
                             main_points.append(dict(Comment='Potential colocation with: {}'.format(combined_names[ii]),
                                            wpname=self.wpname[j],utc=self.utc[j],i=j+1,deltat_min=0,label='',
                                            utc_str=float_to_hh_mm(self.utc[j])))
-                
+
             main_points[0]['label'] = fmt.format(**main_points[-1])
             if len(main_points)>1:
                 old_utc = main_points[0]['utc']
@@ -1657,7 +1657,47 @@ class dict_position:
                     mpt['deltat_min'] = int((mpt['utc']-old_utc)*60.0)
                     old_utc = mpt['utc']
                     mpt['label'] = fmt.format(**mpt)
-                                
+
+        # Inject drop sonde entries from special_points (sorted by cumlegt into the list)
+        if sp is not None:
+            for k in range(len(sp.lat)):
+                if sp.sp_type[k] != 'drop_sonde':
+                    continue
+                if sp.aircraft_tab[k] != self.name:
+                    continue
+                ds_utc = float(self.utc[0]) + float(sp.cumlegt[k])
+                comment_str = sp.comments[k] if k < len(sp.comments) else ''
+                ds_entry = dict(
+                    Comment='[DROP SONDE] {}'.format(comment_str) if comment_str else '[DROP SONDE]',
+                    wpname=sp.label[k],
+                    utc=ds_utc,
+                    utc_str=float_to_hh_mm(ds_utc),
+                    i='DS',
+                    deltat_min=0,
+                    label=''
+                )
+                # Insert in UTC order
+                inserted = False
+                for pos, mpt in enumerate(main_points):
+                    if ds_utc < mpt['utc']:
+                        main_points.insert(pos, ds_entry)
+                        inserted = True
+                        break
+                if not inserted:
+                    main_points.append(ds_entry)
+            # Recalculate deltat_min with drop sondes included
+            if main_points:
+                main_points[0]['deltat_min'] = 0
+                old_utc = main_points[0]['utc']
+                for mpt in main_points[1:]:
+                    mpt['deltat_min'] = int((mpt['utc'] - old_utc) * 60.0)
+                    old_utc = mpt['utc']
+                for mpt in main_points:
+                    try:
+                        mpt['label'] = fmt.format(**mpt)
+                    except Exception:
+                        mpt['label'] = '{}: {} UTC +{}min'.format(mpt['wpname'], mpt['utc_str'], mpt['deltat_min'])
+
         labels = [mpt['label'] for mpt in main_points]
         return labels,main_points
                        

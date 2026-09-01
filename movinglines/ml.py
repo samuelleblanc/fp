@@ -962,6 +962,7 @@ def Create_interaction(test=False,profile=None,**kwargs):
     except ModuleNotFoundError:
         from . import specialpoints as sp_mod
     lines.sp = sp_mod.special_points(wb=wb.wb, ax=lines.line.axes, ex_arr=[wb], m=m, verbose=args.verbose)
+    lines.sp.init_seg_positions()
     echo('Saving temporary excel file')
     savetmp(ui,wb)
     ui.progressbar.step(4)

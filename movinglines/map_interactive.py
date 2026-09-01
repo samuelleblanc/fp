@@ -159,12 +159,15 @@ class LineBuilder:
         self.num_changed = 0
         self.points_changed = 0
         self.on_data_updated = None
-        self.sp           = None    # special_points instance
-        self.sp_mode      = None    # active annotation type or None
-        self.sp_label     = ' '     # label for next annotation click
-        self.sp_tab       = ''      # aircraft tab for next annotation click
-        self.sp_dragging  = False   # True while dragging a special point
-        self.sp_drag_index = None   # index of the sp point being dragged
+        self.sp              = None    # special_points instance
+        self.sp_mode         = None    # active annotation type or None
+        self.sp_label        = ' '     # label for next annotation click
+        self.sp_tab          = ''      # aircraft tab for next annotation click
+        self.sp_comment      = ''      # comment for next annotation click
+        self.sp_dragging     = False   # True while dragging a special point
+        self.sp_drag_index   = None    # index of the sp point being dragged
+        self.sp_pending_drag = False   # True after New clicked; first mouse motion creates point
+        self.sp_manager      = None    # reference to open Annotations_manager (for refresh)
         try:
             self.get_bg()
         except Exception:
@@ -203,17 +206,42 @@ class LineBuilder:
     def onpress(self,event):
         'Function that enables either selecting a point, or creating a new point when clicked'
         #print('click', event)
-        if self.sp_mode and self.sp and event.inaxes == self.line.axes and not self.tb.mode:
-            lo, la = self.m.convert_latlon(event.xdata, event.ydata)
-            # Check if click is on an existing special point (start drag of existing)
+        # Right-click finishes polygon (or any in-progress annotation drag)
+        if event.button == 3:
+            self._finish_sp_polygon()
+            return
+        # Allow dragging existing sp markers even when annotation mode is not active
+        if self.sp and not self.sp_mode and event.inaxes == self.line.axes and not self.tb.mode:
             existing_i = self._sp_find_nearby(event)
             if existing_i is not None:
                 self.sp_dragging   = True
                 self.sp_drag_index = existing_i
+                self.sp.draw()
+                self.draw_canvas()
+                return
+        if self.sp_mode and self.sp and event.inaxes == self.line.axes and not self.tb.mode:
+            self.sp_pending_drag = False  # click overrides pending-drag behaviour
+            if self.sp_dragging:
+                # Point already positioned via hover (sp_pending_drag path) — click confirms
+                return
+            existing_i = self._sp_find_nearby(event)
+            if existing_i is not None:
+                # Start drag of existing point
+                self.sp_dragging   = True
+                self.sp_drag_index = existing_i
             else:
-                # Add a new special point and immediately start drag
+                # No point nearby and not already dragging — create new point
+                lo, la = self.m.convert_latlon(event.xdata, event.ydata)
+                if self.sp_mode == 'drop_sonde' and self.sp_tab:
+                    ex = self.sp._find_ex(self.sp_tab)
+                    if ex and len(ex.lat) >= 2:
+                        try:
+                            la, lo = self.sp.snap_to_track(la, lo, ex)
+                        except Exception:
+                            pass
                 self.sp.add_point(lat=la, lon=lo, label=self.sp_label,
-                                  sp_type=self.sp_mode, aircraft_tab=self.sp_tab)
+                                  sp_type=self.sp_mode, aircraft_tab=self.sp_tab,
+                                  comment=self.sp_comment)
                 self.sp_dragging   = True
                 self.sp_drag_index = len(self.sp.lat) - 1
             self.sp.draw()
@@ -333,10 +361,19 @@ class LineBuilder:
         
     def onrelease(self,event):
         'Function to set the point location'
+        if self.sp_pending_drag:
+            self.sp_pending_drag = False  # cancelled without placing
         if self.sp_dragging and self.sp:
             i = self.sp_drag_index
             if event.xdata is not None and event.inaxes == self.line.axes:
                 lo, la = self.m.convert_latlon(event.xdata, event.ydata)
+                if self.sp.sp_type[i] == 'drop_sonde' and self.sp.aircraft_tab[i]:
+                    ex = self.sp._find_ex(self.sp.aircraft_tab[i])
+                    if ex and len(ex.lat) >= 2:
+                        try:
+                            la, lo = self.sp.snap_to_track(la, lo, ex)
+                        except Exception:
+                            pass
                 self.sp.lat[i] = la
                 self.sp.lon[i] = lo
             la, lo = float(self.sp.lat[i]), float(self.sp.lon[i])
@@ -354,7 +391,10 @@ class LineBuilder:
             self.sp.write_to_excel()
             self.sp_dragging   = False
             self.sp_drag_index = None
-            if self.sp_mode != 'polygon':
+            if self.sp_mode == 'polygon':
+                # Auto-arm for the next polygon vertex via hover
+                self.sp_pending_drag = True
+            else:
                 self.sp_mode = None
                 self.line.axes.format_coord = self.format_position_simple
             self.tb.set_message('Annotation placed: {} at ({:.4f}, {:.4f})'.format(
@@ -430,9 +470,32 @@ class LineBuilder:
 
     def onmotion(self,event):
         'Function that moves the points to desired location'
+        if self.sp_pending_drag and self.sp and self.sp_mode and event.inaxes == self.line.axes and event.xdata is not None:
+            lo, la = self.m.convert_latlon(event.xdata, event.ydata)
+            if self.sp_mode == 'drop_sonde' and self.sp_tab:
+                ex = self.sp._find_ex(self.sp_tab)
+                if ex and len(ex.lat) >= 2:
+                    la, lo = self.sp.snap_to_track(la, lo, ex)
+            self.sp.add_point(lat=la, lon=lo, label=self.sp_label,
+                              sp_type=self.sp_mode, aircraft_tab=self.sp_tab,
+                              comment=self.sp_comment)
+            self.sp_pending_drag = False
+            self.sp_dragging     = True
+            self.sp_drag_index   = len(self.sp.lat) - 1
+            self.line.axes.format_coord = self.format_position_wp_dist
+            self.sp.draw()
+            self.draw_canvas()
+            return
         if self.sp_dragging and self.sp and event.inaxes == self.line.axes and event.xdata is not None:
             lo, la = self.m.convert_latlon(event.xdata, event.ydata)
             i = self.sp_drag_index
+            if self.sp.sp_type[i] == 'drop_sonde' and self.sp.aircraft_tab[i]:
+                ex = self.sp._find_ex(self.sp.aircraft_tab[i])
+                if ex and len(ex.lat) >= 2:
+                    try:
+                        la, lo = self.sp.snap_to_track(la, lo, ex)
+                    except Exception:
+                        pass
             self.sp.lat[i] = la
             self.sp.lon[i] = lo
             if self.sp.sp_type[i] == 'drop_sonde' and self.sp.aircraft_tab[i]:
@@ -477,6 +540,9 @@ class LineBuilder:
         'function to handle keyboard events'
         if self.verbose:
             print('pressed key',event.key,event.xdata,event.ydata)
+        if event.key == 'escape':
+            self._finish_sp_polygon()
+            return
         if event.inaxes!=self.line.axes: return
         if (event.key=='s') | (event.key=='alt+s'):
             print('Stopping interactive point selection, press i to start again')
@@ -522,7 +588,7 @@ class LineBuilder:
                     self.xs = list(x)
                     self.ys = list(y)
                 except TypeError as ei:
-                    import pdb; pdb.set_trace()
+                    print('Error setting line data in onfigureenter: {}'.format(ei))
                 #self.line.set_data(self.xs,self.ys)
                 self._set_data_transformed(self.xs, self.ys)
                 if get_time: 
@@ -646,6 +712,37 @@ class LineBuilder:
                 pass
         return None
 
+    def _finish_sp_polygon(self):
+        'Finish polygon annotation mode (right-click or Escape): finalise any in-progress drag and exit mode'
+        if self.sp_mode != 'polygon' and not self.sp_dragging and not self.sp_pending_drag:
+            return  # nothing to do
+        self.sp_pending_drag = False
+        if self.sp_dragging and self.sp:
+            # Commit the last dragged vertex position before exiting
+            try:
+                self.sp.write_to_excel()
+            except Exception:
+                pass
+            self.sp_dragging   = False
+            self.sp_drag_index = None
+        self.sp_mode = None
+        try:
+            self.line.axes.format_coord = self.format_position_simple
+        except Exception:
+            pass
+        if self.sp:
+            try:
+                self.get_bg(redraw=True)
+            except Exception:
+                self.sp.draw()
+                self.draw_canvas()
+        self.tb.set_message('Polygon finished.')
+        if self.sp_manager:
+            try:
+                self.sp_manager.refresh()
+            except Exception:
+                pass
+
     def _set_data_transformed(self,x,y):
         'set the line data with the transformed points'
         
@@ -712,6 +809,12 @@ class LineBuilder:
             self.line.figure.canvas.draw()
         if callable(self.on_data_updated):
             self.on_data_updated()
+        if self.sp:
+            try:
+                self.sp.update_dropsonde_positions()
+            except Exception as e:
+                if self.verbose:
+                    print('sp dropsonde update failed: {}'.format(e))
     
     def make_labels_points(self):
         'function to make a list of the lat, lon, and names of the labelled points'
@@ -1092,9 +1195,15 @@ class LineBuilder:
             self.ex.write_to_excel()
         self.line.figure.canvas.draw()
         self.update_labels(updatexys=True)
+        if self.sp:
+            try:
+                self.sp.update_dropsonde_positions(flip=True)
+            except Exception as e:
+                if self.verbose:
+                    print('sp dropsonde flip update failed: {}'.format(e))
         self.get_bg(redraw=True)
         self.draw_canvas()
-            
+
     def parse_flt_module_file(self,filename):
         """
         Program that opens a macro file and parses it, runs the move commands on each line of the file
@@ -1230,10 +1339,11 @@ class LineBuilder:
 
     def get_bg(self,redraw=False):
         'program to store the canvas background. Used for blit technique'
-        # Clear sp artists so they are not frozen into the background;
-        # draw_canvas() redraws them on every blit cycle instead.
+        # Remove sp artists BEFORE rendering so they are not frozen into the
+        # background buffer; draw_canvas() redraws them on every blit cycle.
         if self.sp:
             self.sp.clear()
+            redraw = True   # force a clean render without sp artifacts
         if redraw:
             self.line.figure.canvas.draw()
         self.m.llcrnrlat,self.m.urcrnrlat = self.m.get_ylim()
