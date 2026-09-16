@@ -659,15 +659,18 @@ def build_buttons(ui,lines,vertical=True):
     #g.flippoints = ttk.Button(g.frame_points,text='Flip',style=tight,
     #                         command = g.gui_fliporder)
     #g.flippoints.pack(in_=g.frame_points,padx=0,pady=0,side=tk.LEFT)
+    g.frame_mods = ttk.Frame(ui.top)
+    g.frame_mods.pack(in_=ui.top,side=side,fill=tk.X,pady=2,padx=10,expand=True)
     g.add_flt_module = ttk.Button(g.root,text='Add flt module', command=g.gui_flt_module)
-    g.add_flt_module.pack(in_=ui.top)
+    #g.add_flt_module.pack(in_=g.frame_mods,pady=2,side=tk.RIGTH)
     g.bannotations = tk.Button(g.root, text='Annotations', command=g.gui_annotations,
                                padx=4, pady=2, borderwidth=1, highlightthickness=0,
                                bg=bg, fg='SystemButtonText',
                                activebackground=hover_bg, activeforeground='SystemButtonText')
     g.bannotations.bind("<Enter>", lambda e, b=g.bannotations: b.configure(bg=hover_bg))
     g.bannotations.bind("<Leave>", lambda e, b=g.bannotations: b.configure(bg=bg))
-    g.bannotations.pack(in_=ui.top, fill=tk.X, padx=4, pady=2)
+    g.add_flt_module.pack(in_=g.frame_mods,pady=2,padx=10,side="left")
+    g.bannotations.pack(in_=g.frame_mods,pady=2,padx=10,side="left")
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
              ).pack(in_=ui.top,side=side,padx=8,pady=5)
     side_bar = g.root
