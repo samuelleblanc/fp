@@ -112,6 +112,12 @@ class LineBuilder:
                 - Migrated from python 2 to python 3.9, with cartopy and new version of xlwings.
         Modified: Samuel LeBlanc, 2026-08-11, Santa Cruz, CA
                 - Use certifi SSL certificates in build_basemap to fix Windows certificate store errors.
+        Modified: Samuel LeBlanc, 2026-09-24, Santa Cruz, CA
+                - Performance: vectorize _set_data_transformed with Cartopy transform_points instead of np.vectorize.
+                - Performance: eliminate redundant canvas.draw() in zoom_fun by using nodraw=True.
+                - Performance: add resize_event handler to recapture blit background after window resize.
+                - Performance: fast-path label updates in update_labels to reuse annotations in-place when count unchanged.
+                - Performance: vectorize inverter_lonlat closure in build_basemap with transform_points.
 
     """
     def __init__(self, line,m=None,ex=None,verbose=False,tb=None, blit=True):
@@ -179,6 +185,7 @@ class LineBuilder:
         self.cid_onaxesenter = self.line.figure.canvas.mpl_connect(
             'axes_enter_event',self.onfigureenter)
         self.cid_onzoomscroll = self.line.figure.canvas.mpl_connect('scroll_event',self.zoom_fun)
+        self.cid_onresize = self.line.figure.canvas.mpl_connect('resize_event', self.onresize)
 
     def disconnect(self):
         'Function to disconnect all events (except keypress)'
@@ -189,6 +196,7 @@ class LineBuilder:
         self.line.figure.canvas.mpl_disconnect(self.cid_onfigureenter)
         self.line.figure.canvas.mpl_disconnect(self.cid_onaxesenter)
         self.line.figure.canvas.mpl_disconnect(self.cid_onzoomscroll)
+        self.line.figure.canvas.mpl_disconnect(self.cid_onresize)
 
     def onpress(self,event):
         'Function that enables either selecting a point, or creating a new point when clicked'
@@ -421,6 +429,10 @@ class LineBuilder:
         #print('released key',event.key)
         if event.inaxes!=self.line.axes: return
 
+    def onresize(self,event):
+        'event handler for window resize - recaptures blit background'
+        self.get_bg(redraw=True)
+
     def onfigureenter(self,event):
         'event handler for updating the figure with excel data'
         get_time = False
@@ -510,7 +522,7 @@ class LineBuilder:
         # REVIEW perhaps this should participate in a drag_zoom like
         # matplotlib/backend_bases.py:NavigationToolbar2:drag_zoom()
         self.tb.push_current()
-        self.update_labels(nodraw=False)
+        self.update_labels(nodraw=True)
         self.get_bg(redraw=True)
         #self.draw_canvas()#ax.figure.canvas.draw() # force re-draw
                 
@@ -539,19 +551,13 @@ class LineBuilder:
     
     def _set_data_transformed(self,x,y):
         'set the line data with the transformed points'
-        
-        # Convert to arrays
-        x_array = np.atleast_1d(np.array(x))
-        y_array = np.atleast_1d(np.array(y))
-        
-        # Otherwise, vectorize the conversion
-        convert_vectorized = np.vectorize(self.m.convert_latlon)
-        xs, ys = convert_vectorized(x_array, y_array)
-        
-        # Update the line
-        self.line.set_data(xs, ys)
-        
-        return
+        x_array = np.atleast_1d(np.array(x, dtype=float))
+        y_array = np.atleast_1d(np.array(y, dtype=float))
+        if self.m and self.m.merc is not None:
+            pts = self.m.merc.transform_points(self.m.proj, x_array, y_array)
+            self.line.set_data(pts[:, 0], pts[:, 1])
+        else:
+            self.line.set_data(x_array, y_array)
         
     def update_labels(self,nodraw=False,updatexys=False):
         'method to update the waypoints labels after each recalculations'
@@ -577,27 +583,42 @@ class LineBuilder:
         else:
             self.n = len(self.xs)
             self.wp = range(1,self.n+1)
-        if self.lbl:
-            for ll in self.lbl:
-                if ll.axes:
-                    ll.remove()
-            self.lbl = []
         if self.labelsoff:
+            if self.lbl:
+                for ll in self.lbl:
+                    if ll.axes:
+                        ll.remove()
+                self.lbl = []
             return
         vas = ['bottom', 'baseline', 'center', 'center_baseline', 'top']
         has = ['left', 'right', 'center']
-        for i in self.wp:    
-            if not self.lbl:
-                self.lbl = [self.line.axes.annotate(s+'%i'%i,
-                                                    (self.xs[i-1],self.ys[i-1]),zorder=45)]
-            else:
+        wp_list = list(self.wp)
+        if self.lbl and len(self.lbl) == len(wp_list):
+            for idx,i in enumerate(wp_list):
                 try:
-                    if not self.xs[i-1]:
-                        continue
-                    self.lbl.append(self.line.axes.
-                                    annotate(s+'%i'%i,(self.xs[i-1],self.ys[i-1]),ha=has[i%3],va=vas[i%5],zorder=45))
+                    self.lbl[idx].set_text(s+'%i'%i)
+                    self.lbl[idx].xy = (self.xs[i-1], self.ys[i-1])
+                    self.lbl[idx].set_position((self.xs[i-1], self.ys[i-1]))
                 except IndexError:
                     pass
+        else:
+            if self.lbl:
+                for ll in self.lbl:
+                    if ll.axes:
+                        ll.remove()
+                self.lbl = []
+            for i in wp_list:
+                if not self.lbl:
+                    self.lbl = [self.line.axes.annotate(s+'%i'%i,
+                                                        (self.xs[i-1],self.ys[i-1]),zorder=45)]
+                else:
+                    try:
+                        if not self.xs[i-1]:
+                            continue
+                        self.lbl.append(self.line.axes.
+                                        annotate(s+'%i'%i,(self.xs[i-1],self.ys[i-1]),ha=has[i%3],va=vas[i%5],zorder=45))
+                    except IndexError:
+                        pass
         #adjust_text(self.lbl,expand_point=(2,2),arrowprops=dict(arrowstyle='->',color="#7F7F7F",lw=2),ax=self.line.axes)
         if not nodraw:
             self.line.figure.canvas.draw()
@@ -1350,14 +1371,11 @@ def build_basemap(lower_left=[-20,-30],upper_right=[20,10],ax=None,fig=None,proj
             return merc.transform_point(x,y,src_crs=m.proj)
         def inverter_lonlat(lon,lat):
             merc = ccrs.PlateCarree()
-            
             if hasattr(lon,'__len__'):
-                x_tmp,y_tmp = [],[]
-                tp = [m.proj.transform_point(lon[ilon],lat[ilon],src_crs=merc) for ilon,llo in enumerate(lon)]
-                nul = [(x_tmp.append(t[0]),y_tmp.append(t[1])) for t in tp]
-                return x_tmp, y_tmp
+                pts = m.proj.transform_points(merc, np.asarray(lon,dtype=float), np.asarray(lat,dtype=float))
+                return list(pts[:,0]), list(pts[:,1])
             else:
-                 return m.proj.transform_point(lon,lat,src_crs=merc)
+                return m.proj.transform_point(lon,lat,src_crs=merc)
         m.merc = ccrs.PlateCarree()
         m.convert_latlon = converter_latlon
         m.invert_lonlat = inverter_lonlat
