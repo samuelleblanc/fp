@@ -2105,7 +2105,7 @@ class gui:
         #tkMessageBox.showwarning('SUA for US only','Special Use Airspace for US only')
         img,label,img_leg = self.add_WMS(website='https://sua.faa.gov/geoserver/wms?LAYERS=SUA',
                          printurl=True,notime=True,popup=False,
-                         cql_filter='low_altitude<240',hires=True,select_cont_str='schedule')
+                         hires=True,select_cont_str='sua_location')
         if img:
             r = self.add_wms_images(img,img_leg,name='SUA',alpha=0.5,text=label)
             if r:
@@ -2418,7 +2418,7 @@ class gui:
         if select_cont_str:
             target_string = select_cont_str.lower()
             target_idx = next((i for i, k in enumerate(cont) if target_string in str(wms.contents[k].title).lower() or target_string in str(k).lower()), None)
-        if not target_idx:
+        if target_idx is None:
             self.root.config(cursor='')
             popup = Popup_list(arrs)
             ii = popup.var.get()
