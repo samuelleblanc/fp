@@ -413,6 +413,11 @@ class LineBuilder:
                 self.sp.label[i], la, lo))
             self.sp.draw()
             self.draw_canvas()
+            if self.sp_manager:
+                try:
+                    self.sp_manager.refresh()
+                except Exception:
+                    pass
             return
 
         if self.verbose:

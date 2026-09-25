@@ -4851,6 +4851,9 @@ class Annotations_manager:
         if not lbl:
             tkMessageBox.showerror('Error', 'Label must not be empty.', parent=self.root)
             return
+        # Abort any in-progress drag so the button-release doesn't move an existing point
+        self.line.sp_dragging   = False
+        self.line.sp_drag_index = None
         # Push current field values to line
         self.line.sp_mode    = self.type_var.get()
         self.line.sp_label   = lbl
