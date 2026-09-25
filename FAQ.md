@@ -51,6 +51,32 @@ mamba install -c samuelleblanc movinglines
 After a clean environment creation, the default install should resolve to the latest published version without needing to force a specific version number.
 
 ---
+### conda says it is "rate limited"
+**Symptom:** When trying to make a new environment the conda call returns "Rate limited"  
+
+**Cause:** Issues with pathing and package permission, even when removing the 'defaults' channel, which can be overridden by system config  
+
+**Solution:**  
+
+*Step 1 - Remove the default channel system-wide* 
+```
+conda config --system --remove channels defaults
+```
+
+*Step 2 — Ensure usage of the conda-forge channel with strict priority*
+```
+conda config --add channels conda-forge
+conda config --set channel_priority strict
+```
+
+*Step 3 — Retry install*
+```
+conda create -n ml python=3.9
+conda activate ml
+conda install -c samuelleblanc movinglines
+```
+
+---
 
 ### conda install hangs or spins indefinitely ("Solving environment" never completes)
 
