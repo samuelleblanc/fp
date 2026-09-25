@@ -380,6 +380,20 @@ class gui:
                                 coordinated_label = None
             ax1.set_xlabel('UTC [Hours]')
             time = self.line.ex.utc
+            sp = getattr(self.line, 'sp', None)
+            if sp is not None and len(sp.lat) > 0:
+                ds_label = 'Drop sondes'
+                for j,ex in enumerate(self.line.ex_arr):
+                    for i in range(len(sp.lat)):
+                        if sp.sp_type[i] == 'drop_sonde' and sp.aircraft_tab[i] == ex.name:
+                            ct = float(sp.cumlegt[i])
+                            alt_ds = float(np.interp(ct, ex.cumlegt, ex.alt))
+                            utc_ds = ct + float(ex.utc[0])
+                            ax1.plot(utc_ds, alt_ds, marker='v', color='cyan', ms=8, ls='none',
+                                     markeredgecolor='k', markeredgewidth=0.5, zorder=50, label=ds_label)
+                            ax1.annotate(sp.label[i], (utc_ds, alt_ds), fontsize=7, color='cyan',
+                                         xytext=(4, 4), textcoords='offset points', zorder=51)
+                            ds_label = None
         else:
             ax1.plot(self.line.ex.cumlegt,self.line.ex.alt,'x-',label=self.line.ex.name)
             for i,w in enumerate(self.line.ex.WP):
@@ -389,6 +403,19 @@ class gui:
             surf_el_label_multi = ''
             ax1.set_xlabel('Flight duration [Hours]')
             time = self.line.ex.cumlegt
+            sp = getattr(self.line, 'sp', None)
+            if sp is not None and len(sp.lat) > 0:
+                ex = self.line.ex
+                ds_label = 'Drop sondes'
+                for i in range(len(sp.lat)):
+                    if sp.sp_type[i] == 'drop_sonde' and (sp.aircraft_tab[i] == ex.name or not sp.aircraft_tab[i]):
+                        ct = float(sp.cumlegt[i])
+                        alt_ds = float(np.interp(ct, ex.cumlegt, ex.alt))
+                        ax1.plot(ct, alt_ds, marker='v', color='cyan', ms=8, ls='none',
+                                 markeredgecolor='k', markeredgewidth=0.5, zorder=50, label=ds_label)
+                        ax1.annotate(sp.label[i], (ct, alt_ds), fontsize=7, color='cyan',
+                                     xytext=(4, 4), textcoords='offset points', zorder=51)
+                        ds_label = None
         if surf_alt:
             try:
                 try:
