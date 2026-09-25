@@ -12,7 +12,7 @@ import requests
 # FAA NAT source (NOTAM-style)
 # -----------------------------
 #NAT_URL = "https://www.notams.faa.gov/common/nat.html"
-NAT_URL = "https://notams.aim.faa.gov/nat.html"
+NAT_URL = "https://nms.aim.faa.gov/datanat/nat.json"
 # -----------------------------
 # Optional: open datasets to resolve named points (fixes/navaids)
 # OurAirports navaids (VOR, NDB, VORTAC, etc.) — public domain
@@ -147,10 +147,13 @@ TRACK_LINE_RE = re.compile(
 STOP_KEYS = ("EAST LVLS", "WEST LVLS", "EUR RTS", "NAR", "REMARKS", "END OF PART")
 
 def fetch_nat_text(url: str = NAT_URL, timeout: int = 20) -> str:
-    r = requests.get(url, timeout=timeout)
+    r = requests.get(url, timeout=timeout, headers={'User-Agent': 'Mozilla/5.0'})
     r.raise_for_status()
-    # Some lines may contain non-printables; normalize to text
-    return r.text
+    try:
+        data = r.json()
+        return '\n'.join(item.get('condition_message', '') for item in data)
+    except Exception:
+        return r.text
 
 def parse_nat_tracks(page_text: str) -> List[Dict[str, Any]]:
     """
@@ -167,8 +170,7 @@ def parse_nat_tracks(page_text: str) -> List[Dict[str, Any]]:
     tracks: List[Dict[str, Any]] = []
 
     for idx, line in enumerate(lines):
-        if re.search(r"\bTO\b\s+[A-Z]{3}\s*\d{4}Z", line) or re.search(r"\bTO\b\s+\w+\s*\d{4}Z", line):
-            # crude: remember the most recent validity window line
+        if re.search(r"\bTO\b\s+[A-Z]{3}\s*[\d/]*\d{4}Z", line) or re.search(r"\bTO\b\s+\w+\s*[\d/]*\d{4}Z", line):
             current_window = line
 
         m = TRACK_LINE_RE.match(line)
@@ -207,11 +209,29 @@ def parse_nat_tracks(page_text: str) -> List[Dict[str, Any]]:
         entry = named[0]["name"] if named else None
         exit_ = named[-1]["name"] if len(named) >= 1 else None
 
+        # Scan forward for EAST/WEST LVLS lines (after waypoint stop)
+        east_lvls: List[str] = []
+        west_lvls: List[str] = []
+        k = j
+        while k < len(lines):
+            nxt = lines[k]
+            if TRACK_LINE_RE.match(nxt):
+                break
+            me = re.match(r'EAST LVL[S]?\s+(.*)', nxt)
+            mw = re.match(r'WEST LVL[S]?\s+(.*)', nxt)
+            if me:
+                east_lvls = [p for p in me.group(1).split() if p.isdigit()]
+            if mw:
+                west_lvls = [p for p in mw.group(1).split() if p.isdigit()]
+            k += 1
+
         tracks.append({
             "track_id": track_id,
             "entry": entry,
             "exit": exit_,
             "waypoints": wpts,
+            "east_levels": east_lvls,
+            "west_levels": west_lvls,
             "window": current_window,
             "raw_line": line
         })
@@ -346,6 +366,32 @@ def fetch_and_decode_nat(fix_csv_path: Optional[str] = FIX_BASE_CSV) -> Dict[str
     tracks = resolve_named_points_in_tracks(tracks, fix_csv_path=fix_csv_path)
     gj = tracks_to_geojson(tracks)
     return {"tracks": tracks, "geojson": gj}
+
+def nat_to_movinglines(tracks: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Convert parse_nat_tracks output to the dict format expected by plot_tracks:
+      { 'A': {'lats':[...], 'lons':[...], 'navaid':[(ident,lon,lat),...],
+              'levels':[...], 'validFrom':..., 'validTo':...}, ... }
+    Only waypoints with resolved coordinates are included in lats/lons.
+    """
+    result = {}
+    for t in tracks:
+        coords = [(w['lat'], w['lon']) for w in t['waypoints'] if w['lat'] is not None and w['lon'] is not None]
+        if len(coords) < 2:
+            continue
+        navaid = [(w['name'], w['lon'], w['lat']) for w in t['waypoints']
+                  if w['name'] and w['lat'] is not None and w['lon'] is not None]
+        levels = t.get('east_levels', []) + t.get('west_levels', [])
+        result[t['track_id']] = {
+            'lats': [c[0] for c in coords],
+            'lons': [c[1] for c in coords],
+            'navaid': navaid,
+            'levels': levels,
+            'validFrom': t.get('window'),
+            'validTo': t.get('window'),
+        }
+    return result
+
 
 if __name__ == "__main__":
     data = fetch_and_decode_nat(fix_csv_path=FIX_BASE_CSV)

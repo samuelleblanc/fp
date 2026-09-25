@@ -20,17 +20,23 @@ def parse_tracks(track):
 
 
 def get_NATs():
-    'function to go and fetch from the flighplandb api the north atlantic tracks'
-    import asyncio
-    import flightplandb
-    tkMessageBox.showwarning('Obtaining the NAT routes','Using data from the Flight Plan Database [https://flightplandatabase.com] \n The route data is for flight simulation use only and is not suitable for real-world aviation or navigation.')
+    'function to fetch North Atlantic Tracks from FAA NMS'
     try:
-        nat_tracks = asyncio.run(flightplandb.nav.nats())
+        from nat_decode import fetch_nat_text, parse_nat_tracks, nat_to_movinglines
+    except ModuleNotFoundError:
+        from .nat_decode import fetch_nat_text, parse_nat_tracks, nat_to_movinglines
+    try:
+        from nat_decode import NAT_URL
+    except ModuleNotFoundError:
+        from .nat_decode import NAT_URL
+    try:
+        print('Fetching NAT tracks from: ' + NAT_URL)
+        text = fetch_nat_text()
+        tracks = parse_nat_tracks(text)
+        return nat_to_movinglines(tracks)
     except Exception as ei:
-        tkMessageBox.showwarning('Error obtaining the NAT routes',f'Error occurred when fetching the NAT routes: {ei}')
+        tkMessageBox.showwarning('Error obtaining the NAT routes', f'Error occurred when fetching the NAT routes: {ei}')
         return None
-        
-    return parse_tracks(nat_tracks)
     
     
 def get_POCATS():
