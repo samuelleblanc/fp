@@ -4664,6 +4664,11 @@ class Annotations_manager:
         Written: Samuel LeBlanc, v1.69, 2026-08-24, Santa Cruz, CA
         Modified: Samuel LeBlanc, v1.69, 2026-09-01, Santa Cruz, CA
                 - Moved Type/Label/Aircraft/Comment fields inline (no separate dialog).
+        Modified: Samuel LeBlanc, 2026-09-25, Santa Cruz, CA
+                - Default labels by type: DS01 (drop_sonde), FF01 (free_form), pg01_01 (polygon).
+                - Added _on_type_change, _next_polygon_label; polygon vertex counter auto-increments.
+                - _on_close now resets sp_mode/sp_pending_drag/sp_dragging so no vertex stays on mouse.
+                - refresh() shows nearest/previous WP name and distance in annotation listbox.
                 - New button activates immediate drag-to-place on map.
                 - Auto-advance label numbering; listbox shows name/comment/type only.
     """
@@ -4681,7 +4686,19 @@ class Annotations_manager:
         self.refresh()
 
     def _on_close(self):
-        'Clean up manager reference and destroy window'
+        'Cancel any active annotation mode, clean up manager reference, and destroy window'
+        # Reset all sp state so no vertex stays pinned to the mouse
+        self.line.sp_mode         = None
+        self.line.sp_pending_drag = False
+        self.line.sp_dragging     = False
+        try:
+            self.line.line.axes.format_coord = self.line.format_position_simple
+        except Exception:
+            pass
+        try:
+            self.line.get_bg(redraw=True)
+        except Exception:
+            pass
         if self.line.sp_manager is self:
             self.line.sp_manager = None
         self.root.destroy()
@@ -4715,6 +4732,7 @@ class Annotations_manager:
         ttk.Combobox(f_fields, textvariable=self.type_var,
                      values=['drop_sonde', 'free_form', 'polygon'],
                      state='readonly', width=12).grid(row=0, column=1, sticky='ew', padx=2, pady=1)
+        self.type_var.trace_add('write', self._on_type_change)
         tk.Label(f_fields, text='Label:').grid(row=0, column=2, sticky='w', padx=(6, 2), pady=1)
         self.label_var = tk.StringVar(value='DS01')
         tk.Entry(f_fields, textvariable=self.label_var, width=10).grid(
@@ -4743,14 +4761,23 @@ class Annotations_manager:
         tk.Button(f_btns, text='Close', command=self._on_close).pack(side=tk.RIGHT, padx=2)
 
     def refresh(self):
-        'Rebuild the listbox — shows type, name, and comment only'
+        'Rebuild the listbox — shows type, label, nearest WP info, and comment'
         import tkinter as tk
         self.listbox.delete(0, tk.END)
         for i in range(len(self.sp.lat)):
+            sp_type = self.sp.sp_type[i]
+            lbl     = self.sp.label[i]
             comment = self.sp.comments[i] if i < len(self.sp.comments) else ''
+            # Show WP reference for drop_sonde, free_form, and polygon first vertex
+            show_wp = (sp_type in ('drop_sonde', 'free_form') or
+                       (sp_type == 'polygon' and lbl.endswith('_01')))
+            wp_info = ''
+            if show_wp and i < len(self.sp.nearest_wp) and self.sp.nearest_wp[i]:
+                dist = float(self.sp.nearest_wp_dist[i]) if i < len(self.sp.nearest_wp_dist) else 0.0
+                wp_info = '  {:.1f}km from {}'.format(dist, self.sp.nearest_wp[i])
             self.listbox.insert(
                 tk.END,
-                '[{}] {}  — {}'.format(self.sp.sp_type[i], self.sp.label[i], comment)
+                '[{}] {}{} — {}'.format(sp_type, lbl, wp_info, comment)
             )
         poly_active = getattr(self.line, 'sp_mode', None) == 'polygon'
         self.btn_finish_poly.config(state='normal' if poly_active else 'disabled')
@@ -4764,6 +4791,25 @@ class Annotations_manager:
             prefix, num = m.group(1), m.group(2)
             return prefix + str(int(num) + 1).zfill(len(num))
         return label + '01'
+
+    @staticmethod
+    def _next_polygon_label(label):
+        'Advance to the next polygon: pg01_03 → pg02_01'
+        import re
+        m = re.match(r'^(.*?)(\d+)_(\d+)$', label.strip())
+        if m:
+            prefix, poly_num, vtx_num = m.group(1), m.group(2), m.group(3)
+            return prefix + str(int(poly_num) + 1).zfill(len(poly_num)) + '_' + '1'.zfill(len(vtx_num))
+        return label
+
+    def _on_type_change(self, *_):
+        'Reset the label to the type default when the point type changes'
+        defaults = {'drop_sonde': 'DS01', 'free_form': 'FF01', 'polygon': 'pg01_01'}
+        t = self.type_var.get()
+        lbl = self.label_var.get().strip()
+        # Only auto-update when the label still carries a recognised type prefix
+        if any(lbl.startswith(p) for p in ('DS', 'FF', 'pg')):
+            self.label_var.set(defaults.get(t, lbl))
 
     def _new(self):
         'Activate immediate drag-to-place for the next annotation'
@@ -4786,8 +4832,9 @@ class Annotations_manager:
             pass
         # Immediately refresh list (will show the pending entry once motion fires)
         self.refresh()
-        # Auto-advance label for the next annotation
-        self.label_var.set(self._next_label(lbl))
+        # Auto-advance label for the next annotation (polygon vertices are handled in onrelease)
+        if self.line.sp_mode != 'polygon':
+            self.label_var.set(self._next_label(lbl))
         self.comment_var.set('')
         self.btn_finish_poly.config(
             state='normal' if self.line.sp_mode == 'polygon' else 'disabled'
@@ -4811,6 +4858,9 @@ class Annotations_manager:
 
     def _finish_polygon(self):
         'Finish polygon drawing: reset sp_mode, restore default format_coord, and redraw'
+        # Advance UI label to next polygon (uses sp_label which tracks the last placed vertex)
+        cur = getattr(self.line, 'sp_label', self.label_var.get()).strip()
+        self.label_var.set(self._next_polygon_label(cur))
         self.line.sp_mode         = None
         self.line.sp_pending_drag = False
         try:

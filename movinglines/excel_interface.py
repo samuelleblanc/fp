@@ -105,6 +105,8 @@ class dict_position:
         Modified: Samuel LeBlanc, 2024-02-19, Santa Cruz, CA
                  - Fix to ensure max speed is not reached at any Alt.
                  - Fix for first point of the file matches expected base speed for aircraft.
+        Modified: Samuel LeBlanc, 2026-09-25, Santa Cruz, CA
+                 - Move Special_points sheet back to last tab after adding a new flight path sheet.
     """
     def __init__(self,lon0='14 38.717E',lat0='22 58.783S',speed=130.0,UTC_start=7.0,
                  UTC_conversion=+1.0,alt0=0.0,
@@ -1228,8 +1230,15 @@ class dict_position:
         import numpy as np
         if newsheetonly:
             wb = xw.books.active
-            sh = wb.sheets.add(name=name,after=wb.sheets[wb.sheets.count-1])   
+            sh = wb.sheets.add(name=name,after=wb.sheets[wb.sheets.count-1])
             self.sheet_num = self.sheet_num+1
+            # Keep Special_points as the last tab when it already exists
+            _sp_name = 'Special_points'
+            if _sp_name in [s.name for s in wb.sheets] and wb.sheets[-1].name != _sp_name:
+                try:
+                    wb.sheets[_sp_name].api.Move(After=wb.sheets[-1].api)
+                except Exception:
+                    pass
         else:
             try:
                 wb = xw.Book()

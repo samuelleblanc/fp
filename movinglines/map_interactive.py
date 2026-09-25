@@ -394,6 +394,10 @@ class LineBuilder:
             if self.sp_mode == 'polygon':
                 # Auto-arm for the next polygon vertex via hover
                 self.sp_pending_drag = True
+                # Increment vertex counter in label (pg01_01 → pg01_02)
+                m = re.match(r'^(.*?)(\d+)$', self.sp_label.strip())
+                if m:
+                    self.sp_label = m.group(1) + str(int(m.group(2)) + 1).zfill(len(m.group(2)))
             else:
                 self.sp_mode = None
                 self.line.axes.format_coord = self.format_position_simple

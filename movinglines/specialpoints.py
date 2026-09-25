@@ -38,6 +38,11 @@
 
     Modification History:
         Written: Samuel LeBlanc, 2026-08-24, Santa Cruz, CA
+        Modified: Samuel LeBlanc, 2026-09-25, Santa Cruz, CA
+                - Polygon grouping now keys on label prefix (pg01_01/pg01_02 → key 'pg01')
+                  to support per-vertex unique labels for multiple polygons.
+                - Added nearest_wp / nearest_wp_dist fields; NearestWP and WPDist[km] Excel columns.
+                - drop_sonde shows previous waypoint (seg_i); free_form and polygon _01 vertex show nearest WP.
 """
 
 import numpy as np
@@ -70,7 +75,8 @@ class special_points:
     SHEET_NAME = 'Special_points'
     TYPES      = ['drop_sonde', 'free_form', 'polygon']
     HEADERS    = ['Label', 'Type', 'Lat[deg]', 'Lon[deg]', 'Aircraft_tab',
-                  'CumLegT[hh:mm]', 'LegT[hh:mm]', 'LegDist[km]', 'Comment']
+                  'CumLegT[hh:mm]', 'LegT[hh:mm]', 'LegDist[km]', 'Comment',
+                  'NearestWP', 'WPDist[km]']
     COLORS     = {'drop_sonde': 'cyan',    'free_form': 'magenta', 'polygon': 'yellow'}
     MARKERS    = {'drop_sonde': 'v',       'free_form': '*',        'polygon': 'D'}
 
@@ -92,6 +98,8 @@ class special_points:
         self.comments    = []
         self.seg_i       = []          # [int] waypoint segment index for drop_sonde relative positioning
         self.seg_frac    = np.array([]) # [0-1] fraction along segment for drop_sonde
+        self.nearest_wp      = []             # [str] nearest (or previous) waypoint name
+        self.nearest_wp_dist = np.array([])   # [km] distance to that waypoint
 
         self.drawn_markers = []   # one Line2D per lat/lon point (parallel to lat/lon arrays)
         self.drawn_labels  = []   # one Annotation per lat/lon point
@@ -108,6 +116,7 @@ class special_points:
         'Create or open the Special_points sheet, ensure it is the last tab, then reactivate the flight path sheet'
         try:
             self.sh = self.wb.sheets[self.SHEET_NAME]
+            self.sh.range('A1').value = self.HEADERS   # refresh headers for schema upgrades
             self.load_from_excel()
         except Exception:
             self.sh = self.wb.sheets.add(self.SHEET_NAME, after=self.wb.sheets[-1])
@@ -129,7 +138,7 @@ class special_points:
         'Write all special point rows to the Excel sheet'
         if not hasattr(self, 'sh'):
             return
-        self.sh.range('A2:I1000').clear_contents()
+        self.sh.range('A2:K1000').clear_contents()
         if len(self.lat) == 0:
             return
         data = []
@@ -144,6 +153,8 @@ class special_points:
                 self._decimal_to_hhmm(float(self.legt[i])),
                 float(self.legdist[i]),
                 self.comments[i] if i < len(self.comments) else '',
+                self.nearest_wp[i] if i < len(self.nearest_wp) else '',
+                float(self.nearest_wp_dist[i]) if i < len(self.nearest_wp_dist) else 0.0,
             ])
         self.sh.range('A2').value = data
 
@@ -171,6 +182,9 @@ class special_points:
             self.legt     = np.append(self.legt,    self._hhmm_to_decimal(row[6]) if row[6] else 0.0)
             self.legdist  = np.append(self.legdist, float(row[7]) if row[7] is not None else 0.0)
             self.comments.append(str(row[8]) if len(row) > 8 and row[8] else '')
+            self.nearest_wp.append(str(row[9]) if len(row) > 9 and row[9] else '')
+            self.nearest_wp_dist = np.append(self.nearest_wp_dist,
+                                             float(row[10]) if len(row) > 10 and row[10] is not None else 0.0)
             self.seg_i.append(0)       # populated by init_seg_positions() after load
             self.seg_frac = np.append(self.seg_frac, 0.0)
 
@@ -206,21 +220,30 @@ class special_points:
 
         cumlegt, legt, legdist = 0.0, 0.0, 0.0
         si, sf = 0, 0.0
+        nwp_name, nwp_dist = '', 0.0
         if sp_type == 'drop_sonde' and aircraft_tab:
             ex = self._find_ex(aircraft_tab)
             if ex is not None:
                 try:
                     si, sf = self._find_best_segment(float(lat), float(lon), ex)
                     cumlegt, legt, legdist = self._leg_info_from_seg(si, sf, float(lat), float(lon), ex)
+                    nwp_name = self._wp_name(ex, int(si))  # previous waypoint (start of segment)
+                    nwp_dist = float(legdist)
                 except Exception as e:
                     if self.verbose:
                         print('calc_leg_info failed: {}'.format(e))
+        elif sp_type == 'free_form':
+            nwp_name, nwp_dist = self._nearest_waypoint(float(lat), float(lon))
+        elif sp_type == 'polygon' and str(label).endswith('_01'):
+            nwp_name, nwp_dist = self._nearest_waypoint(float(lat), float(lon))
 
         self.cumlegt  = np.append(self.cumlegt, cumlegt)
         self.legt     = np.append(self.legt,    legt)
         self.legdist  = np.append(self.legdist, legdist)
         self.seg_i.append(int(si))
         self.seg_frac = np.append(self.seg_frac, float(sf))
+        self.nearest_wp.append(nwp_name)
+        self.nearest_wp_dist = np.append(self.nearest_wp_dist, nwp_dist)
         self.write_to_excel()
 
     def del_point(self, i):
@@ -238,6 +261,9 @@ class special_points:
             self.comments.pop(i)
         if i < len(self.seg_i):
             self.seg_i.pop(i)
+        if i < len(self.nearest_wp):
+            self.nearest_wp.pop(i)
+        self.nearest_wp_dist = np.delete(self.nearest_wp_dist, i)
         self.write_to_excel()
 
     def _find_ex(self, aircraft_tab):
@@ -250,6 +276,32 @@ class special_points:
     # ------------------------------------------------------------------
     # Leg-info calculation
     # ------------------------------------------------------------------
+
+    def _wp_name(self, ex, j):
+        'Return the display name for waypoint index j in dict_position ex'
+        try:
+            name = str(ex.wpname[j]).strip() if hasattr(ex, 'wpname') and j < len(ex.wpname) else ''
+            return name if name else 'WP{}'.format(j + 1)
+        except Exception:
+            return 'WP{}'.format(j + 1)
+
+    def _nearest_waypoint(self, lat_s, lon_s):
+        'Return (name, dist_km) of the closest waypoint across all aircraft tracks'
+        try:
+            from map_utils import spherical_dist
+        except ModuleNotFoundError:
+            from .map_utils import spherical_dist
+        best_name, best_dist = '', np.inf
+        for ex in self.ex_arr:
+            if ex is None or len(getattr(ex, 'lat', [])) < 1:
+                continue
+            for j in range(len(ex.lat)):
+                d = float(spherical_dist([float(lat_s), float(lon_s)],
+                                          [float(ex.lat[j]), float(ex.lon[j])]))
+                if d < best_dist:
+                    best_dist = d
+                    best_name = self._wp_name(ex, j)
+        return (best_name, float(best_dist)) if best_dist < np.inf else ('', 0.0)
 
     def _find_best_segment(self, lat_s, lon_s, ex):
         'Return (seg_i, seg_frac) — index and fraction [0,1] of nearest track segment to (lat_s, lon_s)'
@@ -324,7 +376,7 @@ class special_points:
         return self._leg_info_from_seg(seg_i, seg_frac, lat_s, lon_s, ex)
 
     def init_seg_positions(self):
-        'Re-derive seg_i/seg_frac from current lat/lon for drop_sonde points (called after file load)'
+        'Re-derive seg_i/seg_frac and nearest WP from current lat/lon for drop_sonde points (called after file load)'
         for i in range(len(self.lat)):
             if self.sp_type[i] == 'drop_sonde' and self.aircraft_tab[i]:
                 ex = self._find_ex(self.aircraft_tab[i])
@@ -339,6 +391,15 @@ class special_points:
                             self.seg_frac[i] = float(sf)
                         else:
                             self.seg_frac = np.append(self.seg_frac, float(sf))
+                        # Refresh nearest WP name now that wpname is populated
+                        nwp = self._wp_name(ex, int(si))
+                        dist = float(self.legdist[i]) if i < len(self.legdist) else 0.0
+                        if i < len(self.nearest_wp):
+                            self.nearest_wp[i] = nwp
+                            self.nearest_wp_dist[i] = dist
+                        else:
+                            self.nearest_wp.append(nwp)
+                            self.nearest_wp_dist = np.append(self.nearest_wp_dist, dist)
                     except Exception as e:
                         if self.verbose:
                             print('init_seg_positions failed for {}: {}'.format(self.label[i], e))
@@ -372,6 +433,14 @@ class special_points:
                 self.cumlegt[i] = cumlegt
                 self.legt[i]    = legt
                 self.legdist[i] = legdist
+                # Keep previous WP name in sync
+                nwp = self._wp_name(ex, self.seg_i[i])
+                if i < len(self.nearest_wp):
+                    self.nearest_wp[i]      = nwp
+                    self.nearest_wp_dist[i] = float(legdist)
+                else:
+                    self.nearest_wp.append(nwp)
+                    self.nearest_wp_dist = np.append(self.nearest_wp_dist, float(legdist))
                 changed = True
             except Exception as e:
                 if self.verbose:
@@ -420,7 +489,10 @@ class special_points:
         polygon_groups = {}
         for i, (sp_type, lbl_) in enumerate(zip(self.sp_type, self.label)):
             if sp_type == 'polygon':
-                polygon_groups.setdefault(lbl_, []).append(i)
+                # Group by prefix for pg01_01/pg01_02 format; fall back to full label
+                parts = lbl_.rsplit('_', 1)
+                key = parts[0] if len(parts) == 2 and parts[1].isdigit() else lbl_
+                polygon_groups.setdefault(key, []).append(i)
 
         try:
             from matplotlib.patches import Polygon as MPoly
