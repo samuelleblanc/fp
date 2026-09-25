@@ -4671,6 +4671,8 @@ class Annotations_manager:
                 - refresh() shows nearest/previous WP name and distance in annotation listbox.
                 - New button activates immediate drag-to-place on map.
                 - Auto-advance label numbering; listbox shows name/comment/type only.
+                - refresh() now repopulates aircraft combobox from sp.ex_arr so newly added
+                  flight paths appear without reopening the manager.
     """
 
     def __init__(self, sp, line):
@@ -4741,9 +4743,9 @@ class Annotations_manager:
         # Row 1: Aircraft tab | Comment
         tk.Label(f_fields, text='Aircraft:').grid(row=1, column=0, sticky='w', padx=2, pady=1)
         self.tab_var = tk.StringVar(value=tab_names[0] if tab_names else '')
-        ttk.Combobox(f_fields, textvariable=self.tab_var,
-                     values=tab_names, state='readonly', width=12).grid(
-            row=1, column=1, sticky='ew', padx=2, pady=1)
+        self.tab_combo = ttk.Combobox(f_fields, textvariable=self.tab_var,
+                                      values=tab_names, state='readonly', width=12)
+        self.tab_combo.grid(row=1, column=1, sticky='ew', padx=2, pady=1)
         tk.Label(f_fields, text='Comment:').grid(row=1, column=2, sticky='w', padx=(6, 2), pady=1)
         self.comment_var = tk.StringVar(value='')
         tk.Entry(f_fields, textvariable=self.comment_var, width=18).grid(
@@ -4761,8 +4763,12 @@ class Annotations_manager:
         tk.Button(f_btns, text='Close', command=self._on_close).pack(side=tk.RIGHT, padx=2)
 
     def refresh(self):
-        'Rebuild the listbox — shows type, label, nearest WP info, and comment'
+        'Rebuild the listbox and aircraft combobox — shows type, label, nearest WP info, and comment'
         import tkinter as tk
+        tab_names = [getattr(ex, 'name', '') for ex in self.sp.ex_arr] if self.sp.ex_arr else ['']
+        self.tab_combo['values'] = tab_names
+        if self.tab_var.get() not in tab_names:
+            self.tab_var.set(tab_names[0])
         self.listbox.delete(0, tk.END)
         for i in range(len(self.sp.lat)):
             sp_type = self.sp.sp_type[i]

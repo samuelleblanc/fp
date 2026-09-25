@@ -207,6 +207,9 @@
         Modified: Samuel LeBlanc, v1.69, 2026-08-24, Santa Cruz, CA
                 - Added special_points (specialpoints.py) initialization in Create_interaction().
                 - Added Annotations button in build_buttons() for map-click annotation entry.
+        Modified: Samuel LeBlanc, 2026-09-25, Santa Cruz, CA
+                - Pass lines.ex_arr (not a new [wb] list) to special_points so sp.ex_arr stays in
+                  sync when new aircraft are added.
 
 """
 try:
@@ -964,7 +967,7 @@ def Create_interaction(test=False,profile=None,**kwargs):
         import specialpoints as sp_mod
     except ModuleNotFoundError:
         from . import specialpoints as sp_mod
-    lines.sp = sp_mod.special_points(wb=wb.wb, ax=lines.line.axes, ex_arr=[wb], m=m, verbose=args.verbose)
+    lines.sp = sp_mod.special_points(wb=wb.wb, ax=lines.line.axes, ex_arr=lines.ex_arr, m=m, verbose=args.verbose)
     lines.sp.init_seg_positions()
     echo('Saving temporary excel file')
     savetmp(ui,wb)
