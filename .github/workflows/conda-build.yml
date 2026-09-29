@@ -135,6 +135,17 @@ jobs:
         run: |
           find ./conda_pkgs -type f \( -name "*.conda" -o -name "*.tar.bz2" \) -print
 
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: conda-${{ matrix.artifact }}-attempt${{ github.run_attempt }}
+          path: conda_pkgs/**
+          if-no-files-found: error
+      
+      - name: Install Anaconda Client
+        shell: bash -l {0}
+        run: conda install -y -c conda-forge anaconda-client
+        
       - name: Upload to Anaconda
         shell: bash -l {0}
         env:
@@ -144,9 +155,4 @@ jobs:
           # Uploads all built packages inside the folder
           anaconda upload ./conda_pkgs/${{ matrix.artifact }}/*.conda --user samuelleblanc
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: conda-${{ matrix.artifact }}-attempt${{ github.run_attempt }}
-          path: conda_pkgs/**
-          if-no-files-found: error
+
