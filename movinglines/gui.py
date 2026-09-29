@@ -384,15 +384,18 @@ class gui:
             if sp is not None and len(sp.lat) > 0:
                 ds_label = 'Drop sondes'
                 for j,ex in enumerate(self.line.ex_arr):
+                    ex_cumlegt = ex.cumlegt.astype(float)
+                    ex_alt     = ex.alt.astype(float)
                     for i in range(len(sp.lat)):
                         if sp.sp_type[i] == 'drop_sonde' and sp.aircraft_tab[i] == ex.name:
                             ct = float(sp.cumlegt[i])
-                            alt_ds = float(np.interp(ct, ex.cumlegt, ex.alt))
+                            alt_ds = float(np.interp(ct, ex_cumlegt, ex_alt))
                             utc_ds = ct + float(ex.utc[0])
                             ax1.plot(utc_ds, alt_ds, marker='v', color='cyan', ms=8, ls='none',
                                      markeredgecolor='k', markeredgewidth=0.5, zorder=50, label=ds_label)
                             ax1.annotate(sp.label[i], (utc_ds, alt_ds), fontsize=7, color='cyan',
                                          xytext=(4, 4), textcoords='offset points', zorder=51)
+                            ax1.axvline(utc_ds,color='cyan', lw=2,linestyle='-')
                             ds_label = None
         else:
             ax1.plot(self.line.ex.cumlegt,self.line.ex.alt,'x-',label=self.line.ex.name)
@@ -410,7 +413,7 @@ class gui:
                 for i in range(len(sp.lat)):
                     if sp.sp_type[i] == 'drop_sonde' and (sp.aircraft_tab[i] == ex.name or not sp.aircraft_tab[i]):
                         ct = float(sp.cumlegt[i])
-                        alt_ds = float(np.interp(ct, ex.cumlegt, ex.alt))
+                        alt_ds = float(np.interp(ct, ex.cumlegt.astype(float), ex.alt.astype(float)))
                         ax1.plot(ct, alt_ds, marker='v', color='cyan', ms=8, ls='none',
                                  markeredgecolor='k', markeredgewidth=0.5, zorder=50, label=ds_label)
                         ax1.annotate(sp.label[i], (ct, alt_ds), fontsize=7, color='cyan',

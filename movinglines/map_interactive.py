@@ -299,6 +299,8 @@ class LineBuilder:
                 if self.point_name:
                     try:
                         self.ex.comments[self.contains_index] = self.ex.comments[self.contains_index].replace(self.ex.wpname[self.contains_index],' ')
+                    except AttributeError:
+                        self.ex.comments[self.contains_index] = ' '
                     except Exception as ei:
                         print(f'*** Problem renaming the comment line: {ei} ***')
                         import ipdb;ipdb.set_trace()
