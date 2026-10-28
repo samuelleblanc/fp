@@ -570,6 +570,13 @@ class LineBuilder:
             print('Stopping interactive point selection, going into debug mode, press i to start again')
             self.disconnect()
             import ipdb; ipdb.set_trace()
+        if (event.key=='v') | (event.key=='alt+v'):
+            if not self.verbose:
+                print('Starting verbose and debug messages. Many more print statements now. Press "v" again to toggle off')
+                self.verbose = True
+            else:
+                print('Stopping verbose and debug messages.')
+                self.verbose = False
         if (event.key=='i') | (event.key=='alt+i'):
             print('Starting interactive point selection')
             self.connect()
@@ -1056,7 +1063,7 @@ class LineBuilder:
                 self.m.figure_under_text = {}
             try:
                 self.m.figure_under_text[name] = self.m.ax.text(
-                    0.0, -0.15, text, 
+                    0.0, -0.1, text, 
                     transform=self.m.ax.transAxes, 
                     clip_on=False, 
                     color='grey'
