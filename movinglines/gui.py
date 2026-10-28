@@ -76,8 +76,11 @@ class gui:
                   - reformat of flt_module list to have mutiple columns
         Modified: Samuel LeBlanc, 2026-03-06, Santa Cruz, CA
                  - added more colors in the color cycle
-                 
-                  
+        Modified: Samuel LeBlanc, 2026-10-22, Santa Cruz, CA
+                 - gui_add_SUA_WMS: two-layer compositing — green for zones active within 24h (CQL time filter),
+                   red (Active style) for currently active zones, composited with alpha_composite
+                 - add_WMS: added select_style_str parameter to auto-select a WMS style by name
+
     """
     def __init__(self,line=None,root=None,noplt=False,debug=False):
         import tkinter as tk
@@ -2100,17 +2103,46 @@ class gui:
                 self.baddmss.config(command=self.gui_rm_mss,style='Bp.TButton')
             
     def gui_add_SUA_WMS(self):
-        'Button to add Special Use Airspace WMS layer'
-        #import tkinter.messagebox as tkMessageBox
-        #tkMessageBox.showwarning('SUA for US only','Special Use Airspace for US only')
-        img,label,img_leg = self.add_WMS(website='https://sua.faa.gov/geoserver/wms?LAYERS=SUA',
-                         printurl=True,notime=True,popup=False,
-                         hires=True,select_cont_str='sua_location')
-        if img:
-            r = self.add_wms_images(img,img_leg,name='SUA',alpha=0.5,text=label)
-            if r:
-                self.baddsua.config(text='Remove SUA')
-                self.baddsua.config(command=self.gui_rm_SUA_WMS,style='Bp.TButton')
+        'Button to add Special Use Airspace WMS - active now in red, within 24h in green'
+        from datetime import datetime, timedelta, timezone
+        from PIL import Image
+
+        bbo0 = self.line.m.convert_latlon(self.line.m.llcrnrlon,self.line.m.llcrnrlat)
+        bbo1 = self.line.m.convert_latlon(self.line.m.urcrnrlon,self.line.m.urcrnrlat)
+        bbox = (bbo0[0],bbo0[1],bbo1[0],bbo1[1])
+        sua_url = 'https://sua.faa.gov/geoserver/wms'
+        wms_args = dict(website=sua_url,printurl=True,notime=True,popup=False,
+                        hires=True,select_cont_str='schedule',bbox=bbox)
+
+        now_utc = datetime.now(timezone.utc)
+        now_str = now_utc.strftime('%Y-%m-%dT%H:%M:%SZ')
+        future_str = (now_utc + timedelta(hours=24)).strftime('%Y-%m-%dT%H:%M:%SZ')
+        cql_24h   = f"(start_time <= '{future_str}' AND end_time >= '{now_str}') OR start_time IS NULL"
+        cql_active = f"start_time <= '{now_str}' AND end_time >= '{now_str}'"
+
+        # Pass CQL_FILTER as a direct kwarg (all-caps) so it reaches the URL verbatim;
+        # addfigure_under inverts alpha, so pre-invert here to cancel that out
+        print(f'SUA bbox (lon_ll,lat_ll,lon_ur,lat_ur): {bbox}')
+        img_green,label_green,_ = self.add_WMS(select_style_str='green',  CQL_FILTER=cql_24h,   **wms_args)
+        print(f'SUA img_green: {type(img_green).__name__}, mode={getattr(img_green,"mode",None)}, size={getattr(img_green,"size",None)}')
+        if not img_green: return
+        img_active,_,_          = self.add_WMS(select_style_str='active', CQL_FILTER=cql_active, **wms_args)
+        print(f'SUA img_active: {type(img_active).__name__}, mode={getattr(img_active,"mode",None)}, size={getattr(img_active,"size",None)}')
+        if not img_active: return
+
+        composite = Image.alpha_composite(img_green.convert('RGBA'), img_active.convert('RGBA'))
+        r0,g0,b0,a0 = composite.split()
+        composite = Image.merge('RGBA',(r0,g0,b0,a0.point(lambda p: 255-p)))
+        label = f'FAA SUA: active=red, within 24h=green\n{now_str}'
+        print(f'SUA composite mode={composite.mode}, size={composite.size}')
+        import cartopy.crs as ccrs
+        r = self.add_wms_images(img_active,False,name='SUA',alpha=0.5,text=label,
+                                ylim=[bbox[1],bbox[3]],xlim=[bbox[0],bbox[2]],
+                                transform=ccrs.PlateCarree())
+        print(f'SUA add_wms_images result: {r}')
+        if r:
+            self.baddsua.config(text='Remove SUA')
+            self.baddsua.config(command=self.gui_rm_SUA_WMS,style='Bp.TButton')
 
     def gui_add_CAN_Air(self):
         'Button to add the Canadian restricted airspaces'
@@ -2359,7 +2391,7 @@ class gui:
             
     def add_WMS(self,website='http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx',
                 printurl=False,notime=False,popup=False,cql_filter=None,hires=False,
-                vert_crs=False,mss_crs=False,xlim=None,ylim=None,bbox=None,select_cont_str=None,**kwargs): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
+                vert_crs=False,mss_crs=False,xlim=None,ylim=None,bbox=None,select_cont_str=None,select_style_str=None,**kwargs): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
         'GUI handler for adding the figures from WMS support of GEOS'
         try:
             from gui import Popup_list,inittime_sel_fx
@@ -2519,7 +2551,16 @@ class gui:
         if wms[cont[i]].styles:
             style = [k+':'+wms[cont[i]].styles[k]['title'] for k in wms[cont[i]].styles]
             style_list = [k for k in wms[cont[i]].styles]
-            if len(style_list)<2:
+            target_style_idx = None
+            if select_style_str:
+                target_style_idx = next((j for j,k in enumerate(style_list) if select_style_str.lower() in k.lower()),None)
+            if target_style_idx is not None:
+                style_sel = style_list[target_style_idx]
+            elif select_style_str:
+                # requested style not found in capabilities — use first available, no popup
+                style_sel = style_list[0]
+                print(f'WMS style "{select_style_str}" not found, using "{style_sel}". Available: {style_list}')
+            elif len(style_list)<2:
                 style_sel = style_list[0]
             else:
                 jpop = Popup_list(style,title='Select Style')
@@ -2780,12 +2821,14 @@ class gui:
         
         return result_queue
         
-    def add_wms_images(self,geos,geos_legend,name='GEOS',alpha=1.0,text='',flip=False,**kwargs):
+    def add_wms_images(self,geos,geos_legend,name='GEOS',alpha=1.0,text='',flip=False,ylim=[],xlim=[],**kwargs):
         'adding the wms images to the plots'
         from PIL import Image
         import tkinter.messagebox as tkMessageBox
-        ylim = self.line.m.llcrnrlat,self.line.m.urcrnrlat
-        xlim = self.line.m.llcrnrlon,self.line.m.urcrnrlon
+        if len(ylim)<2:
+            ylim = self.line.m.llcrnrlat,self.line.m.urcrnrlat
+        if len(xlim)<2:
+            xlim = self.line.m.llcrnrlon,self.line.m.urcrnrlon
         try: 
             if flip:
                 try:
@@ -2794,7 +2837,7 @@ class gui:
                     imm = geos.transpose(Image.FLIP_TOP_BOTTOM)
             else:
                 imm = geos
-            self.line.addfigure_under(geos,ylim[0],xlim[0],ylim[1],xlim[1],text=text,alpha=alpha,name=name,**kwargs)
+            self.line.addfigure_under(geos,ylim[0],xlim[0],ylim[1],xlim[1],text=text,alpha=alpha,name=name,debug=self.line.verbose,**kwargs)
         except Exception as ie:
             print(ie)
             print(ie)
