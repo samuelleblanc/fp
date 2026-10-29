@@ -76,6 +76,8 @@ class gui:
                   - reformat of flt_module list to have mutiple columns
         Modified: Samuel LeBlanc, 2026-03-06, Santa Cruz, CA
                  - added more colors in the color cycle
+        Modified: Samuel LeBlanc, v1.69, 2026-08-24, Santa Cruz, CA
+                 - Added gui_annotations() method and Annotations_manager / Add_special_point_dialog classes.
         Modified: Samuel LeBlanc, 2026-10-22, Santa Cruz, CA
                  - gui_add_SUA_WMS: two-layer compositing — green for zones active within 24h (CQL time filter),
                    red (Active style) for currently active zones, composited with alpha_composite
@@ -304,6 +306,24 @@ class gui:
             self.line.ex = self.line.ex_arr[i]
             self.line.onfigureenter([1]) # to force redraw and update from the newly opened excel
             self.load_flight(self.line.ex)
+        try:
+            try:
+                import specialpoints as sp_mod
+            except ModuleNotFoundError:
+                from . import specialpoints as sp_mod
+            self.line.sp = sp_mod.special_points(
+                wb=self.line.ex_arr[0].wb,
+                ax=self.line.line.axes,
+                ex_arr=self.line.ex_arr,
+                m=self.line.m,
+                verbose=self.line.verbose)
+            self.line.sp.init_seg_positions()
+            self.line.sp.draw()
+            if getattr(self.line, 'sp_manager', None):
+                self.line.sp_manager.sp = self.line.sp
+                self.line.sp_manager.refresh()
+        except Exception as e:
+            print('Special_points load failed: {}'.format(e))
         self.line.line.figure.canvas.draw()
         self.line.connect()
         self.flight_num = len(self.line.ex_arr)-1
@@ -382,6 +402,23 @@ class gui:
                                 coordinated_label = None
             ax1.set_xlabel('UTC [Hours]')
             time = self.line.ex.utc
+            sp = getattr(self.line, 'sp', None)
+            if sp is not None and len(sp.lat) > 0:
+                ds_label = 'Drop sondes'
+                for j,ex in enumerate(self.line.ex_arr):
+                    ex_cumlegt = ex.cumlegt.astype(float)
+                    ex_alt     = ex.alt.astype(float)
+                    for i in range(len(sp.lat)):
+                        if sp.sp_type[i] == 'drop_sonde' and sp.aircraft_tab[i] == ex.name:
+                            ct = float(sp.cumlegt[i])
+                            alt_ds = float(np.interp(ct, ex_cumlegt, ex_alt))
+                            utc_ds = ct + float(ex.utc[0])
+                            ax1.plot(utc_ds, alt_ds, marker='*', color='goldenrod', ms=8, ls='none',
+                                     markeredgecolor='k', markeredgewidth=0.5, zorder=50, label=ds_label)
+                            ax1.annotate(sp.label[i], (utc_ds, alt_ds), fontsize=7, color='goldenrod',
+                                         xytext=(4, 4), textcoords='offset points', zorder=51)
+                            ax1.axvline(utc_ds,color='goldenrod', lw=2,linestyle='-')
+                            ds_label = None
         else:
             ax1.plot(self.line.ex.cumlegt,self.line.ex.alt,'x-',label=self.line.ex.name)
             for i,w in enumerate(self.line.ex.WP):
@@ -391,6 +428,20 @@ class gui:
             surf_el_label_multi = ''
             ax1.set_xlabel('Flight duration [Hours]')
             time = self.line.ex.cumlegt
+            sp = getattr(self.line, 'sp', None)
+            if sp is not None and len(sp.lat) > 0:
+                ex = self.line.ex
+                ds_label = 'Drop sondes'
+                for i in range(len(sp.lat)):
+                    if sp.sp_type[i] == 'drop_sonde' and (sp.aircraft_tab[i] == ex.name or not sp.aircraft_tab[i]):
+                        ct = float(sp.cumlegt[i])
+                        alt_ds = float(np.interp(ct, ex.cumlegt.astype(float), ex.alt.astype(float)))
+                        ax1.plot(ct, alt_ds, marker='*', color='goldenrod', ms=8, ls='none',
+                                 markeredgecolor='k', markeredgewidth=0.5, zorder=50, label=ds_label)
+                        ax1.annotate(sp.label[i], (ct, alt_ds), fontsize=7, color='goldenrod',
+                                     xytext=(4, 4), textcoords='offset points', zorder=51)
+                        ax1.axvline(ct, color='goldenrod', lw=2, linestyle='-', alpha=0.6)
+                        ds_label = None
         if surf_alt:
             try:
                 try:
@@ -974,7 +1025,8 @@ class gui:
             print('Saving the Alt vs Latitude plot at:'+f_name+'_alt_lat_{}.png'.format(x.name))
             fig.savefig(f_name+'_alt_lat_{}.png'.format(x.name),dpi=600,transparent=False)
 
-            labels,main_points = x.get_main_points(combined_distances=distances[i], combined_utc=cmb,combined_names=names,fmt=self.pptx_point_format)
+            sp_arg = getattr(self.line, 'sp', None)
+            labels,main_points = x.get_main_points(combined_distances=distances[i], combined_utc=cmb,combined_names=names,fmt=self.pptx_point_format,sp=sp_arg)
             table = [[mpt['i'],mpt['utc_str'],mpt['wpname'],mpt['deltat_min'],mpt['Comment']] for mpt in main_points]
             table.insert(0,['WP #','UTC [H]','WP Name','Time delta [minutes]','Comments'])
             float_to_hh_mm = lambda float_hours: '{:02d}:{:02d}'.format(int(float_hours), int((float_hours - int(float_hours)) * 60))
@@ -983,6 +1035,19 @@ class gui:
                                table=table,text='Some important points'))
             slides.append(dict(title='{}'.format(x.name),multiple_images=[f_name+'_sza_{}.png'.format(x.name),f_name+'_alt_lat_{}.png'.format(x.name)]))
             subtitle += '{}({:2.1f}h T/O@{}UTC {:4.0f} Nmi) '.format(x.name,x.cumlegt[-1],float_to_hh_mm(x.utc[0]),x.cumdist_nm[-1])
+        # Add annotations summary slide if special points are defined
+        sp = getattr(self.line, 'sp', None)
+        if sp and len(sp.lat) > 0:
+            ann_table = [['Type', 'Label', 'Aircraft', 'UTC [hh:mm]', 'Lat', 'Lon', 'Comment']]
+            for k in range(len(sp.lat)):
+                comment_k = sp.comments[k] if k < len(sp.comments) else ''
+                ann_table.append([
+                    sp.sp_type[k], sp.label[k], sp.aircraft_tab[k],
+                    sp._decimal_to_hhmm(float(sp.cumlegt[k])),
+                    '{:.4f}'.format(float(sp.lat[k])), '{:.4f}'.format(float(sp.lon[k])),
+                    comment_k
+                ])
+            slides.append(dict(title='Annotations Summary (Drop Sondes & Special Points)', table=ann_table))
         print('Saving kml file to :'+f_name+'.kml')
         self.kmlfilename = f_name+'.kml'
         self.line.ex.save2kml(filename=self.kmlfilename)
@@ -1052,21 +1117,39 @@ class gui:
             fig = self.gui_plotaltlat()
             print('Saving the Alt vs Latitude plot at:'+f_name+'_alt_lat_{}.png'.format(x.name))
             fig.savefig(f_name+'_alt_lat_{}.png'.format(x.name),dpi=600,transparent=False)
-            labels,main_points = x.get_main_points(combined_distances=distances[i], combined_utc=cmb,combined_names=names,fmt=self.pptx_point_format)
+            sp_arg2 = getattr(self.line, 'sp', None)
+            labels,main_points = x.get_main_points(combined_distances=distances[i], combined_utc=cmb,combined_names=names,fmt=self.pptx_point_format,sp=sp_arg2)
             table = [[mpt['i'],mpt['utc_str'],mpt['wpname'],mpt['deltat_min'],mpt['Comment']] for mpt in main_points]
             table.insert(0,['WP #','UTC [H]','WP Name','Time delta [minutes]','Comments'])
             float_to_hh_mm = lambda float_hours: '{:02d}:{:02d}'.format(int(float_hours), int((float_hours - int(float_hours)) * 60))
             slides.append(dict(title='{}: Take-off {} UTC-> landing {} UTC\nflight time {:2.2}h '.format(x.name,float_to_hh_mm(x.utc[0]),float_to_hh_mm(x.utc[-1]),x.cumlegt[-1]),image_path=f_name+'_alt_{}.png'.format(x.name),
                                table=table,text='Some important points'))
-            slides.append(dict(title='Info for: {}'.format(x.name),multiple_images=[f_name+'_sza_{}.png'.format(x.name),f_name+'_alt_lat_{}.png'.format(x.name)])) 
+            slides.append(dict(title='Info for: {}'.format(x.name),multiple_images=[f_name+'_sza_{}.png'.format(x.name),f_name+'_alt_lat_{}.png'.format(x.name)]))
             subtitle += '{}({:2.2f}h T/O@{}UTC) '.format(x.name,x.cumlegt[-1],float_to_hh_mm(x.utc[0]))
+        # Add annotations summary slide if special points are defined
+        sp2 = getattr(self.line, 'sp', None)
+        if sp2 and len(sp2.lat) > 0:
+            ann_table2 = [['Type', 'Label', 'Aircraft', 'UTC [hh:mm]', 'Lat', 'Lon', 'Comment']]
+            for k in range(len(sp2.lat)):
+                comment_k = sp2.comments[k] if k < len(sp2.comments) else ''
+                ann_table2.append([
+                    sp2.sp_type[k], sp2.label[k], sp2.aircraft_tab[k],
+                    sp2._decimal_to_hhmm(float(sp2.cumlegt[k])),
+                    '{:.4f}'.format(float(sp2.lat[k])), '{:.4f}'.format(float(sp2.lon[k])),
+                    comment_k
+                ])
+            slides.append(dict(title='Annotations Summary (Drop Sondes & Special Points)', table=ann_table2))
         self.return_map(legend,grey_index)
-        
+
         #now save all the figures onto at common powerpoint
         try:
             nul,file_name = path.split(f_name)
+            n_ds = sum(1 for k in range(len(sp2.lat)) if sp2.sp_type[k] == 'drop_sonde') if sp2 else 0
+            pptx_subtitle = 'Objectives:\n   -\n   -\n   -'
+            if n_ds > 0:
+                pptx_subtitle += '\n\nDrop sondes planned: {:d}'.format(n_ds)
             create_generic_pptx(slides,f_name+'.pptx', title="Flight plan for {}\n{} \n {}".format(self.line.ex.datestr,file_name,subtitle),
-                                subtitle='Objectives:\n   -\n   -\n   -')
+                                subtitle=pptx_subtitle)
         except Exception as ie:
             tkMessageBox.showwarning('Powerpoint slide saving failed.','Error saving powerpoint.\n{}'.format(ie))
             print('powerpoint slide saving failed. Error:  {}'.format(ie))
@@ -1197,7 +1280,9 @@ class gui:
 
         # you can add more fields as placeholders if you like:
             #key_info['Satellite overpasses'] = '<to be filled>'
-            key_info['Number of dropsondes'] = '<to be filled>'
+            sp_doc = getattr(self.line, 'sp', None)
+            n_ds_doc = sum(1 for k in range(len(sp_doc.lat)) if sp_doc.sp_type[k] == 'drop_sonde') if sp_doc else 0
+            key_info['Number of dropsondes'] = str(n_ds_doc) if n_ds_doc > 0 else '<to be filled>'
             key_info['Flight level'] = f'FL{x.alt_kft[1]:03.0f} / {x.alt_kft[1]*1000:5.0f} ft / {x.alt[1]:5.0f} m'
 
         # --- text blocks: let the function insert red placeholders ---
@@ -1490,6 +1575,13 @@ class gui:
     def dummy_func(self):
         'dummy function that does nothing'
         return
+
+    def gui_annotations(self):
+        'Open the Annotations management window for adding/removing special points'
+        if not getattr(self.line, 'sp', None):
+            print('Special points not initialized')
+            return
+        Annotations_manager(sp=self.line.sp, line=self.line)
 
     def gui_addsat_tle(self):
         'Gui button to add the satellite tracks'
@@ -4650,3 +4742,242 @@ def clean_wms_args(func):
         }
         return func(*args, **clean_kwargs)
     return wrapper
+
+
+class Annotations_manager:
+    """
+    Purpose:
+        Non-modal Toplevel window for viewing, adding, and deleting special-point
+        annotations (drop sondes, free-form points, polygon vertices).
+        Inline fields (Type, Label, Aircraft tab, Comment) sit directly in the window.
+        Clicking "New" immediately activates drag-to-place behaviour on the map —
+        the annotation point appears as soon as the user moves the mouse into the map.
+    Inputs:
+        sp   : special_points instance (lines.sp)
+        line : LineBuilder instance
+    Outputs:
+        Modifies sp data and triggers map redraws.
+    Dependencies:
+        tkinter, ttk, special_points
+    Modification History:
+        Written: Samuel LeBlanc, v1.69, 2026-08-24, Santa Cruz, CA
+        Modified: Samuel LeBlanc, v1.69, 2026-09-01, Santa Cruz, CA
+                - Moved Type/Label/Aircraft/Comment fields inline (no separate dialog).
+        Modified: Samuel LeBlanc, 2026-09-25, Santa Cruz, CA
+                - Default labels by type: DS01 (drop_sonde), FF01 (free_form), pg01_01 (polygon).
+                - Added _on_type_change, _next_polygon_label; polygon vertex counter auto-increments.
+                - _on_close now resets sp_mode/sp_pending_drag/sp_dragging so no vertex stays on mouse.
+                - refresh() shows nearest/previous WP name and distance in annotation listbox.
+                - New button activates immediate drag-to-place on map.
+                - Auto-advance label numbering; listbox shows name/comment/type only.
+                - refresh() now repopulates aircraft combobox from sp.ex_arr so newly added
+                  flight paths appear without reopening the manager.
+    """
+
+    def __init__(self, sp, line):
+        import tkinter as tk
+        self.sp   = sp
+        self.line = line
+        self.root = tk.Toplevel()
+        self.root.title('Annotations')
+        self.root.wm_attributes('-topmost', True)
+        self.line.sp_manager = self   # allow map events to call refresh()
+        self.root.protocol('WM_DELETE_WINDOW', self._on_close)
+        self._build()
+        self.refresh()
+
+    def _on_close(self):
+        'Cancel any active annotation mode, clean up manager reference, and destroy window'
+        # Reset all sp state so no vertex stays pinned to the mouse
+        self.line.sp_mode         = None
+        self.line.sp_pending_drag = False
+        self.line.sp_dragging     = False
+        try:
+            self.line.line.axes.format_coord = self.line.format_position_simple
+        except Exception:
+            pass
+        try:
+            self.line.get_bg(redraw=True)
+        except Exception:
+            pass
+        if self.line.sp_manager is self:
+            self.line.sp_manager = None
+        self.root.destroy()
+
+    def _build(self):
+        'Build the widget layout with inline annotation fields'
+        import tkinter as tk
+        from tkinter import ttk
+
+        # --- Annotation list ---
+        f_list = tk.Frame(self.root)
+        f_list.pack(fill=tk.BOTH, expand=True, padx=5, pady=(5, 2))
+        tk.Label(f_list, text='Special Points:').pack(anchor='w')
+        f_lb = tk.Frame(f_list)
+        f_lb.pack(fill=tk.BOTH, expand=True)
+        self.listbox = tk.Listbox(f_lb, width=50, height=10)
+        scroll = tk.Scrollbar(f_lb, command=self.listbox.yview)
+        self.listbox.config(yscrollcommand=scroll.set)
+        self.listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # --- Inline fields ---
+        f_fields = tk.Frame(self.root)
+        f_fields.pack(fill=tk.X, padx=5, pady=(2, 2))
+
+        tab_names = [getattr(ex, 'name', '') for ex in self.sp.ex_arr] if self.sp.ex_arr else ['']
+
+        # Row 0: Type | Label
+        tk.Label(f_fields, text='Type:').grid(row=0, column=0, sticky='w', padx=2, pady=1)
+        self.type_var = tk.StringVar(value='drop_sonde')
+        ttk.Combobox(f_fields, textvariable=self.type_var,
+                     values=['drop_sonde', 'free_form', 'polygon'],
+                     state='readonly', width=12).grid(row=0, column=1, sticky='ew', padx=2, pady=1)
+        self.type_var.trace_add('write', self._on_type_change)
+        tk.Label(f_fields, text='Label:').grid(row=0, column=2, sticky='w', padx=(6, 2), pady=1)
+        self.label_var = tk.StringVar(value='DS01')
+        tk.Entry(f_fields, textvariable=self.label_var, width=10).grid(
+            row=0, column=3, sticky='ew', padx=2, pady=1)
+
+        # Row 1: Aircraft tab | Comment
+        tk.Label(f_fields, text='Aircraft:').grid(row=1, column=0, sticky='w', padx=2, pady=1)
+        self.tab_var = tk.StringVar(value=tab_names[0] if tab_names else '')
+        self.tab_combo = ttk.Combobox(f_fields, textvariable=self.tab_var,
+                                      values=tab_names, state='readonly', width=12)
+        self.tab_combo.grid(row=1, column=1, sticky='ew', padx=2, pady=1)
+        tk.Label(f_fields, text='Comment:').grid(row=1, column=2, sticky='w', padx=(6, 2), pady=1)
+        self.comment_var = tk.StringVar(value='')
+        tk.Entry(f_fields, textvariable=self.comment_var, width=18).grid(
+            row=1, column=3, sticky='ew', padx=2, pady=1)
+
+        f_fields.columnconfigure(3, weight=1)
+
+        # --- Buttons ---
+        f_btns = tk.Frame(self.root)
+        f_btns.pack(fill=tk.X, padx=5, pady=(2, 5))
+        tk.Button(f_btns, text='New',             command=self._new).pack(side=tk.LEFT, padx=2)
+        tk.Button(f_btns, text='Delete selected', command=self._delete).pack(side=tk.LEFT, padx=2)
+        self.btn_finish_poly = tk.Button(f_btns, text='Finish polygon', command=self._finish_polygon)
+        self.btn_finish_poly.pack(side=tk.LEFT, padx=2)
+        tk.Button(f_btns, text='Close', command=self._on_close).pack(side=tk.RIGHT, padx=2)
+
+    def refresh(self):
+        'Rebuild the listbox and aircraft combobox — shows type, label, nearest WP info, and comment'
+        import tkinter as tk
+        tab_names = [getattr(ex, 'name', '') for ex in self.sp.ex_arr] if self.sp.ex_arr else ['']
+        self.tab_combo['values'] = tab_names
+        if self.tab_var.get() not in tab_names:
+            self.tab_var.set(tab_names[0])
+        self.listbox.delete(0, tk.END)
+        for i in range(len(self.sp.lat)):
+            sp_type = self.sp.sp_type[i]
+            lbl     = self.sp.label[i]
+            comment = self.sp.comments[i] if i < len(self.sp.comments) else ''
+            # Show WP reference for drop_sonde, free_form, and polygon first vertex
+            show_wp = (sp_type in ('drop_sonde', 'free_form') or
+                       (sp_type == 'polygon' and lbl.endswith('_01')))
+            wp_info = ''
+            if show_wp and i < len(self.sp.nearest_wp) and self.sp.nearest_wp[i]:
+                dist = float(self.sp.nearest_wp_dist[i]) if i < len(self.sp.nearest_wp_dist) else 0.0
+                wp_info = '  {:.1f}km from {}'.format(dist, self.sp.nearest_wp[i])
+            self.listbox.insert(
+                tk.END,
+                '[{}] {}{} — {}'.format(sp_type, lbl, wp_info, comment)
+            )
+        poly_active = getattr(self.line, 'sp_mode', None) == 'polygon'
+        self.btn_finish_poly.config(state='normal' if poly_active else 'disabled')
+
+    @staticmethod
+    def _next_label(label):
+        'Auto-advance a label by incrementing its trailing number (DS01 → DS02)'
+        import re
+        m = re.match(r'^(.*?)(\d+)$', label.strip())
+        if m:
+            prefix, num = m.group(1), m.group(2)
+            return prefix + str(int(num) + 1).zfill(len(num))
+        return label + '01'
+
+    @staticmethod
+    def _next_polygon_label(label):
+        'Advance to the next polygon: pg01_03 → pg02_01'
+        import re
+        m = re.match(r'^(.*?)(\d+)_(\d+)$', label.strip())
+        if m:
+            prefix, poly_num, vtx_num = m.group(1), m.group(2), m.group(3)
+            return prefix + str(int(poly_num) + 1).zfill(len(poly_num)) + '_' + '1'.zfill(len(vtx_num))
+        return label
+
+    def _on_type_change(self, *_):
+        'Reset the label to the type default when the point type changes'
+        defaults = {'drop_sonde': 'DS01', 'free_form': 'FF01', 'polygon': 'pg01_01'}
+        t = self.type_var.get()
+        lbl = self.label_var.get().strip()
+        # Only auto-update when the label still carries a recognised type prefix
+        if any(lbl.startswith(p) for p in ('DS', 'FF', 'pg')):
+            self.label_var.set(defaults.get(t, lbl))
+
+    def _new(self):
+        'Activate immediate drag-to-place for the next annotation'
+        import tkinter.messagebox as tkMessageBox
+        lbl = self.label_var.get().strip()
+        if not lbl:
+            tkMessageBox.showerror('Error', 'Label must not be empty.', parent=self.root)
+            return
+        # Abort any in-progress drag so the button-release doesn't move an existing point
+        self.line.sp_dragging   = False
+        self.line.sp_drag_index = None
+        # Push current field values to line
+        self.line.sp_mode    = self.type_var.get()
+        self.line.sp_label   = lbl
+        self.line.sp_tab     = self.tab_var.get()
+        self.line.sp_comment = self.comment_var.get()
+        # Activate pending-drag: first mouse motion in map area places the point
+        self.line.sp_pending_drag = True
+        # Activate distance-display in status bar
+        try:
+            self.line.line.axes.format_coord = self.line.format_position_wp_dist
+        except Exception:
+            pass
+        # Immediately refresh list (will show the pending entry once motion fires)
+        self.refresh()
+        # Auto-advance label for the next annotation (polygon vertices are handled in onrelease)
+        if self.line.sp_mode != 'polygon':
+            self.label_var.set(self._next_label(lbl))
+        self.comment_var.set('')
+        self.btn_finish_poly.config(
+            state='normal' if self.line.sp_mode == 'polygon' else 'disabled'
+        )
+        self.line.tb.set_message(
+            'Move mouse onto map to place: {} [{}]'.format(lbl, self.line.sp_mode)
+        )
+
+    def _delete(self):
+        'Delete the selected annotation point'
+        sel = self.listbox.curselection()
+        if not sel:
+            return
+        i = sel[0]
+        self.sp.del_point(i)
+        try:
+            self.line.get_bg(redraw=True)
+        except Exception as e:
+            print('Annotations_manager redraw error: {}'.format(e))
+        self.refresh()
+
+    def _finish_polygon(self):
+        'Finish polygon drawing: reset sp_mode, restore default format_coord, and redraw'
+        # Advance UI label to next polygon (uses sp_label which tracks the last placed vertex)
+        cur = getattr(self.line, 'sp_label', self.label_var.get()).strip()
+        self.label_var.set(self._next_polygon_label(cur))
+        self.line.sp_mode         = None
+        self.line.sp_pending_drag = False
+        try:
+            self.line.line.axes.format_coord = self.line.format_position_simple
+        except Exception:
+            pass
+        try:
+            self.line.get_bg(redraw=True)
+        except Exception as e:
+            print('Annotations_manager finish polygon redraw error: {}'.format(e))
+        self.refresh()
+        self.line.tb.set_message('Polygon finished.')

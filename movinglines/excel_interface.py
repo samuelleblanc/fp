@@ -105,6 +105,8 @@ class dict_position:
         Modified: Samuel LeBlanc, 2024-02-19, Santa Cruz, CA
                  - Fix to ensure max speed is not reached at any Alt.
                  - Fix for first point of the file matches expected base speed for aircraft.
+        Modified: Samuel LeBlanc, 2026-09-25, Santa Cruz, CA
+                 - Move Special_points sheet back to last tab after adding a new flight path sheet.
     """
     def __init__(self,lon0='14 38.717E',lat0='22 58.783S',speed=130.0,UTC_start=7.0,
                  UTC_conversion=+1.0,alt0=0.0,
@@ -748,6 +750,9 @@ class dict_position:
         """
         import numpy as np
         sh = self.wb.sh
+        if getattr(sh, 'name', '') == 'Special_points':
+            if self.verbose: print('check_updates_excel: wb.sh pointed at Special_points — skipping')
+            return False
         #self.wb.sh.activate(steal_focus=False) #self.wb.set_current()
         row_start = 2
         last_row = sh.range((self.wb.sheets.active.cells.last_cell.row,2)).end('up').row
@@ -1126,6 +1131,8 @@ class dict_position:
             print('Exception found:',ie)
             return
         self.name = wb.sheets(sheet_num).name
+        if self.name.lower()=='special_points':
+            return -1            
         wb.sheets(sheet_num).activate()
         wb.sh = wb.sheets(sheet_num)
         print('Activating sheet:%i, name:%s'%(sheet_num,wb.sheets(sheet_num).name))
@@ -1228,8 +1235,15 @@ class dict_position:
         import numpy as np
         if newsheetonly:
             wb = xw.books.active
-            sh = wb.sheets.add(name=name,after=wb.sheets[wb.sheets.count-1])   
+            sh = wb.sheets.add(name=name,after=wb.sheets[wb.sheets.count-1])
             self.sheet_num = self.sheet_num+1
+            # Keep Special_points as the last tab when it already exists
+            _sp_name = 'Special_points'
+            if _sp_name in [s.name for s in wb.sheets] and wb.sheets[-1].name != _sp_name:
+                try:
+                    wb.sheets[_sp_name].api.Move(After=wb.sheets[-1].api)
+                except Exception:
+                    pass
         else:
             try:
                 wb = xw.Book()
@@ -1296,9 +1310,12 @@ class dict_position:
 
     def switchsheet(self,i):
         'Switch the active sheet with name supplied'
-        #from xlwings import Sheet
-        self.wb.sheets(i+1).activate()
-        self.wb.sh = self.wb.sheets(i+1)
+        target = self.wb.sheets(i+1)
+        if getattr(target, 'name', '') == 'Special_points':
+            if self.verbose: print('switchsheet: skipping Special_points tab at index {}'.format(i+1))
+            return
+        target.activate()
+        self.wb.sh = target
 
     def save2xl(self,filename=None):
         """
@@ -1632,15 +1649,15 @@ class dict_position:
                 wpname[j] = '{:X<5.5s}'.format(alphanum(wpname[j].upper()))
         return list(wpname)
     
-    def get_main_points(self, combined_distances=None, combined_utc=None,combined_names=[],fmt='{wpname}:{Comment}, {utc_str} , {deltat_min} minutes since '):
-        'function to pull out the points that have comments, and those that are coordinated, including time between those points.'
+    def get_main_points(self, combined_distances=None, combined_utc=None,combined_names=[],fmt='{wpname}:{Comment}, {utc_str} , {deltat_min} minutes since ',sp=None):
+        'function to pull out the points that have comments, coordinated points, and drop sondes (from sp).'
         main_points = []
         float_to_hh_mm = lambda float_hours: '{:02d}:{:02d}'.format(int(float_hours), int((float_hours - int(float_hours)) * 60))
-        for j,w in enumerate(self.WP): 
+        for j,w in enumerate(self.WP):
             if self.comments[j]: # There is a comment - likely an important point
                 main_points.append(dict(Comment=self.comments[j],wpname=self.wpname[j],utc=self.utc[j],
                                         utc_str=float_to_hh_mm(self.utc[j]),i=j+1,deltat_min=0,label=''))
-            if combined_distances: 
+            if combined_distances:
                 for ii,d in enumerate(combined_distances[j]):
                     if (ii != self.sheet_num-1) and (d<30.0): #there is a colocation
                         if len(main_points)>0 and self.comments[j]:
@@ -1649,7 +1666,7 @@ class dict_position:
                             main_points.append(dict(Comment='Potential colocation with: {}'.format(combined_names[ii]),
                                            wpname=self.wpname[j],utc=self.utc[j],i=j+1,deltat_min=0,label='',
                                            utc_str=float_to_hh_mm(self.utc[j])))
-                
+
             main_points[0]['label'] = fmt.format(**main_points[-1])
             if len(main_points)>1:
                 old_utc = main_points[0]['utc']
@@ -1657,7 +1674,47 @@ class dict_position:
                     mpt['deltat_min'] = int((mpt['utc']-old_utc)*60.0)
                     old_utc = mpt['utc']
                     mpt['label'] = fmt.format(**mpt)
-                                
+
+        # Inject drop sonde entries from special_points (sorted by cumlegt into the list)
+        if sp is not None:
+            for k in range(len(sp.lat)):
+                if sp.sp_type[k] != 'drop_sonde':
+                    continue
+                if sp.aircraft_tab[k] != self.name:
+                    continue
+                ds_utc = float(self.utc[0]) + float(sp.cumlegt[k])
+                comment_str = sp.comments[k] if k < len(sp.comments) else ''
+                ds_entry = dict(
+                    Comment='[DROP SONDE] {}'.format(comment_str) if comment_str else '[DROP SONDE]',
+                    wpname=sp.label[k],
+                    utc=ds_utc,
+                    utc_str=float_to_hh_mm(ds_utc),
+                    i='DS',
+                    deltat_min=0,
+                    label=''
+                )
+                # Insert in UTC order
+                inserted = False
+                for pos, mpt in enumerate(main_points):
+                    if ds_utc < mpt['utc']:
+                        main_points.insert(pos, ds_entry)
+                        inserted = True
+                        break
+                if not inserted:
+                    main_points.append(ds_entry)
+            # Recalculate deltat_min with drop sondes included
+            if main_points:
+                main_points[0]['deltat_min'] = 0
+                old_utc = main_points[0]['utc']
+                for mpt in main_points[1:]:
+                    mpt['deltat_min'] = int((mpt['utc'] - old_utc) * 60.0)
+                    old_utc = mpt['utc']
+                for mpt in main_points:
+                    try:
+                        mpt['label'] = fmt.format(**mpt)
+                    except Exception:
+                        mpt['label'] = '{}: {} UTC +{}min'.format(mpt['wpname'], mpt['utc_str'], mpt['deltat_min'])
+
         labels = [mpt['label'] for mpt in main_points]
         return labels,main_points
                        
@@ -1700,16 +1757,18 @@ def populate_ex_arr(filename=None,colorcycle=['red','blue','green']):
     wb = xw.Book(filename)
     num = wb.sheets.count
     for i in range(num):
-        if i==0:
+        if wb.sheets(i+1).name == 'Special_points':
+            continue
+        if not arr:
             campaign = 'None'
             datestr_verified = False
         else:
-            campaign = arr[i-1].campaign
+            campaign = arr[-1].campaign
             try:
-                datestr_verified = arr[i-1].datestr_verified
+                datestr_verified = arr[-1].datestr_verified
             except:
                 datestr_verified = False
-        arr.append(ex.dict_position(filename=filename,sheet_num=i+1,color=colorcycle[i],campaign=campaign,
+        arr.append(ex.dict_position(filename=filename,sheet_num=i+1,color=colorcycle[i % len(colorcycle)],campaign=campaign,
                                     datestr_verified=datestr_verified))
     return arr
     

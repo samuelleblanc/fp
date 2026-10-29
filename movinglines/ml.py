@@ -204,6 +204,12 @@
                 - Added configuration butten for the flight track.
         Modified: Samuel LeBlanc, v1.68, 2026-08-11, Santa Cruz, CA
                 - Use certifi SSL certificates in build_basemap to fix Windows certificate store errors on download of natural earth features.
+        Modified: Samuel LeBlanc, v1.69, 2026-08-24, Santa Cruz, CA
+                - Added special_points (specialpoints.py) initialization in Create_interaction().
+                - Added Annotations button in build_buttons() for map-click annotation entry.
+        Modified: Samuel LeBlanc, 2026-09-25, Santa Cruz, CA
+                - Pass lines.ex_arr (not a new [wb] list) to special_points so sp.ex_arr stays in
+                  sync when new aircraft are added.
 
 """
 try:
@@ -656,8 +662,18 @@ def build_buttons(ui,lines,vertical=True):
     #g.flippoints = ttk.Button(g.frame_points,text='Flip',style=tight,
     #                         command = g.gui_fliporder)
     #g.flippoints.pack(in_=g.frame_points,padx=0,pady=0,side=tk.LEFT)
+    g.frame_mods = ttk.Frame(ui.top)
+    g.frame_mods.pack(in_=ui.top,side=side,fill=tk.X,pady=2,padx=10,expand=True)
     g.add_flt_module = ttk.Button(g.root,text='Add flt module', command=g.gui_flt_module)
-    g.add_flt_module.pack(in_=ui.top)
+    #g.add_flt_module.pack(in_=g.frame_mods,pady=2,side=tk.RIGTH)
+    g.bannotations = tk.Button(g.root, text='Annotations', command=g.gui_annotations,
+                               padx=4, pady=2, borderwidth=1, highlightthickness=0,
+                               bg=bg, fg='SystemButtonText',
+                               activebackground=hover_bg, activeforeground='SystemButtonText')
+    g.bannotations.bind("<Enter>", lambda e, b=g.bannotations: b.configure(bg=hover_bg))
+    g.bannotations.bind("<Leave>", lambda e, b=g.bannotations: b.configure(bg=bg))
+    g.add_flt_module.pack(in_=g.frame_mods,pady=2,padx=10,side="left")
+    g.bannotations.pack(in_=g.frame_mods,pady=2,padx=10,side="left")
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
              ).pack(in_=ui.top,side=side,padx=8,pady=5)
     side_bar = g.root
@@ -947,6 +963,12 @@ def Create_interaction(test=False,profile=None,**kwargs):
     ui.progressbar.update()
     echo('Building the interactivity on the map')
     lines = mi.LineBuilder(line,m=m,ex=wb,tb=ui.tb,blit=True,verbose=args.verbose)
+    try:
+        import specialpoints as sp_mod
+    except ModuleNotFoundError:
+        from . import specialpoints as sp_mod
+    lines.sp = sp_mod.special_points(wb=wb.wb, ax=lines.line.axes, ex_arr=lines.ex_arr, m=m, verbose=args.verbose)
+    lines.sp.init_seg_positions()
     echo('Saving temporary excel file')
     savetmp(ui,wb)
     ui.progressbar.step(4)
