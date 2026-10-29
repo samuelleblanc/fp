@@ -82,6 +82,10 @@ class gui:
                  - gui_add_SUA_WMS: two-layer compositing — green for zones active within 24h (CQL time filter),
                    red (Active style) for currently active zones, composited with alpha_composite
                  - add_WMS: added select_style_str parameter to auto-select a WMS style by name
+        Modified: Samuel LeBlanc, 2026-10-29, Santa Cruz, CA
+                 - Added multi-image switcher: _register_figure, _reflow_figure_buttons, _switch_figure,
+                   _extract_time_label; compact time-chip buttons below the 'image' button let users
+                   switch between multiple loaded images/MSS forecast times in radio-button fashion
 
     """
     def __init__(self,line=None,root=None,noplt=False,debug=False):
@@ -108,6 +112,8 @@ class gui:
         self.noplt = noplt
         self.newflight_off = True
         self.debug = debug
+        self.figure_registry = {}        # name -> {label, ll_lat, ll_lon, ur_lat, ur_lon, transform}
+        self.figure_button_widgets = {}  # name -> chip_frame
         try:
             self.line.line.figure.canvas.mpl_connect('home_event', self.refresh)
         except ValueError:
@@ -1954,9 +1960,66 @@ class gui:
             transform_crs = self._parse_projection(source_proj)
             
         self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon,name=fpath[1],transform=transform_crs,text=fpath[1],debug=debug)
-        self.baddfigure.config(text='Remove image')
-        self.baddfigure.config(command=lambda: self.gui_rmfigure(fpath[1]),style='Bp.TButton')
-        
+        self._register_figure(fpath[1], ll_lat, ll_lon, ur_lat, ur_lon, transform_crs)
+
+    def _extract_time_label(self, name, label=None):
+        'Extract a compact time label from a WMS label string or image filename'
+        import re
+        if label:
+            m = re.search(r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})', label)
+            if m: return m.group(1).replace('T', ' ')
+            m = re.search(r'(\d{4}-\d{2}-\d{2})', label)
+            if m: return m.group(1)
+        m = re.search(r'(\d{4})[-_]?(\d{2})[-_]?(\d{2})[T_-]?(\d{2}):?(\d{2})', name)
+        if m: return '{}-{}-{} {}:{}'.format(*m.groups())
+        m = re.search(r'(\d{4})[-_]?(\d{2})[-_]?(\d{2})', name)
+        if m: return '{}-{}-{}'.format(*m.groups())
+        return name[:18].rstrip('._- ')
+
+    def _register_figure(self, name, ll_lat, ll_lon, ur_lat, ur_lon, transform, label=None):
+        'Register a loaded figure in the multi-image switcher and create its chip button'
+        import tkinter as tk
+        import tkinter.ttk as ttk
+        display_label = self._extract_time_label(name, label)
+        self.figure_registry[name] = dict(label=display_label, ll_lat=ll_lat, ll_lon=ll_lon, ur_lat=ur_lat, ur_lon=ur_lon, transform=transform)
+        if name in self.figure_button_widgets:
+            self.figure_button_widgets[name].destroy()
+        chip = ttk.Frame(self.figure_buttons_frame)
+        lbl_btn = ttk.Button(chip, text=display_label, command=lambda n=name: self._switch_figure(n), style=self.bg)
+        lbl_btn.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        x_btn = ttk.Button(chip, text='×', width=2, command=lambda n=name: self.gui_rmfigure(n), style=self.bg)
+        x_btn.pack(side=tk.LEFT)
+        chip._lbl_btn = lbl_btn
+        self.figure_button_widgets[name] = chip
+        self._reflow_figure_buttons()
+        self._switch_figure(name)
+        self.baddfigure.config(text='image ({})'.format(len(self.figure_registry)), style='Bp.TButton')
+
+    def _reflow_figure_buttons(self):
+        'Re-grid all figure chips in a single-column vertical stack inside figure_buttons_frame'
+        self.figure_buttons_frame.columnconfigure(0, weight=1)
+        for i, nm in enumerate(self.figure_registry.keys()):
+            if nm in self.figure_button_widgets:
+                self.figure_button_widgets[nm].grid(in_=self.figure_buttons_frame, row=i, column=0, padx=1, pady=1, sticky='we')
+
+    def _switch_figure(self, name):
+        'Switch visible background to the named figure; hide all others'
+        try: fu = self.line.m.figure_under
+        except AttributeError: return
+        fut = getattr(self.line.m, 'figure_under_text', {})
+        for n, chip in self.figure_button_widgets.items():
+            visible = (n == name)
+            if n in fu:
+                try: fu[n].set_visible(visible)
+                except: pass
+            if n in fut:
+                try: fut[n].set_visible(visible)
+                except: pass
+            try: chip._lbl_btn.config(style='Bp.TButton' if visible else self.bg)
+            except: pass
+        self.line.line.figure.canvas.draw_idle()
+        self.line.get_bg()
+
     def _parse_projection(self, proj_info):
         """Parse projection information and return cartopy CRS object"""
         import cartopy.crs as ccrs
@@ -2115,20 +2178,35 @@ class gui:
         try:
             self.line.m.figure_under[name].remove()
         except:
-            for f in self.line.m.figure_under[name]:
-                f.remove()
+            try:
+                for f in self.line.m.figure_under[name]:
+                    f.remove()
+            except: pass
         try:
             self.line.m.figure_under_text[name].remove()
         except:
             try:
                 for f in self.line.m.figure_under_text[name]:
                     try:
-                        f.remove  
+                        f.remove
                     except TypeError:
                         pass
             except AttributeError:
                 pass
-        self.baddfigure.config(text='Add image',command=self.gui_addfigure,style=self.bg)
+        self.figure_registry.pop(name, None)
+        chip = self.figure_button_widgets.pop(name, None)
+        if chip: chip.destroy()
+        self._reflow_figure_buttons()
+        remaining = list(self.figure_registry.keys())
+        if remaining:
+            self._switch_figure(remaining[-1])
+            self.baddfigure.config(text='image ({})'.format(len(remaining)), style='Bp.TButton')
+        else:
+            self.baddfigure.config(text='image', command=self.gui_addfigure, style=self.bg)
+        n_mss = sum(1 for k in self.figure_registry if k.startswith('MSS_'))
+        if n_mss == 0:
+            try: self.baddmss.config(text='MSS models', command=self.gui_add_MSS, style=self.bg)
+            except: pass
         self.line.get_bg(redraw=True)
         
     def gui_addgeos(self):
@@ -2187,12 +2265,16 @@ class gui:
         img,label,img_leg = self.add_WMS(website=out[i]['website'],printurl=True,notime=out[i]['notime'],mss_crs=True,bbox=bbox)
         if img:
             transform = self.line.m.proj
-            #if self.line.m.usestereformss: transform = self.line.m.usestereformss
-            r = self.add_wms_images(img,img_leg,name='MSS',text=label,transform=transform)
+            mss_time = self._extract_time_label('', label)
+            mss_name = 'MSS_{}'.format(mss_time)
+            r = self.add_wms_images(img,img_leg,name=mss_name,text=label,transform=transform)
             if r:
                 self.wmsname = out[i]['name']
-                self.baddmss.config(text='Remove MSS: {}'.format(out[i]['name']))
-                self.baddmss.config(command=self.gui_rm_mss,style='Bp.TButton')
+                ll_lat, ur_lat = self.line.m.llcrnrlat, self.line.m.urcrnrlat
+                ll_lon, ur_lon = self.line.m.llcrnrlon, self.line.m.urcrnrlon
+                self._register_figure(mss_name, ll_lat, ll_lon, ur_lat, ur_lon, transform, label=label)
+                n_mss = sum(1 for k in self.figure_registry if k.startswith('MSS_'))
+                self.baddmss.config(text='MSS ({})'.format(n_mss), command=self.gui_add_MSS, style='Bp.TButton')
             
     def gui_add_SUA_WMS(self):
         'Button to add Special Use Airspace WMS - active now in red, within 24h in green'

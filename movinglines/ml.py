@@ -767,17 +767,19 @@ def build_buttons(ui,lines,vertical=True):
                          command = g.gui_addfigure)
     #g.baddfigure.pack(in_=top_gui)
     g.baddfigure.grid(in_=top_gui,padx=0,pady=0,row=11,column=0,columnspan=2,  sticky='w'+'e'+'n'+'s')
+    g.figure_buttons_frame = ttk.Frame(side_bar)
+    g.figure_buttons_frame.grid(in_=top_gui,padx=0,pady=0,row=12,column=0,columnspan=2,  sticky='w'+'e'+'n'+'s')
     g.baddtidbit = ttk.Button(side_bar,text='Tropical tidbit',
                          command = g.gui_addtidbit)
     #g.baddtidbit.pack(in_=top_gui)
-    g.baddtidbit.grid(in_=top_gui,padx=0,pady=0,row=12,column=0,columnspan=2,  sticky='w'+'e'+'n'+'s')
-    
+    g.baddtidbit.grid(in_=top_gui,padx=0,pady=0,row=13,column=0,columnspan=2,  sticky='w'+'e'+'n'+'s')
+
     tk.Frame(side_bar,height=h,width=w,bg='black',relief='sunken'
-             ).grid(in_=top_gui,padx=8,pady=5,row=13,column=0,columnspan=2,sticky=tk.W+tk.E)
+             ).grid(in_=top_gui,padx=8,pady=5,row=14,column=0,columnspan=2,sticky=tk.W+tk.E)
     quit_style = ttk.Style()
     quit_style.configure('B3.TButton',background='lightcoral',foreground='darkred')
     ttk.Button(side_bar,text='Quit',command=g.stopandquit,style='B3.TButton'
-              ).grid(in_=top_gui,padx=8,pady=5,row=14,column=0,columnspan=2,sticky=tk.W+tk.E)
+              ).grid(in_=top_gui,padx=8,pady=5,row=15,column=0,columnspan=2,sticky=tk.W+tk.E)
     g.active_style = ttk.Style()
     g.active_style.configure('Ba.TButton',background='grey',foreground='black')
     g.pressed_style = ttk.Style()
