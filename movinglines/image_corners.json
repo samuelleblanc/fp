@@ -43,5 +43,14 @@
     "projection": {"type": "LambertAzimuthalEqualArea","central_latitude": 53.34,"central_longitude": -60.45,"false_easting": 0.0,"false_northing": 0.0}	},
  "NURTURE COAMPS adjoint": {"ll_lon": -121.2,"ll_lat":13.44,"ur_lon": 16.11,"ur_lat": 101.76,
 				  "coordinates_are_geographic": false, "debug":false,
-				  "projection": {"type": "PlateCarree"}}
+				  "projection": {"type": "PlateCarree"}},
+ "SPoRT WGS": {"ll_lon": -160,"ll_lat":18,"ur_lon": 20,"ur_lat": 89,
+				  "coordinates_are_geographic": false, "debug":false,
+				  "projection": {"type": "PlateCarree"}},
+ "SPoRT LaeaSmall": {"ll_lon": -2722816.5490577673,"ll_lat":-1909891.5586272862,"ur_lon": 2729129.988730744,"ur_lat": 1914318.7476608555,
+    "coordinates_are_geographic": false, "debug":false,
+    "projection": {"type": "LambertAzimuthalEqualArea","central_latitude": 53.34,"central_longitude": -60.45,"false_easting": 0.0,"false_northing": 0.0}},
+ "SPoRT LaeaLarge": {"ll_lon": -4985768.551089878,"ll_lat":-3499777.6720779394,"ur_lon": 5000226.733926495,"ur_lat": 3509869.2483775653,
+    "coordinates_are_geographic": false, "debug":false,
+    "projection": {"type": "LambertAzimuthalEqualArea","central_latitude": 60,"central_longitude": -60,"false_easting": 0.0,"false_northing": 0.0}}
 }
