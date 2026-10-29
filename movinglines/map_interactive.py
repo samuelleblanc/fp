@@ -387,11 +387,14 @@ class LineBuilder:
                 self.sp.lat[i] = la
                 self.sp.lon[i] = lo
             la, lo = float(self.sp.lat[i]), float(self.sp.lon[i])
-            # Recalculate leg info for drop_sonde on final position
+            # Recalculate leg info and segment anchor for drop_sonde on final position
             if self.sp.sp_type[i] == 'drop_sonde' and self.sp.aircraft_tab[i]:
                 ex = self.sp._find_ex(self.sp.aircraft_tab[i])
                 if ex and len(ex.lat) >= 2:
                     try:
+                        si, sf = self.sp._find_best_segment(la, lo, ex)
+                        self.sp.seg_i[i]   = int(si)
+                        self.sp.seg_frac[i] = float(sf)
                         cumlegt, legt, legdist = self.sp.calc_leg_info(la, lo, ex)
                         self.sp.cumlegt[i] = cumlegt
                         self.sp.legt[i]    = legt
@@ -521,6 +524,9 @@ class LineBuilder:
                 ex = self.sp._find_ex(self.sp.aircraft_tab[i])
                 if ex and len(ex.lat) >= 2:
                     try:
+                        si, sf = self.sp._find_best_segment(la, lo, ex)
+                        self.sp.seg_i[i]   = int(si)
+                        self.sp.seg_frac[i] = float(sf)
                         cumlegt, legt, legdist = self.sp.calc_leg_info(la, lo, ex)
                         self.sp.cumlegt[i] = cumlegt
                         self.sp.legt[i]    = legt

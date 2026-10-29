@@ -306,6 +306,24 @@ class gui:
             self.line.ex = self.line.ex_arr[i]
             self.line.onfigureenter([1]) # to force redraw and update from the newly opened excel
             self.load_flight(self.line.ex)
+        try:
+            try:
+                import specialpoints as sp_mod
+            except ModuleNotFoundError:
+                from . import specialpoints as sp_mod
+            self.line.sp = sp_mod.special_points(
+                wb=self.line.ex_arr[0].wb,
+                ax=self.line.line.axes,
+                ex_arr=self.line.ex_arr,
+                m=self.line.m,
+                verbose=self.line.verbose)
+            self.line.sp.init_seg_positions()
+            self.line.sp.draw()
+            if getattr(self.line, 'sp_manager', None):
+                self.line.sp_manager.sp = self.line.sp
+                self.line.sp_manager.refresh()
+        except Exception as e:
+            print('Special_points load failed: {}'.format(e))
         self.line.line.figure.canvas.draw()
         self.line.connect()
         self.flight_num = len(self.line.ex_arr)-1
@@ -399,7 +417,7 @@ class gui:
                                      markeredgecolor='k', markeredgewidth=0.5, zorder=50, label=ds_label)
                             ax1.annotate(sp.label[i], (utc_ds, alt_ds), fontsize=7, color='goldenrod',
                                          xytext=(4, 4), textcoords='offset points', zorder=51)
-                            ax1.axvline(utc_ds,color='cyan', lw=2,linestyle='-')
+                            ax1.axvline(utc_ds,color='goldenrod', lw=2,linestyle='-')
                             ds_label = None
         else:
             ax1.plot(self.line.ex.cumlegt,self.line.ex.alt,'x-',label=self.line.ex.name)
@@ -422,6 +440,7 @@ class gui:
                                  markeredgecolor='k', markeredgewidth=0.5, zorder=50, label=ds_label)
                         ax1.annotate(sp.label[i], (ct, alt_ds), fontsize=7, color='goldenrod',
                                      xytext=(4, 4), textcoords='offset points', zorder=51)
+                        ax1.axvline(ct, color='goldenrod', lw=2, linestyle='-', alpha=0.6)
                         ds_label = None
         if surf_alt:
             try:
@@ -1121,12 +1140,16 @@ class gui:
                 ])
             slides.append(dict(title='Annotations Summary (Drop Sondes & Special Points)', table=ann_table2))
         self.return_map(legend,grey_index)
-        
+
         #now save all the figures onto at common powerpoint
         try:
             nul,file_name = path.split(f_name)
+            n_ds = sum(1 for k in range(len(sp2.lat)) if sp2.sp_type[k] == 'drop_sonde') if sp2 else 0
+            pptx_subtitle = 'Objectives:\n   -\n   -\n   -'
+            if n_ds > 0:
+                pptx_subtitle += '\n\nDrop sondes planned: {:d}'.format(n_ds)
             create_generic_pptx(slides,f_name+'.pptx', title="Flight plan for {}\n{} \n {}".format(self.line.ex.datestr,file_name,subtitle),
-                                subtitle='Objectives:\n   -\n   -\n   -')
+                                subtitle=pptx_subtitle)
         except Exception as ie:
             tkMessageBox.showwarning('Powerpoint slide saving failed.','Error saving powerpoint.\n{}'.format(ie))
             print('powerpoint slide saving failed. Error:  {}'.format(ie))
@@ -1257,7 +1280,9 @@ class gui:
 
         # you can add more fields as placeholders if you like:
             #key_info['Satellite overpasses'] = '<to be filled>'
-            key_info['Number of dropsondes'] = '<to be filled>'
+            sp_doc = getattr(self.line, 'sp', None)
+            n_ds_doc = sum(1 for k in range(len(sp_doc.lat)) if sp_doc.sp_type[k] == 'drop_sonde') if sp_doc else 0
+            key_info['Number of dropsondes'] = str(n_ds_doc) if n_ds_doc > 0 else '<to be filled>'
             key_info['Flight level'] = f'FL{x.alt_kft[1]:03.0f} / {x.alt_kft[1]*1000:5.0f} ft / {x.alt[1]:5.0f} m'
 
         # --- text blocks: let the function insert red placeholders ---

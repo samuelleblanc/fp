@@ -750,6 +750,9 @@ class dict_position:
         """
         import numpy as np
         sh = self.wb.sh
+        if getattr(sh, 'name', '') == 'Special_points':
+            if self.verbose: print('check_updates_excel: wb.sh pointed at Special_points — skipping')
+            return False
         #self.wb.sh.activate(steal_focus=False) #self.wb.set_current()
         row_start = 2
         last_row = sh.range((self.wb.sheets.active.cells.last_cell.row,2)).end('up').row
@@ -1128,6 +1131,8 @@ class dict_position:
             print('Exception found:',ie)
             return
         self.name = wb.sheets(sheet_num).name
+        if self.name.lower()=='special_points':
+            return -1            
         wb.sheets(sheet_num).activate()
         wb.sh = wb.sheets(sheet_num)
         print('Activating sheet:%i, name:%s'%(sheet_num,wb.sheets(sheet_num).name))
@@ -1305,9 +1310,12 @@ class dict_position:
 
     def switchsheet(self,i):
         'Switch the active sheet with name supplied'
-        #from xlwings import Sheet
-        self.wb.sheets(i+1).activate()
-        self.wb.sh = self.wb.sheets(i+1)
+        target = self.wb.sheets(i+1)
+        if getattr(target, 'name', '') == 'Special_points':
+            if self.verbose: print('switchsheet: skipping Special_points tab at index {}'.format(i+1))
+            return
+        target.activate()
+        self.wb.sh = target
 
     def save2xl(self,filename=None):
         """
@@ -1749,16 +1757,18 @@ def populate_ex_arr(filename=None,colorcycle=['red','blue','green']):
     wb = xw.Book(filename)
     num = wb.sheets.count
     for i in range(num):
-        if i==0:
+        if wb.sheets(i+1).name == 'Special_points':
+            continue
+        if not arr:
             campaign = 'None'
             datestr_verified = False
         else:
-            campaign = arr[i-1].campaign
+            campaign = arr[-1].campaign
             try:
-                datestr_verified = arr[i-1].datestr_verified
+                datestr_verified = arr[-1].datestr_verified
             except:
                 datestr_verified = False
-        arr.append(ex.dict_position(filename=filename,sheet_num=i+1,color=colorcycle[i],campaign=campaign,
+        arr.append(ex.dict_position(filename=filename,sheet_num=i+1,color=colorcycle[i % len(colorcycle)],campaign=campaign,
                                     datestr_verified=datestr_verified))
     return arr
     
