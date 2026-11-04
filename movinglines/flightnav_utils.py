@@ -190,4 +190,32 @@ def lookup_vor_declination(file_path: str, target_vor: str):
                         return None
                         
     return None  # Return None if the master record wasn't found
+    
+def lookup_navaid_loc(file_path: str, target_navaid: str):
+    """
+    Scans a FAACIFP18 file line-by-line, targeting a specific navaid identifier.
+    Returns (lat, lon) as signed floats (S/W = negative), or (None, None) if not found.
+    """
+    target_navaid = f"{target_navaid.strip():<5}"
+    with open(file_path, 'r', encoding='utf-8', errors='ignore') as file:
+        for line in file:
+            # Structurally reject short procedural lines immediately
+            if len(line) < 79:
+                continue
+                
+            # Direct index matches for target_navaid
+            if line[13:18] == target_navaid:
+                position = line[32:52].strip()    # Extract variation block (e.g., 'N53280000W057120000')
+                
+                if len(position) == 19:
+                    arinc_lat_to_float = lambda s: (int(s[1:3]) + int(s[3:5])/60 + int(s[5:9])/360000) * (-1 if s[0] == 'S' else 1)
+                    arinc_lon_to_float = lambda s: (int(s[1:4]) + int(s[4:6])/60 + int(s[6:10])/360000) * (-1 if s[0] == 'W' else 1)
+
+                    try:
+                        return arinc_lat_to_float(position[0:9]),arinc_lon_to_float(position[9:])
+                    except ValueError:
+                        print(f'Value Error in navaid loc - lookup NavAID for location of {target_navaid}')
+                        return None, None
+                        
+    return None, None  # Return None if the master record wasn't found
 

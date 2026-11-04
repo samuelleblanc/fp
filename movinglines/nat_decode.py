@@ -164,10 +164,19 @@ def parse_nat_tracks(page_text: str) -> List[Dict[str, Any]]:
         'window': 'SEP 12/1130Z TO SEP 12/1900Z', 'raw_line': 'A BALIX 61/20 ... URTAK' }
     We parse both Shanwick (EGGX) and Gander (CZQX) blocks.
     """
+    try:
+        from flightnav_utils import lookup_navaid_loc, get_recent_FAACIFP
+    except:
+        from .flightnav_utils import lookup_navaid_loc, get_recent_FAACIFP
     lines = [l.strip() for l in page_text.splitlines() if l.strip()]
     # capture current validity window as we pass lines like: "SEP 12/1130Z TO SEP 12/1900Z"
     current_window = None
     tracks: List[Dict[str, Any]] = []
+    try:
+        cifp_path = get_recent_FAACIFP()
+    except Exception:
+        cifp_path = None
+    _navaid_cache: Dict[str, Any] = {}  # name -> (lat, lon) to avoid re-scanning per unique fix
 
     for idx, line in enumerate(lines):
         if re.search(r"\bTO\b\s+[A-Z]{3}\s*[\d/]*\d{4}Z", line) or re.search(r"\bTO\b\s+\w+\s*[\d/]*\d{4}Z", line):
@@ -208,6 +217,17 @@ def parse_nat_tracks(page_text: str) -> List[Dict[str, Any]]:
         named = [w for w in wpts if w["name"]]
         entry = named[0]["name"] if named else None
         exit_ = named[-1]["name"] if len(named) >= 1 else None
+        
+        if cifp_path:
+            for i, w in enumerate(wpts):
+                if w["name"] and w["lat"] is None:
+                    if w["name"] not in _navaid_cache:
+                        _navaid_cache[w["name"]] = lookup_navaid_loc(file_path=cifp_path, target_navaid=w["name"])
+                    lat, lon = _navaid_cache[w["name"]]
+                    if lat is not None:
+                        wpts[i]["lat"] = lat
+                        wpts[i]["lon"] = lon
+
 
         # Scan forward for EAST/WEST LVLS lines (after waypoint stop)
         east_lvls: List[str] = []
