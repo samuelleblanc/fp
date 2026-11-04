@@ -1,7 +1,7 @@
 BeautifulSoup>=3.2.2
 beautifulsoup4>=4.15.0
 Cartopy>=0.23.0
-certifi>=2025.8.3
+certifi>=2026.10.18
 cfgrib
 flightplandb
 GDAL>=3.3.3
@@ -35,3 +35,4 @@ xarray>=2024.3.0
 XlsxWriter
 xlsxwriter
 xlwings>=0.31.10
+
