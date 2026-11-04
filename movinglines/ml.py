@@ -977,6 +977,7 @@ def Create_interaction(test=False,profile=None,**kwargs):
     ui.progressbar.update()
     
     build_buttons(ui,lines)
+    ui.tb.setup_scrub(ui.g)
     ui.progressbar.step(2)
     ui.progressbar.update()
     ui.progressbar.destroy()

@@ -477,6 +477,8 @@ class LineBuilder:
             if self.ex:
                 self.ex.appends(self.lats[-1],self.lons[-1],alt=new_alt)
                 self.ex.calculate()
+                self.tb._scrub_scale.config(to=self.ex.utc.astype(float)[-1])
+                self.tb.draw_ticks()
                 self.ex.write_to_excel()
         for lrc in self.line.range_circles:
             lrc.remove()

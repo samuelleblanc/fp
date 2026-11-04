@@ -82,10 +82,35 @@ class gui:
                  - gui_add_SUA_WMS: two-layer compositing — green for zones active within 24h (CQL time filter),
                    red (Active style) for currently active zones, composited with alpha_composite
                  - add_WMS: added select_style_str parameter to auto-select a WMS style by name
-        Modified: Samuel LeBlanc, 2026-10-29, Santa Cruz, CA
+        Modified: Samuel LeBlanc, 2026-10-29, NASA Langley, VA
                  - Added multi-image switcher: _register_figure, _reflow_figure_buttons, _switch_figure,
                    _extract_time_label; compact time-chip buttons below the 'image' button let users
                    switch between multiple loaded images/MSS forecast times in radio-button fashion
+        Modified: Samuel LeBlanc, 2026-10-30, NASA Langley, VA
+                 - _extract_time_label now returns (short_label, time_str); short_label is the product
+                   name stripped of timestamp; time_str is DD/MM HH:MM UTC
+                 - _register_figure uses short_label on the chip button and attaches a ToolTip hover
+                   popup showing time_str
+        Modified: Samuel LeBlanc, 2026-11-01, Santa Cruz, CA
+                 - _register_figure tooltip now shows full WMS layer label / filename (full_label)
+                 - chip layout extended: [label] [☑ tick] [× close]
+                 - Added _toggle_scrub_include, _parse_utc_hours, _update_time_scrub,
+                   _on_time_scrub, _update_time_arrow for time scrubber and aircraft arrow
+                 - Time scrubber (ttk.Scale) appears inside figure_buttons_frame at row=100
+                   when ≥2 tick-enabled images are registered; spans min→max image UTC
+                 - FancyArrowPatch color taken from self.colors[iactive]; falls back to yellow
+                 - gui_rmfigure now cleans up figure_scrub_enabled and calls _update_time_scrub
+        Modified: Samuel LeBlanc, 2026-11-03, Santa Cruz, CA
+                 - Time scrubber is now always-present once first image is loaded (no longer
+                   created/destroyed based on count); extracted creation into _ensure_scrub_widget
+                 - Added _draw_time_ticks: tk.Canvas row below the ttk.Scale draws a short tick
+                   line + HH:MM label at each tick-enabled image's UTC position; redraws on
+                   <Configure> (resize) and whenever images are added/removed/toggled
+        Modified: Samuel LeBlanc, 2026-11-03, Santa Cruz, CA
+                 - Moved time scrubber (Scale, ◀/▶, tick canvas, arrow) to toolbar_with_measure;
+                   gui._update_time_scrub now just delegates to self.line.tb.set_scrub_times;
+                   setup_scrub(g) called from ml.py after build_buttons sets default 8-hour range
+                   from first flight UTC and wires the gui reference for figure switching/colors
 
     """
     def __init__(self,line=None,root=None,noplt=False,debug=False):
@@ -114,6 +139,7 @@ class gui:
         self.debug = debug
         self.figure_registry = {}        # name -> {label, ll_lat, ll_lon, ur_lat, ur_lon, transform}
         self.figure_button_widgets = {}  # name -> chip_frame
+        self.figure_scrub_enabled = {}   # name -> bool (include in time scrubber)
         try:
             self.line.line.figure.canvas.mpl_connect('home_event', self.refresh)
         except ValueError:
@@ -1963,36 +1989,64 @@ class gui:
         self._register_figure(fpath[1], ll_lat, ll_lon, ur_lat, ur_lon, transform_crs)
 
     def _extract_time_label(self, name, label=None):
-        'Extract a compact time label from a WMS label string or image filename'
+        'Return (short_label, time_str) from a WMS label string or image filename; time_str is DD/MM HH:MM UTC'
         import re
+        time_str = ''
+        short = ''
         if label:
-            m = re.search(r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})', label)
-            if m: return m.group(1).replace('T', ' ')
-            m = re.search(r'(\d{4}-\d{2}-\d{2})', label)
-            if m: return m.group(1)
-        m = re.search(r'(\d{4})[-_]?(\d{2})[-_]?(\d{2})[T_-]?(\d{2}):?(\d{2})', name)
-        if m: return '{}-{}-{} {}:{}'.format(*m.groups())
-        m = re.search(r'(\d{4})[-_]?(\d{2})[-_]?(\d{2})', name)
-        if m: return '{}-{}-{}'.format(*m.groups())
-        return name[:18].rstrip('._- ')
+            m = re.search(r'(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})', label)
+            if m:
+                yr, mo, dy, hh, mm = m.groups()
+                time_str = '{}/{} {}:{} UTC'.format(dy, mo, hh, mm)
+            short = re.sub(r'\s*\d{4}-\d{2}-\d{2}.*', '', label).strip()
+            if not short:
+                short = re.sub(r'\s*\d{4}[-_]\d{2}.*', '', name).strip('._- ')
+            short = short[:15].rstrip(' ._-') or name[:12]
+            if not time_str:
+                time_str = name[:18].rstrip('._- ')
+            return short, time_str
+        m = re.search(r'(\d{4})[-_](\d{2})[-_](\d{2})[T_-](\d{2})[-_:]?(\d{2})', name)
+        if m:
+            yr, mo, dy, hh, mm = m.groups()
+            time_str = '{}/{} {}:{} UTC'.format(dy, mo, hh, mm)
+        else:
+            m = re.search(r'(\d{4})[-_]?(\d{2})[-_]?(\d{2})', name)
+            if m:
+                yr, mo, dy = m.groups()
+                time_str = '{}/{}'.format(dy, mo)
+        short = re.sub(r'[_\-]?\d{4}.*', '', name).strip('._- ') or name[:12].rstrip('._- ')
+        if not time_str:
+            time_str = name[:18].rstrip('._- ')
+        return short, time_str
 
     def _register_figure(self, name, ll_lat, ll_lon, ur_lat, ur_lon, transform, label=None):
         'Register a loaded figure in the multi-image switcher and create its chip button'
         import tkinter as tk
         import tkinter.ttk as ttk
-        display_label = self._extract_time_label(name, label)
-        self.figure_registry[name] = dict(label=display_label, ll_lat=ll_lat, ll_lon=ll_lon, ur_lat=ur_lat, ur_lon=ur_lon, transform=transform)
+        short, time_str = self._extract_time_label(name, label)
+        display_label = short or name[:12]
+        display_label += f':{time_str}'
+        full_label = label or name
+        self.figure_registry[name] = dict(label=display_label, full_label=full_label, time_str=time_str,
+            ll_lat=ll_lat, ll_lon=ll_lon, ur_lat=ur_lat, ur_lon=ur_lon, transform=transform)
+        self.figure_scrub_enabled[name] = True
         if name in self.figure_button_widgets:
             self.figure_button_widgets[name].destroy()
         chip = ttk.Frame(self.figure_buttons_frame)
         lbl_btn = ttk.Button(chip, text=display_label, command=lambda n=name: self._switch_figure(n), style=self.bg)
         lbl_btn.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        ToolTip.createToolTip(lbl_btn, full_label)
+        tick_btn = ttk.Button(chip, text='☑', width=2,
+            command=lambda n=name: self._toggle_scrub_include(n), style=self.bg)
+        tick_btn.pack(side=tk.LEFT)
         x_btn = ttk.Button(chip, text='×', width=2, command=lambda n=name: self.gui_rmfigure(n), style=self.bg)
         x_btn.pack(side=tk.LEFT)
         chip._lbl_btn = lbl_btn
+        chip._tick_btn = tick_btn
         self.figure_button_widgets[name] = chip
         self._reflow_figure_buttons()
         self._switch_figure(name)
+        self._update_time_scrub()
         self.baddfigure.config(text='image ({})'.format(len(self.figure_registry)), style='Bp.TButton')
 
     def _reflow_figure_buttons(self):
@@ -2019,6 +2073,33 @@ class gui:
             except: pass
         self.line.line.figure.canvas.draw_idle()
         self.line.get_bg()
+
+    def _toggle_scrub_include(self, name):
+        'Toggle whether this figure is included in the time scrubber'
+        self.figure_scrub_enabled[name] = not self.figure_scrub_enabled.get(name, True)
+        chip = self.figure_button_widgets.get(name)
+        if chip and hasattr(chip, '_tick_btn'):
+            chip._tick_btn.config(text='☑' if self.figure_scrub_enabled[name] else '☐')
+        self._update_time_scrub()
+
+    def _parse_utc_hours(self, time_str):
+        'Parse DD/MM HH:MM UTC string to decimal hours; returns None if not parseable'
+        import re
+        m = re.search(r'(\d{2})/(\d{2})\s+(\d{2}):(\d{2})', time_str or '')
+        if m:
+            dy, mo, hh, mm = m.groups()
+            return int(hh) + int(mm) / 60.0
+        return None
+
+    def _update_time_scrub(self):
+        'Gather tick-enabled image times and forward to the toolbar scrubber'
+        times = [(self._parse_utc_hours(info.get('time_str', '')), nm)
+                 for nm, info in self.figure_registry.items()
+                 if self.figure_scrub_enabled.get(nm, True)]
+        times = [(h, nm) for h, nm in times if h is not None]
+        times.sort()
+        try: self.line.tb.set_scrub_times(times)
+        except Exception as e: print('Could not update scrub times: {}'.format(e))
 
     def _parse_projection(self, proj_info):
         """Parse projection information and return cartopy CRS object"""
@@ -2194,9 +2275,11 @@ class gui:
             except AttributeError:
                 pass
         self.figure_registry.pop(name, None)
+        self.figure_scrub_enabled.pop(name, None)
         chip = self.figure_button_widgets.pop(name, None)
         if chip: chip.destroy()
         self._reflow_figure_buttons()
+        self._update_time_scrub()
         remaining = list(self.figure_registry.keys())
         if remaining:
             self._switch_figure(remaining[-1])
@@ -2265,8 +2348,8 @@ class gui:
         img,label,img_leg = self.add_WMS(website=out[i]['website'],printurl=True,notime=out[i]['notime'],mss_crs=True,bbox=bbox)
         if img:
             transform = self.line.m.proj
-            mss_time = self._extract_time_label('', label)
-            mss_name = 'MSS_{}'.format(mss_time)
+            _, mss_time = self._extract_time_label('', label)
+            mss_name = 'MSS_{}'.format(mss_time.replace('/', '').replace(':', '').replace(' ', '_'))
             r = self.add_wms_images(img,img_leg,name=mss_name,text=label,transform=transform)
             if r:
                 self.wmsname = out[i]['name']
@@ -3770,6 +3853,10 @@ class toolbar_with_measure(NavigationToolbar2TkAgg):
        
     def __init__(self, canvas, window, *args, **kwargs):
         import os
+        try:
+            from map_utils import midpoint
+        except ModuleNotFoundError:
+            from .map_utils import midpoint
         super().__init__(canvas, window, *args, **kwargs)
         
         self._measure_active = False
@@ -3805,7 +3892,177 @@ class toolbar_with_measure(NavigationToolbar2TkAgg):
                 if tooltip_text is not None:
                     ToolTip.createToolTip(button, tooltip_text)
         self.bg = button.cget('bg')
-        
+        # Scrubber state (widgets built now; range/gui ref wired later via setup_scrub)
+        self.g = None
+        self._scrub_times = []
+        self._last_scrub_snap = None
+        self.time_arrow_artists = []
+        self._build_scrub_widgets()
+
+    # -------------------- TIME SCRUBBER --------------------
+
+    def _build_scrub_widgets(self):
+        'Pack time scrubber into the toolbar frame: ⏱ label + ◀ + scale + ▶ + tick canvas'
+        import tkinter as tk
+        #tk.Label(self, text=' | ').pack(side=tk.LEFT, padx=0)
+        frm = tk.Frame(self)
+        frm.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=0)
+        frm.columnconfigure(2, weight=1)
+        self._scrub_var = tk.DoubleVar(value=0.0)
+        self._scrub_lbl = tk.Label(frm, text='--:-- UTC', width=6, anchor='w',padx=0)
+        self._scrub_lbl.grid(row=0, column=0, sticky='w')
+        tk.Button(frm, text='◀', width=2, relief=tk.FLAT,
+            command=lambda: self._step_scrub(-1)).grid(row=0, column=1, padx=(1, 0))
+        self._scrub_scale = tk.Scale(frm, from_=0, to=8, orient=tk.HORIZONTAL,
+            variable=self._scrub_var, showvalue=0, resolution=0.5,
+            command=self._on_time_scrub)
+        self._scrub_scale.grid(row=0, column=2, sticky='we')
+        tk.Button(frm, text='▶', width=2, relief=tk.FLAT,
+            command=lambda: self._step_scrub(+1)).grid(row=0, column=3, padx=(0, 1))
+        self._scrub_tick_canvas = tk.Canvas(frm, height=10, bg='grey85', highlightthickness=0)
+        #self._scrub_tm_lb = tk.Label(frm, text='⏱', width=2, anchor='w')
+        #self._scrub_tm_lb. grid(row=1, column=0, sticky='w')
+        self._scrub_tick_canvas.grid(row=1, column=2, columnspan=1, sticky='we',padx=1)
+        self._scrub_tick_canvas.bind('<Configure>', lambda e: self.draw_ticks())
+        self._scrub_frame = frm
+
+    def setup_scrub(self, g):
+        'Wire in the gui reference and set default 8-hour range from the first flight UTC'
+        self.g = g
+        try:
+            t0 = float(self.g.line.ex.utc[0])
+        except (AttributeError, IndexError, TypeError) as ie:
+            print(f'*Error with setupping up time : {ie}*')
+            t0 = 8.0
+        self._scrub_scale.config(from_=t0, to=t0 + 8.0)
+        self._scrub_var.set(t0)
+
+    def set_scrub_times(self, times):
+        'Update registered image times; expand scale range to include them and redraw ticks'
+        self._scrub_times = times
+        if times:
+            cur_from = float(self._scrub_scale.cget('from'))
+            cur_to = float(self._scrub_scale.cget('to'))
+            t_min = min(times[0][0], cur_from)
+            flight_maxt = cur_from+self.g.line.ex.cumlegt[-1]
+            t_max = max(times[-1][0], cur_to,flight_maxt)
+            if t_min != cur_from or t_max != cur_to:
+                self._scrub_scale.config(from_=t_min, to=t_max)
+        self.draw_ticks()
+
+    def draw_ticks(self):
+        'Redraw image-time tick marks on the scrub tick canvas'
+        c = self._scrub_tick_canvas
+        if c is None: return
+        c.delete('all')
+        if not self._scrub_times: return
+        try:
+            t_min = float(self._scrub_scale.cget('from'))
+            t_max = float(self._scrub_scale.cget('to'))
+        except: return
+        if t_max <= t_min: return
+        w = c.winfo_width()
+        if w <= 1: return   # not yet rendered; <Configure> will re-fire
+        h = c.winfo_height()
+        for utc_h, nm in self._scrub_times:
+            x = int((utc_h - t_min) / (t_max - t_min) * w)
+            x = max(2, min(w - 2, x))
+            c.create_line(x, 0, x, h, fill='steelblue', width=2)
+
+    def _step_scrub(self, direction):
+        'Advance the time scrubber to the previous (-1) or next (+1) registered image time'
+        if not self._scrub_times or self._scrub_var is None: return
+        curr = float(self._scrub_var.get())
+        idx = min(range(len(self._scrub_times)), key=lambda i: abs(self._scrub_times[i][0] - curr))
+        new_idx = max(0, min(len(self._scrub_times) - 1, idx + direction))
+        new_utc = self._scrub_times[new_idx][0]
+        self._last_scrub_snap = None   # force redraw even if snapped position matches
+        self._scrub_var.set(new_utc)
+        self._on_time_scrub(new_utc)
+
+    def _on_time_scrub(self, value):
+        'Scrubber callback: update label; snap to 30-min grid; switch image and redraw arrow only on change'
+        utc_h = float(value)
+        hh = int(utc_h) % 24
+        mm = int((utc_h % 1) * 60)
+        try: self._scrub_lbl.config(text='{:02d}:{:02d} UTC'.format(hh, mm))
+        except: pass
+        snapped = round(utc_h * 2) / 2.0
+        if snapped == self._last_scrub_snap: return
+        self._last_scrub_snap = snapped
+        if self._scrub_times and self.g is not None:
+            nearest = min(self._scrub_times, key=lambda x: abs(x[0] - snapped))
+            self.g._switch_figure(nearest[1])
+        self._update_time_arrow(snapped)
+
+    def _update_time_arrow(self, utc_hours):
+        'Draw a FancyArrowPatch on the map at the interpolated aircraft position for utc_hours'
+        import numpy as np
+        import cartopy.crs as ccrs
+        from matplotlib.patches import FancyArrowPatch
+        for artist in self.time_arrow_artists:
+            try: artist.remove()
+            except: pass
+        self.time_arrow_artists = []
+        if self.g is None: return
+        lb = self.g.line  # LineBuilder instance (self.line is the raw Line2D, not LineBuilder)
+        try:
+            ex = lb.ex
+            if any(ex.legt>60): # get the mid point along great circle if any leg time is more than 60 minutes.
+                uu,laa,loo = ex.utc.astype(float),ex.lat.astype(float),ex.lon.astype(float)
+                utcs,lats,lons = [uu[0]],[laa[0]],[loo[0]]
+                for i,u in list(enumerate(ex.utc.astype(float)[:-2])):
+                    lo1,la1 = midpoint((loo[i],laa[i]),(loo[i+1],laa[i+1]))
+                    umid = (uu[i]+uu[i+1])/2
+                    if (umid >0.6) or (la1>75.0): # still long time in between or in northern latitudes
+                        lo0,la0 = midpoint((loo[i],laa[i]),(lo1,la1))
+                        utcs.append((uu[i]+umid)/2)
+                        lons.append(lo0)
+                        lats.append(la0)
+                    utcs.append(umid)
+                    lons.append(lo1)
+                    lats.append(la1)
+                    if (umid >0.6) or (la1>75.0): # still long time in between or in northern latitudes
+                        lo2,la2 = midpoint((lo1,la1),(loo[i+1],laa[i+1]))
+                        utcs.append((uu[i+1]+umid)/2)
+                        lons.append(lo2)
+                        lats.append(la2)
+                    utcs.append(uu[i+1])
+                    lons.append(loo[i+1])
+                    lats.append(laa[i+1])                    
+            else:
+                utcs = ex.utc.astype(float)
+                lats = ex.lat.astype(float)
+                lons = ex.lon.astype(float)
+            if len(utcs) < 2: return
+            utc_h = float(utc_hours)
+            lat_to = float(np.interp(utc_h, utcs, lats))
+            lon_to = float(np.interp(utc_h, utcs, lons))
+            lat_from = float(np.interp(utc_h - 0.25, utcs, lats))
+            lon_from = float(np.interp(utc_h - 0.25, utcs, lons))
+            if abs(lon_to - lon_from) < 1e-7 and abs(lat_to - lat_from) < 1e-7: return
+            try:
+                arrow_color = self.g.colors[self.g.iactive.get()]
+            except (IndexError, AttributeError, TypeError):
+                arrow_color = 'yellow'
+            # Pre-transform to native projection so the arrow direction matches the map path
+            src = ccrs.PlateCarree()
+            proj = self.m.ax.projection
+            x_from, y_from = proj.transform_point(lon_from, lat_from, src)
+            x_to, y_to = proj.transform_point(lon_to, lat_to, src)
+            arrow = FancyArrowPatch(
+                (x_from, y_from), (x_to, y_to),
+                arrowstyle='->', mutation_scale=40,
+                color=arrow_color, linewidth=2.5, zorder=15)
+            self.m.ax.add_patch(arrow)
+            self.time_arrow_artists.append(arrow)
+        except Exception as e:
+            print('Problem drawing time arrow: {}'.format(e))
+        try:
+            lb.get_bg(redraw=True)
+            lb.draw_canvas()
+        except: pass
+
     # -------------------- MEASURE TOOL --------------------
     def measure(self, *args):
         """Toggle click-to-measure between two points."""
