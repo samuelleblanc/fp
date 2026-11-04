@@ -2,8 +2,8 @@ BeautifulSoup==3.2.2
 beautifulsoup4==4.15.0
 Cartopy==0.20.0
 Cartopy==0.23.0
-certifi==2024.8.30
-certifi==2025.8.3
+certifi==2026.10.18
+certifi==2026.10.18
 cfgrib==0.9.15.0
 flightplandb==0.8.2
 GDAL==3.3.3
