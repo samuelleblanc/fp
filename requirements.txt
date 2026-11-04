@@ -19,7 +19,7 @@ netCDF4==1.7.5.1.post1
 numpy==1.24.4
 OWSLib==0.31.0
 pandas==2.0.3
-Pillow==9.0.0
+Pillow==13.0.0
 Pillow==13.0.0
 pvlib==0.13.0
 pyephem==9.99
