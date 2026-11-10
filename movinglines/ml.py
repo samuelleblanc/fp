@@ -626,10 +626,19 @@ def build_buttons(ui,lines,vertical=True):
         return f"#{r:02x}{g:02x}{b:02x}"
         
     accent_border = tk_rgb_to_hex(g.root.winfo_rgb("SystemHighlight"))
-    if not accent_border:    
+    if not accent_border:
         accent_border = bg
-    hover_bg = blend('#fdfdfd', accent_border, t=0.18)    
-     
+    hover_bg = blend('#fdfdfd', accent_border, t=0.18)
+    try:
+        bg_rgb = g.root.winfo_rgb(bg)
+        luma = (0.299 * bg_rgb[0] + 0.587 * bg_rgb[1] + 0.114 * bg_rgb[2]) / 65535
+        is_dark = luma < 0.5
+    except Exception:
+        is_dark = False
+    btn_bg = blend(bg, '#ffffff', t=0.12) if is_dark else bg
+    btn_fg = '#ffffff' if is_dark else '#111111'
+    btn_hover_bg = blend(bg, '#ffffff', t=0.28) if is_dark else hover_bg
+
     #style.layout(tight,[('Button.border', {'children': [('Button.focus', {'children': [('Button.padding', {'padding': (1, 0), 'children': [('Button.label', {'sticky': 'nswe'})], 'sticky': 'nswe'})], 'sticky': 'nswe'})], 'sticky': 'nswe'})])
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
              ).pack(in_=ui.top,side=side,padx=3,pady=5)
@@ -644,11 +653,16 @@ def build_buttons(ui,lines,vertical=True):
     ]
 
     for attr, text, cmd in specs:
-        btn = tk.Button(g.frame_points , text=text, command=cmd, padx=4, pady=0, borderwidth=1,highlightthickness=0,bg=bg,fg='SystemButtonText',activebackground=hover_bg,activeforeground='SystemButtonText')
-        btn.bind("<Enter>", lambda e,b=btn: b.configure(bg=hover_bg,        highlightbackground=accent_border,        highlightcolor=accent_border))
-        btn.bind("<Leave>", lambda e,b=btn: b.configure(bg=bg,        highlightbackground=accent_border,        highlightcolor=accent_border))
+        btn = tk.Button(g.frame_points, text=text, command=cmd, padx=4, pady=0,
+                        borderwidth=1, highlightthickness=0,
+                        bg=btn_bg, fg=btn_fg,
+                        activebackground=btn_hover_bg, activeforeground=btn_fg)
+        btn.bind("<Enter>", lambda e, b=btn: b.configure(bg=btn_hover_bg,
+                        highlightbackground=accent_border, highlightcolor=accent_border))
+        btn.bind("<Leave>", lambda e, b=btn: b.configure(bg=btn_bg,
+                        highlightbackground=accent_border, highlightcolor=accent_border))
         btn.pack(side=tk.LEFT, padx=0, pady=0)
-        setattr(g, attr, btn) 
+        setattr(g, attr, btn)
     
     #g.addpoint = ttk.Button(g.frame_points,text='Add',style=tight,
     #                        command = g.gui_addpoint)
@@ -668,10 +682,10 @@ def build_buttons(ui,lines,vertical=True):
     #g.add_flt_module.pack(in_=g.frame_mods,pady=2,side=tk.RIGTH)
     g.bannotations = tk.Button(g.root, text='Annotations', command=g.gui_annotations,
                                padx=4, pady=2, borderwidth=1, highlightthickness=0,
-                               bg=bg, fg='SystemButtonText',
-                               activebackground=hover_bg, activeforeground='SystemButtonText')
-    g.bannotations.bind("<Enter>", lambda e, b=g.bannotations: b.configure(bg=hover_bg))
-    g.bannotations.bind("<Leave>", lambda e, b=g.bannotations: b.configure(bg=bg))
+                               bg=btn_bg, fg=btn_fg,
+                               activebackground=btn_hover_bg, activeforeground=btn_fg)
+    g.bannotations.bind("<Enter>", lambda e, b=g.bannotations: b.configure(bg=btn_hover_bg))
+    g.bannotations.bind("<Leave>", lambda e, b=g.bannotations: b.configure(bg=btn_bg))
     g.add_flt_module.pack(in_=g.frame_mods,pady=2,padx=10,side="left")
     g.bannotations.pack(in_=g.frame_mods,pady=2,padx=10,side="left")
     tk.Frame(g.root,height=h,width=w,bg='black',relief='sunken'
