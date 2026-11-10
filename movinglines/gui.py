@@ -111,6 +111,26 @@ class gui:
                    gui._update_time_scrub now just delegates to self.line.tb.set_scrub_times;
                    setup_scrub(g) called from ml.py after build_buttons sets default 8-hour range
                    from first flight UTC and wires the gui reference for figure switching/colors
+        Modified: Samuel LeBlanc, 2026-11-09, Santa Cruz, CA
+                 - _switch_figure: per-image blit background cache (figure_bg_cache) keyed by
+                   (name, view_key) eliminates full canvas.draw() on repeated switches; only the
+                   first switch per image per view is slow; subsequent switches restore the cached
+                   buffer and blit. Cache cleared on image add/remove; view_key auto-invalidates
+                   on zoom/pan. canvas.draw_idle() replaced with synchronous canvas.draw() in the
+                   slow path to ensure the bg capture is always valid.
+                 - _save_map_per_image: helper that iterates figure_registry and saves a map PNG
+                   per registered image (suffixed _01, _02, …); gui_savefig, gui_saveall,
+                   gui_savepptx, gui_savedocx all use it so each loaded image gets its own slide
+                   or PNG file. Falls back to the single _map.png when no images are registered.
+                   Calls _update_time_arrow with each image's UTC time before saving so the
+                   aircraft position arrow is correct in every output PNG.
+                 - _update_time_arrow: replaced conditional midpoint insertion with per-leg
+                   geodetic bisection (target ≤75 km segments) applied to ALL legs so the
+                   interpolated position follows the great-circle path drawn by Cartopy.
+                   Direction lookback reduced from 15 min to 2 min for a local tangent heading.
+                 - gui_addfigure: two-field _ImageMetaDialog (button label + valid time) shown
+                   after corner selection; both fields pre-populated by _extract_time_label.
+                   Values passed to _register_figure via new short_override/time_override params.
 
     """
     def __init__(self,line=None,root=None,noplt=False,debug=False):
@@ -140,6 +160,7 @@ class gui:
         self.figure_registry = {}        # name -> {label, ll_lat, ll_lon, ur_lat, ur_lon, transform}
         self.figure_button_widgets = {}  # name -> chip_frame
         self.figure_scrub_enabled = {}   # name -> bool (include in time scrubber)
+        self.figure_bg_cache = {}        # name -> (bg_buffer, view_key) for fast blit switching
         try:
             self.line.line.figure.canvas.mpl_connect('home_event', self.refresh)
         except ValueError:
@@ -929,7 +950,8 @@ class gui:
         self.line.get_bg()
         
     def gui_savefig(self):
-        'gui program to save the current figure as png'
+        'gui program to save the current figure as png; iterates registered images if any'
+        from os import path
         if not self.line:
             print('No line object')
             return
@@ -940,7 +962,7 @@ class gui:
             lin = self.line.line[0]
         else:
             lin = self.line.line
-        lin.figure.savefig(filename,dpi=600,transparent=False)
+        self._save_map_per_image(lin, path.splitext(filename)[0])
         self.return_map(legend,grey_index)
         
     def prep_mapsave(self):
@@ -971,7 +993,41 @@ class gui:
             self.line.makegrey()
         self.line.line = line_start
         leg.remove()
-    
+
+    def _save_map_per_image(self, lin, base_path):
+        '''Save map figure for each registered image; base_path has no extension.
+        If no images are registered saves base_path.png; otherwise saves base_path_01.png,
+        base_path_02.png, … (one per figure_registry entry) then restores the original image.
+        The time arrow is updated to each image's UTC time before saving.
+        Returns list of (png_path, slide_title) tuples.'''
+        if not self.figure_registry:
+            p = base_path + '.png'
+            print('Saving figure file to: ' + p)
+            lin.figure.savefig(p, dpi=600, transparent=False)
+            return [(p, 'Map of flight paths')]
+        try:
+            fu = self.line.m.figure_under
+            orig = next((n for n in self.figure_registry if fu.get(n) and fu[n].get_visible()), None)
+        except Exception:
+            orig = None
+        results = []
+        for i, (name, info) in enumerate(self.figure_registry.items()):
+            self._switch_figure(name)
+            utc_h = self._parse_utc_hours(info.get('time_str', ''))
+            if utc_h is not None:
+                try: self.line.tb._update_time_arrow(utc_h)
+                except Exception as e: print('Arrow update failed for {}: {}'.format(name, e))
+            p = '{}_{:02d}.png'.format(base_path, i + 1)
+            print('Saving figure file to: ' + p)
+            lin.figure.savefig(p, dpi=600, transparent=False)
+            results.append((p, 'Map: {}'.format(info.get('label', name))))
+        if orig:
+            self._switch_figure(orig)
+        # Restore arrow to current scrubber position so stale save arrows don't persist
+        try: self.line.tb._update_time_arrow(float(self.line.tb._scrub_var.get()))
+        except Exception: pass
+        return results
+
     def gui_saveall(self):
         'gui program to run through and save all the file formats, without verbosity, for use in distribution'
         from os import path
@@ -1018,14 +1074,13 @@ class gui:
         except:
             print('** Error returning to spreadsheet set, please refresh after saving **')
             #tkMessageBox.showwarning('Unable to close for_pilots spreadsheet, please close manually')
-        print('Saving figure file to :'+f_name+'_map.png')
         if type(self.line.line) is list:
             lin = self.line.line[0]
         else:
             lin = self.line.line
         legend,grey_index = self.prep_mapsave()
-        lin.figure.savefig(f_name+'_map.png',dpi=600,transparent=False)
-        slides.append(dict(title='Map of flight paths',image_path=f_name+'_map.png'))
+        for map_path, map_title in self._save_map_per_image(lin, f_name+'_map'):
+            slides.append(dict(title=map_title, image_path=map_path))
         #save combined plot
         try:
             fig = self.gui_plotalttime_cmb()
@@ -1034,7 +1089,7 @@ class gui:
             slides.append(dict(title='Combined Altitude flight paths',image_path=f_name+'_alt_{}.png'.format('combined')))
         except:
             print('Issue saving the Alt vs time plot at:'+f_name+'_alt_{}.png'.format('combined'))
-            
+
         # go through each flight path
         names = [x.name for x in self.line.ex_arr]
         subtitle = ''
@@ -1115,14 +1170,13 @@ class gui:
             return
         f_name,_ = path.splitext(filename)
         slides = []
-        print('Saving figure file to :'+f_name+'_map.png')
         if type(self.line.line) is list:
             lin = self.line.line[0]
         else:
             lin = self.line.line
         legend,grey_index = self.prep_mapsave()
-        lin.figure.savefig(f_name+'_map.png',dpi=600,transparent=False)
-        slides.append(dict(title='Map of flight paths',image_path=f_name+'_map.png'))
+        for map_path, map_title in self._save_map_per_image(lin, f_name+'_map'):
+            slides.append(dict(title=map_title, image_path=map_path))
         #save combined plot
         try:
             fig = self.gui_plotalttime_cmb()
@@ -1131,7 +1185,7 @@ class gui:
             slides.append(dict(title='Combined Altitude flight paths',image_path=f_name+'_alt_{}.png'.format('combined')))
         except:
             print('Issue saving the Alt vs time plot at:'+f_name+'_alt_{}.png'.format('combined'))
-            
+
         # go through each flight path
         names = [x.name for x in self.line.ex_arr]
         subtitle = ''
@@ -1215,11 +1269,10 @@ class gui:
         else:
             lin = self.line.line
 
-        # save map
+        # save map (one PNG per registered image, or single _map.png if none)
         legend, grey_index = self.prep_mapsave()
-        lin.figure.savefig(f_name + '_map.png', dpi=600, transparent=False)
-        figures.append(dict(path=f_name + '_map.png',
-            caption="FIG. 1. Flight plan and dropsonde locations.",section="intro"))
+        for map_path, map_title in self._save_map_per_image(lin, f_name + '_map'):
+            figures.append(dict(path=map_path, caption=map_title + '.', section='intro'))
 
         # combined altitude vs time plot
         try:
@@ -1918,17 +1971,16 @@ class gui:
             from .load_utils import load_from_json
         try:
             from PIL import Image
-            filename = self.gui_file_select(ext='.png',ftype=[('All files','*.*'),
-                                                ('PNG','*.png'),('JPEG','*.jpg'),('GIF','*.gif')])
-            if not filename:
+            from tkinter.filedialog import askopenfilenames
+            from os.path import abspath
+            raw_fns = askopenfilenames(defaultextension='.png',
+                filetypes=[('All files','*.*'),('PNG','*.png'),('JPEG','*.jpg'),('GIF','*.gif')])
+            if not raw_fns:
                 print('Cancelled, no file selected')
                 return
-            print('Opening png File: %s' %filename)
-            #img = Image.open(filename)
-            img = imread(filename)
-            if debug: print('... opened')
+            filenames = [abspath(f) for f in raw_fns]
         except Exception as ei:
-            tkMessageBox.showwarning('Sorry',f'Error occurred unable to load file: \n{ei}')
+            tkMessageBox.showwarning('Sorry',f'Error occurred during file selection: \n{ei}')
             return
         # load the defined regions    
         try:
@@ -1980,13 +2032,46 @@ class gui:
                 print(f'...Adding manual image corners: LL({ll_lat},{ll_lon}) UR({ur_lat},{ur_lon}), in geographic: {coords_are_geographic}, with projection: {projection}')
                 debug=True
                    
-        fpath = os.path.split(filename)
-        transform_crs = ccrs.PlateCarree()
-        if source_proj and not coords_are_geographic:
-            transform_crs = self._parse_projection(source_proj)
-            
-        self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon,name=fpath[1],transform=transform_crs,text=fpath[1],debug=debug)
-        self._register_figure(fpath[1], ll_lat, ll_lon, ur_lat, ur_lon, transform_crs)
+        class _ImageMetaDialog(tkSimpleDialog.Dialog):
+            def __init__(self, parent, title, default_label, default_time):
+                self._def_label = default_label
+                self._def_time = default_time
+                self.result = None
+                tkSimpleDialog.Dialog.__init__(self, parent, title=title)
+            def body(self, master):
+                import tkinter as tk
+                tk.Label(master, text='Button label:').grid(row=0, column=0, sticky='w', padx=4, pady=3)
+                self._lv = tk.StringVar(value=self._def_label)
+                lbl_e = tk.Entry(master, textvariable=self._lv, width=30)
+                lbl_e.grid(row=0, column=1, padx=4, pady=3)
+                tk.Label(master, text='Valid time (DD/MM HH:MM UTC):').grid(row=1, column=0, sticky='w', padx=4, pady=3)
+                self._tv = tk.StringVar(value=self._def_time)
+                time_e = tk.Entry(master, textvariable=self._tv, width=30)
+                time_e.grid(row=1, column=1, padx=4, pady=3)
+                return lbl_e
+            def apply(self):
+                self.result = (self._lv.get().strip(), self._tv.get().strip())
+
+        for filename in filenames:
+            try:
+                print('Opening png File: %s' % filename)
+                img = imread(filename)
+                if debug: print('... opened')
+            except Exception as ei:
+                tkMessageBox.showwarning('Sorry', f'Error loading file: \n{ei}')
+                continue
+            fpath = os.path.split(filename)
+            transform_crs = ccrs.PlateCarree()
+            if source_proj and not coords_are_geographic:
+                transform_crs = self._parse_projection(source_proj)
+            _short, _time_str = self._extract_time_label(fpath[1])
+            _def_label = _short or fpath[1][:16].rstrip('._- ')
+            dlg = _ImageMetaDialog(self.root, 'Image: {}'.format(fpath[1]), _def_label, _time_str)
+            user_label = dlg.result[0] if dlg.result else _def_label
+            user_time  = dlg.result[1] if dlg.result else _time_str
+            self.line.addfigure_under(img,ll_lat,ll_lon,ur_lat,ur_lon,name=fpath[1],transform=transform_crs,text=fpath[1],debug=debug)
+            self._register_figure(fpath[1], ll_lat, ll_lon, ur_lat, ur_lon, transform_crs,
+                                  short_override=user_label, time_override=user_time)
 
     def _extract_time_label(self, name, label=None):
         'Return (short_label, time_str) from a WMS label string or image filename; time_str is DD/MM HH:MM UTC'
@@ -2019,11 +2104,15 @@ class gui:
             time_str = name[:18].rstrip('._- ')
         return short, time_str
 
-    def _register_figure(self, name, ll_lat, ll_lon, ur_lat, ur_lon, transform, label=None):
+    def _register_figure(self, name, ll_lat, ll_lon, ur_lat, ur_lon, transform, label=None, short_override=None, time_override=None):
         'Register a loaded figure in the multi-image switcher and create its chip button'
         import tkinter as tk
         import tkinter.ttk as ttk
         short, time_str = self._extract_time_label(name, label)
+        if short_override is not None:
+            short = short_override
+        if time_override is not None:
+            time_str = time_override
         display_label = short or name[:12]
         display_label += f':{time_str}'
         full_label = label or name
@@ -2045,6 +2134,7 @@ class gui:
         chip._tick_btn = tick_btn
         self.figure_button_widgets[name] = chip
         self._reflow_figure_buttons()
+        self.figure_bg_cache.clear()  # visibility configs changed; force fresh capture for all images
         self._switch_figure(name)
         self._update_time_scrub()
         self.baddfigure.config(text='image ({})'.format(len(self.figure_registry)), style='Bp.TButton')
@@ -2056,8 +2146,15 @@ class gui:
             if nm in self.figure_button_widgets:
                 self.figure_button_widgets[nm].grid(in_=self.figure_buttons_frame, row=i, column=0, padx=1, pady=1, sticky='we')
 
+    def _view_key(self):
+        'Rounded axis-limit tuple used to validate the per-image bg cache after zoom/pan'
+        ax = self.line.line.axes
+        xl, xr = ax.get_xlim()
+        yl, yr = ax.get_ylim()
+        return (round(xl, 3), round(xr, 3), round(yl, 3), round(yr, 3))
+
     def _switch_figure(self, name):
-        'Switch visible background to the named figure; hide all others'
+        'Switch visible background to the named figure; use per-image bg cache to avoid full redraws'
         try: fu = self.line.m.figure_under
         except AttributeError: return
         fut = getattr(self.line.m, 'figure_under_text', {})
@@ -2071,8 +2168,17 @@ class gui:
                 except: pass
             try: chip._lbl_btn.config(style='Bp.TButton' if visible else self.bg)
             except: pass
-        self.line.line.figure.canvas.draw_idle()
-        self.line.get_bg()
+        try: vk = self._view_key()
+        except Exception: vk = None
+        cache = self.figure_bg_cache.get(name)
+        if cache is not None and vk is not None and cache[1] == vk:
+            self.line.bg = cache[0]
+            self.line.draw_canvas()
+        else:
+            self.line.line.figure.canvas.draw()
+            self.line.get_bg()
+            if vk is not None:
+                self.figure_bg_cache[name] = (self.line.bg, vk)
 
     def _toggle_scrub_include(self, name):
         'Toggle whether this figure is included in the time scrubber'
@@ -2276,6 +2382,7 @@ class gui:
                 pass
         self.figure_registry.pop(name, None)
         self.figure_scrub_enabled.pop(name, None)
+        self.figure_bg_cache.pop(name, None)
         chip = self.figure_button_widgets.pop(name, None)
         if chip: chip.destroy()
         self._reflow_figure_buttons()
@@ -2345,19 +2452,22 @@ class gui:
         bbo0 = self.line.m.convert_latlon(self.line.m.llcrnrlon,self.line.m.llcrnrlat)
         bbo1 = self.line.m.convert_latlon(self.line.m.urcrnrlon,self.line.m.urcrnrlat)      
         bbox = (bbo0[0],bbo0[1],bbo1[0],bbo1[1])
-        img,label,img_leg = self.add_WMS(website=out[i]['website'],printurl=True,notime=out[i]['notime'],mss_crs=True,bbox=bbox)
-        if img:
+        img,label,img_leg = self.add_WMS(website=out[i]['website'],printurl=True,notime=out[i]['notime'],mss_crs=True,bbox=bbox,multi_time=True)
+        batch = getattr(self, '_mss_batch_results', None) or ([(img,label,img_leg)] if img else [])
+        self._mss_batch_results = []
+        if batch:
             transform = self.line.m.proj
-            _, mss_time = self._extract_time_label('', label)
-            mss_name = 'MSS_{}'.format(mss_time.replace('/', '').replace(':', '').replace(' ', '_'))
-            r = self.add_wms_images(img,img_leg,name=mss_name,text=label,transform=transform)
-            if r:
-                self.wmsname = out[i]['name']
-                ll_lat, ur_lat = self.line.m.llcrnrlat, self.line.m.urcrnrlat
-                ll_lon, ur_lon = self.line.m.llcrnrlon, self.line.m.urcrnrlon
-                self._register_figure(mss_name, ll_lat, ll_lon, ur_lat, ur_lon, transform, label=label)
-                n_mss = sum(1 for k in self.figure_registry if k.startswith('MSS_'))
-                self.baddmss.config(text='MSS ({})'.format(n_mss), command=self.gui_add_MSS, style='Bp.TButton')
+            ll_lat, ur_lat = self.line.m.llcrnrlat, self.line.m.urcrnrlat
+            ll_lon, ur_lon = self.line.m.llcrnrlon, self.line.m.urcrnrlon
+            for img_r, label_r, img_leg_r in batch:
+                _, mss_time = self._extract_time_label('', label_r)
+                mss_name = 'MSS_{}'.format(mss_time.replace('/', '').replace(':', '').replace(' ', '_'))
+                r = self.add_wms_images(img_r,img_leg_r,name=mss_name,text=label_r,transform=transform)
+                if r:
+                    self.wmsname = out[i]['name']
+                    self._register_figure(mss_name, ll_lat, ll_lon, ur_lat, ur_lon, transform, label=label_r)
+            n_mss = sum(1 for k in self.figure_registry if k.startswith('MSS_'))
+            self.baddmss.config(text='MSS ({})'.format(n_mss), command=self.gui_add_MSS, style='Bp.TButton')
             
     def gui_add_SUA_WMS(self):
         'Button to add Special Use Airspace WMS - active now in red, within 24h in green'
@@ -2648,7 +2758,7 @@ class gui:
             
     def add_WMS(self,website='http://wms.gsfc.nasa.gov/cgi-bin/wms.cgi?project=GEOS.fp.fcst.inst1_2d_hwl_Nx',
                 printurl=False,notime=False,popup=False,cql_filter=None,hires=False,
-                vert_crs=False,mss_crs=False,xlim=None,ylim=None,bbox=None,select_cont_str=None,select_style_str=None,**kwargs): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
+                vert_crs=False,mss_crs=False,xlim=None,ylim=None,bbox=None,select_cont_str=None,select_style_str=None,multi_time=False,**kwargs): #GEOS.fp.fcst.inst1_2d_hwl_Nx'):
         'GUI handler for adding the figures from WMS support of GEOS'
         try:
             from gui import Popup_list,inittime_sel_fx
@@ -2727,16 +2837,29 @@ class gui:
         self.root.config(cursor='exchange')
         self.root.update()
         
+        self._mss_batch_results = []
+        _pending_times = []
         if wms[cont[i]].timepositions:
             times = wms[cont[i]].timepositions
-            jpop = Popup_list(times,title='Select Valid Times')
+            if mss_crs and multi_time:
+                jpop = Popup_list(times,title='Select Valid Times',multi=True)
+            else:
+                jpop = Popup_list(times,title='Select Valid Times')
             if jpop.result is None:
                 print('Valid Times selection cancelled')
                 return False, None, False
-            time_sel = times[jpop.var.get()].strip()
+            if mss_crs and multi_time and jpop.multi:
+                sel_idxs = list(jpop.result)
+                if not sel_idxs:
+                    print('Valid Times selection cancelled')
+                    return False, None, False
+                time_sel = times[sel_idxs[0]].strip()
+                _pending_times = [times[j].strip() for j in sel_idxs[1:]]
+            else:
+                time_sel = times[jpop.var.get()].strip()
             if '/' in time_sel:
                 tss = time_sel.split('/')
-                time_sel = tss[1] 
+                time_sel = tss[1]
                 try:
                     import dateutil.parser
                     begin_time = dateutil.parser.parse(tss[0])
@@ -2980,8 +3103,55 @@ class gui:
                 self.root.update()
                 tkMessageBox.showwarning('Sorry','Problem reading the image a second time... abandonning')
                 return False, None, False
+        # Download any additional times selected via multi_time batch
+        if _pending_times and mss_crs:
+            self._mss_batch_results.append((geos, label, geos_legend))
+            n_batch = len(_pending_times)
+            batch_progress = ProgressWindow(self.root, total_steps=n_batch,
+                title='Downloading {} more image{}'.format(n_batch, 's' if n_batch > 1 else ''))
+            # Try the known-working init time first; fall back through the rest if it fails
+            if use_init_time_fx and dim_init:
+                init_candidates = [dim_init] + [t for t in inittime_sel if t != dim_init]
+            else:
+                init_candidates = [None]
+            for k, t_raw in enumerate(_pending_times, 1):
+                if batch_progress._destroyed:
+                    print('Batch download cancelled by user')
+                    break
+                t_sel = t_raw
+                if '/' in t_sel:
+                    tss2 = t_sel.split('/')
+                    t_sel = tss2[1]
+                t_label_base = '{}: {}[{}]\n {}'.format(cont[i], wms_layer_title, kwargs.get('styles',['default'])[0], t_sel)
+                if elev_sel: t_label_base += ', z:{}'.format(elev_sel)
+                t_short = t_sel.split('T')[0] if 'T' in t_sel else t_sel
+                batch_progress.status_label.config(text='Downloading {}/{}: {}'.format(k, n_batch, t_short))
+                batch_progress.window.update()
+                fetched = False
+                for ic in init_candidates:
+                    try:
+                        t_img = wms.getmap(layers=[cont[i]],style='default',bbox=bbox,size=res,
+                                           transparent=True,time=t_sel,srs=srs,format='image/png',
+                                           dim_init_time=ic,CQL_filter=cql_filter,timeout=90,**kwargs)
+                        if t_img:
+                            t_label_full = t_label_base + ', init:'+str(ic)
+                            if printurl: print(t_img.geturl())
+                            t_geos = Image.open(BytesIO(t_img.read()))
+                            try:
+                                t_leg = Image.open(BytesIO(openURL(t_img.geturl().replace('GetMap','GetLegend')).read()))
+                            except:
+                                t_leg = False
+                            self._mss_batch_results.append((t_geos, t_label_full, t_leg))
+                            fetched = True
+                            break
+                    except Exception as t_e:
+                        print('Failed to fetch time {} with init {}: {}'.format(t_sel, ic, t_e))
+                if not fetched:
+                    print('All init times failed for {}, skipping'.format(t_sel))
+                batch_progress.step('Done {}/{}'.format(k, n_batch))
+            batch_progress.close_immediately()
         return geos, label, geos_legend
-        
+
     def setup_logging(self):
         #logging
         import logging
@@ -3996,7 +4166,7 @@ class toolbar_with_measure(NavigationToolbar2TkAgg):
         self._update_time_arrow(snapped)
 
     def _update_time_arrow(self, utc_hours):
-        'Draw a FancyArrowPatch on the map at the interpolated aircraft position for utc_hours'
+        'Draw a FancyArrowPatch following the geodetic flight path at utc_hours'
         import numpy as np
         import cartopy.crs as ccrs
         from matplotlib.patches import FancyArrowPatch
@@ -4005,47 +4175,55 @@ class toolbar_with_measure(NavigationToolbar2TkAgg):
             except: pass
         self.time_arrow_artists = []
         if self.g is None: return
-        lb = self.g.line  # LineBuilder instance (self.line is the raw Line2D, not LineBuilder)
+        lb = self.g.line  # LineBuilder instance
         try:
             ex = lb.ex
-            if any(ex.legt>60): # get the mid point along great circle if any leg time is more than 60 minutes.
-                uu,laa,loo = ex.utc.astype(float),ex.lat.astype(float),ex.lon.astype(float)
-                utcs,lats,lons = [uu[0]],[laa[0]],[loo[0]]
-                for i,u in list(enumerate(ex.utc.astype(float)[:-2])):
-                    lo1,la1 = midpoint((loo[i],laa[i]),(loo[i+1],laa[i+1]))
-                    umid = (uu[i]+uu[i+1])/2
-                    if (umid >0.6) or (la1>75.0): # still long time in between or in northern latitudes
-                        lo0,la0 = midpoint((loo[i],laa[i]),(lo1,la1))
-                        utcs.append((uu[i]+umid)/2)
-                        lons.append(lo0)
-                        lats.append(la0)
-                    utcs.append(umid)
-                    lons.append(lo1)
-                    lats.append(la1)
-                    if (umid >0.6) or (la1>75.0): # still long time in between or in northern latitudes
-                        lo2,la2 = midpoint((lo1,la1),(loo[i+1],laa[i+1]))
-                        utcs.append((uu[i+1]+umid)/2)
-                        lons.append(lo2)
-                        lats.append(la2)
-                    utcs.append(uu[i+1])
-                    lons.append(loo[i+1])
-                    lats.append(laa[i+1])                    
-            else:
-                utcs = ex.utc.astype(float)
-                lats = ex.lat.astype(float)
-                lons = ex.lon.astype(float)
-            if len(utcs) < 2: return
+            uu = ex.utc.astype(float)
+            laa = ex.lat.astype(float)
+            loo = ex.lon.astype(float)
+            if len(uu) < 2: return
+            try:
+                from map_utils import midpoint, spherical_dist
+            except ModuleNotFoundError:
+                from .map_utils import midpoint, spherical_dist
+
+            def _bisect(lo0, la0, u0, lo1, la1, u1, levels):
+                'Recursively bisect a geodetic leg; returns (lons, lats, utcs) lists'
+                if levels <= 0:
+                    return [lo0, lo1], [la0, la1], [u0, u1]
+                lom, lam = midpoint((lo0, la0), (lo1, la1))
+                um = (u0 + u1) / 2.0
+                ll, lal, ul = _bisect(lo0, la0, u0, lom, lam, um, levels - 1)
+                lr, lar, ur = _bisect(lom, lam, um, lo1, la1, u1, levels - 1)
+                return ll[:-1] + lr, lal[:-1] + lar, ul[:-1] + ur
+
+            # Densify every leg along the great-circle path via repeated bisection.
+            # Target: segments ≤ 75 km so np.interp follows the geodetic curve.
+            lons_d, lats_d, utcs_d = [loo[0]], [laa[0]], [uu[0]]
+            for i in range(len(uu) - 1):
+                d = float(spherical_dist([laa[i], loo[i]], [laa[i+1], loo[i+1]]))
+                levels = max(0, int(np.ceil(np.log2(max(d / 75.0, 1.0)))))
+                ll, lal, ul = _bisect(loo[i], laa[i], uu[i], loo[i+1], laa[i+1], uu[i+1], levels)
+                lons_d.extend(ll[1:])
+                lats_d.extend(lal[1:])
+                utcs_d.extend(ul[1:])
+
+            utcs_d = np.array(utcs_d)
+            lats_d = np.array(lats_d)
+            lons_d = np.array(lons_d)
+
             utc_h = float(utc_hours)
-            lat_to = float(np.interp(utc_h, utcs, lats))
-            lon_to = float(np.interp(utc_h, utcs, lons))
-            lat_from = float(np.interp(utc_h - 0.25, utcs, lats))
-            lon_from = float(np.interp(utc_h - 0.25, utcs, lons))
+            dt = 1.0 / 30.0  # 2-min lookback gives local tangent direction
+            lat_to = float(np.interp(utc_h, utcs_d, lats_d))
+            lon_to = float(np.interp(utc_h, utcs_d, lons_d))
+            t_from = max(float(utcs_d[0]), utc_h - dt)
+            lat_from = float(np.interp(t_from, utcs_d, lats_d))
+            lon_from = float(np.interp(t_from, utcs_d, lons_d))
             if abs(lon_to - lon_from) < 1e-7 and abs(lat_to - lat_from) < 1e-7: return
             try:
                 arrow_color = self.g.colors[self.g.iactive.get()]
             except (IndexError, AttributeError, TypeError):
                 arrow_color = 'yellow'
-            # Pre-transform to native projection so the arrow direction matches the map path
             src = ccrs.PlateCarree()
             proj = self.m.ax.projection
             x_from, y_from = proj.transform_point(lon_from, lat_from, src)
