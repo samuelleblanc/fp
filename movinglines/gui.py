@@ -131,6 +131,12 @@ class gui:
                  - gui_addfigure: two-field _ImageMetaDialog (button label + valid time) shown
                    after corner selection; both fields pre-populated by _extract_time_label.
                    Values passed to _register_figure via new short_override/time_override params.
+        Modified: Samuel LeBlanc, 2026-11-09, Santa Cruz, CA
+                 - Added Nightshade (cartopy.feature.nightshade) to the map: very light dark shading
+                   (alpha=0.07) for the night side of Earth, updated whenever the time scrubber moves
+                   or when the map first loads. _update_nightshade removes the old artist, adds a new
+                   Nightshade for the current UTC datetime, clears figure_bg_cache so cached
+                   backgrounds are regenerated with the updated shading.
 
     """
     def __init__(self,line=None,root=None,noplt=False,debug=False):
@@ -4067,6 +4073,7 @@ class toolbar_with_measure(NavigationToolbar2TkAgg):
         self._scrub_times = []
         self._last_scrub_snap = None
         self.time_arrow_artists = []
+        self.nightshade_artist = None
         self._build_scrub_widgets()
 
     # -------------------- TIME SCRUBBER --------------------
@@ -4106,6 +4113,36 @@ class toolbar_with_measure(NavigationToolbar2TkAgg):
             t0 = 8.0
         self._scrub_scale.config(from_=t0, to=t0 + 8.0)
         self._scrub_var.set(t0)
+        self._update_nightshade(t0)
+
+    def _update_nightshade(self, utc_hours):
+        'Replace Nightshade artist for utc_hours (alpha=0.07); clears figure_bg_cache'
+        try:
+            from cartopy.feature.nightshade import Nightshade
+            from datetime import datetime, timedelta
+        except ImportError:
+            return
+        try:
+            ax = self.m.ax
+        except AttributeError:
+            return
+        if self.nightshade_artist is not None:
+            try: self.nightshade_artist.remove()
+            except: pass
+            self.nightshade_artist = None
+        try:
+            datestr = self.g.line.ex.datestr
+            Y, M, D = [int(s) for s in datestr.split('-')]
+            dt = datetime(Y, M, D) + timedelta(hours=float(utc_hours))
+        except Exception:
+            dt = datetime.utcnow()
+        try:
+            self.nightshade_artist = ax.add_feature(Nightshade(dt, alpha=0.07))
+        except Exception as e:
+            print('Nightshade error: {}'.format(e))
+            return
+        if self.g is not None:
+            self.g.figure_bg_cache.clear()
 
     def set_scrub_times(self, times):
         'Update registered image times; expand scale range to include them and redraw ticks'
@@ -4237,6 +4274,7 @@ class toolbar_with_measure(NavigationToolbar2TkAgg):
         except Exception as e:
             print('Problem drawing time arrow: {}'.format(e))
         try:
+            self._update_nightshade(utc_hours)
             lb.get_bg(redraw=True)
             lb.draw_canvas()
         except: pass

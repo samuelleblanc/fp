@@ -122,6 +122,10 @@ class LineBuilder:
                 - Performance: add resize_event handler to recapture blit background after window resize.
                 - Performance: fast-path label updates in update_labels to reuse annotations in-place when count unchanged.
                 - Performance: vectorize inverter_lonlat closure in build_basemap with transform_points.
+        Modified: Samuel LeBlanc, 2026-11-09, Santa Cruz, CA
+                - onrelease: call tb._update_nightshade(ex.utc[-1]) before canvas.draw() so the
+                  Nightshade is refreshed to the active flight's latest time whenever a waypoint is
+                  added or moved.
 
     """
     def __init__(self, line,m=None,ex=None,verbose=False,tb=None, blit=True):
@@ -488,6 +492,10 @@ class LineBuilder:
             except:
                 continue
         self.update_labels(nodraw=True,updatexys=True)
+        try:
+            self.tb._update_nightshade(float(self.ex.utc[-1]))
+        except Exception:
+            pass
         self.line.figure.canvas.draw()
         self.get_bg()
             
